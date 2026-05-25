@@ -286,14 +286,6 @@ function ChannelPanel({
     const ok = await upsertChannel(config.id, contactValue);
     if (!ok) { setSaving(false); setLocalError(hookError ?? 'Failed to save'); return; }
 
-    if (emailAlreadyVerified) {
-      // Mark verified immediately — no code needed
-      const verOk = await verifyCode(config.id, '__skip__');
-      // This will fail — instead use a direct RPC approach via toggle after upsert with email match
-      // For now: attempt verify with magic bypass. If it fails, show the code flow anyway.
-      void verOk;
-    }
-
     const result = await sendCode(config.id, contactValue);
     if (!result) { setSaving(false); setLocalError(hookError ?? 'Failed to send code'); return; }
 

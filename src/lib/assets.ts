@@ -37,7 +37,6 @@ export const ICONS = {
   star:         `${IC}/star.png`,
   shield:       `${IC}/shield.png`,
   scroll:       `${IC}/scroll.png`,
-  check:        `${IC}/check.png`,
   check_circle: `${IC}/check_circle.png`,
   arrow_up:     `${IC}/arrow_up.png`,
   arrow_down:   `${IC}/arrow_down.png`,
