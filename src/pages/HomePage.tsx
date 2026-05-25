@@ -6,7 +6,7 @@ import { useGame } from '../hooks/useGame';
 import { useQualification } from '../hooks/useQualification';
 import { useFlyers } from '../hooks/useFlyers';
 import { useGamesCatalog } from '../hooks/useGamesCatalog';
-import { formatCents, USE_SCENE_BASED_SKULL_GATE } from '../lib/constants';
+import { formatCents, USE_SCENE_BASED_SKULL_GATE, DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW } from '../lib/constants';
 import { getGameDef } from '../lib/gameRegistry';
 import { getGameConfig } from '../lib/gameConfigs';
 import { useSkullGateAssignment } from '../hooks/useSkullGateAssignment';
@@ -463,10 +463,11 @@ export default function HomePage() {
     const result = await play(tier);
     await fetchQualification();
     if (result) {
-      // Only try scene assignment AFTER the play is committed and only when flag is on
-      if (USE_SCENE_BASED_SKULL_GATE) {
-        // Fire-and-forget — failure falls back to hardcoded challenge
-        assignToday().catch(() => {});
+      // Scene assignment must resolve BEFORE phase='challenge' so the
+      // renderer switch has a valid gateAssignment to inspect.
+      // On failure (network error / no eligible), falls back to hardcoded challenge.
+      if (USE_SCENE_BASED_SKULL_GATE || DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW) {
+        await assignToday().catch(() => {});
       }
       setPhase('challenge');
     }
@@ -488,9 +489,9 @@ export default function HomePage() {
   const handleRecover = async () => {
     const result = await recoverTodayPlay();
     if (result) {
-      if (USE_SCENE_BASED_SKULL_GATE) {
-        // Fetch today's existing assignment (get_or_assign idempotent — returns cached row)
-        assignToday().catch(() => {});
+      // Must await so gateAssignment is populated before phase='challenge' renders
+      if (USE_SCENE_BASED_SKULL_GATE || DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW) {
+        await assignToday().catch(() => {});
       }
       setPhase('challenge');
     }
@@ -862,7 +863,7 @@ export default function HomePage() {
       {phase === 'challenge' && pendingResult && (
         // Flag ON + valid assignment with scene config → new renderer
         // Flag OFF or no eligible scene or any error → hardcoded fallback
-        USE_SCENE_BASED_SKULL_GATE && gateAssignment && gateSceneConfig && !gateAssignment.no_eligible
+        (USE_SCENE_BASED_SKULL_GATE || DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW) && gateAssignment && gateSceneConfig && !gateAssignment.no_eligible
           ? (
             <SkullGateSceneChallenge
               pendingResult={pendingResult}

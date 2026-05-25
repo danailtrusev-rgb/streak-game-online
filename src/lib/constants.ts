@@ -14,6 +14,18 @@ export const TOPUP_PRESETS = [500, 1000, 2000, 5000] as const;
  */
 export const USE_SCENE_BASED_SKULL_GATE = false;
 
+/**
+ * DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW
+ *
+ * Dev/admin-only toggle. When true, forces the scene-based renderer path
+ * for the Skull Gate challenge regardless of USE_SCENE_BASED_SKULL_GATE.
+ * USE_SCENE_BASED_SKULL_GATE takes priority for production; this flag is for
+ * local integration testing only. Never enable both at the same time.
+ *
+ * Set to true locally to test scene-based Torch Trial before going live.
+ */
+export const DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW = false;
+
 export const MILESTONES = [3, 7, 14, 30] as const;
 
 export const TIER_LABELS: Record<number, string> = {
