@@ -1,10 +1,14 @@
 // Scene Editor — Layer Settings panel
 // Editable form for all SceneLayer fields, door animation, and effects.
 
+import { useState } from 'react';
+import { Image } from 'lucide-react';
 import type {
   SceneLayer, LayerType, LayerRole, AnimationPreset, EffectPreset,
   DoorAnimationPreset, DoorAnimationTrigger,
 } from '../../../lib/types';
+import type { SkullGateAsset } from '../../../hooks/useSkullGateAssets';
+import { ASSET_TYPE_ROLE } from '../../../hooks/useSkullGateAssets';
 
 const UF = "'Inter', system-ui, sans-serif";
 
@@ -145,14 +149,95 @@ function Grid2({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── Asset Picker ──────────────────────────────────────────────────────────────
+
+function AssetPicker({
+  assets,
+  onSelect,
+  onClose,
+}: {
+  assets: SkullGateAsset[];
+  onSelect: (a: SkullGateAsset) => void;
+  onClose:  () => void;
+}) {
+  const [q, setQ] = useState('');
+  const filtered = assets.filter((a) => {
+    if (!q) return true;
+    const s = q.toLowerCase();
+    return a.label.toLowerCase().includes(s) || a.asset_path.toLowerCase().includes(s) || a.tags.some((t) => t.toLowerCase().includes(s));
+  });
+
+  return (
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 20, background: 'rgba(6,12,8,0.97)',
+      border: '1px solid rgba(245,208,96,0.2)',
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search assets…"
+          style={{ ...inputStyle, flex: 1, fontSize: 11 }}
+        />
+        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: 4, fontSize: 16, lineHeight: 1 }}>×</button>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        {filtered.length === 0 && (
+          <div style={{ padding: 16, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontFamily: UF, textAlign: 'center' }}>
+            {assets.length === 0 ? 'No assets in library yet.' : 'No matches.'}
+          </div>
+        )}
+        {filtered.map((a) => (
+          <button
+            key={a.id}
+            onClick={() => onSelect(a)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              width: '100%', padding: '7px 10px',
+              background: 'transparent', border: 'none',
+              borderBottom: '1px solid rgba(255,255,255,0.03)',
+              cursor: 'pointer', textAlign: 'left',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+          >
+            {/* mini thumb */}
+            <div style={{ width: 32, height: 32, flexShrink: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <img src={a.asset_path} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontFamily: UF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {a.label || a.asset_path.split('/').pop()}
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: UF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {a.asset_type} · {a.asset_path}
+              </div>
+            </div>
+            {ASSET_TYPE_ROLE[a.asset_type] && (
+              <div style={{ fontSize: 8, padding: '1px 5px', background: 'rgba(245,208,96,0.08)', border: '1px solid rgba(245,208,96,0.2)', color: 'rgba(245,208,96,0.5)', fontFamily: UF, flexShrink: 0 }}>
+                {ASSET_TYPE_ROLE[a.asset_type]}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface Props {
   layer:    SceneLayer;
   onChange: (updated: SceneLayer) => void;
+  assets?:  SkullGateAsset[];
 }
 
-export default function SceneEditorLayerSettings({ layer, onChange }: Props) {
+export default function SceneEditorLayerSettings({ layer, onChange, assets = [] }: Props) {
+  const [showPicker, setShowPicker] = useState(false);
   const set = <K extends keyof SceneLayer>(key: K, value: SceneLayer[K]) =>
     onChange({ ...layer, [key]: value });
 
@@ -174,7 +259,23 @@ export default function SceneEditorLayerSettings({ layer, onChange }: Props) {
 
   const isDoor = layer.role === 'gate_door_left' || layer.role === 'gate_door_right';
 
+  const handleAssetSelect = (a: SkullGateAsset) => {
+    const suggestedRole = ASSET_TYPE_ROLE[a.asset_type] as SceneLayer['role'] | undefined;
+    const updated: SceneLayer = { ...layer, assetPath: a.asset_path };
+    if (suggestedRole && layer.role === 'none') updated.role = suggestedRole as SceneLayer['role'];
+    onChange(updated);
+    setShowPicker(false);
+  };
+
   return (
+    <div style={{ position: 'relative', height: '100%', minHeight: 0 }}>
+      {showPicker && (
+        <AssetPicker
+          assets={assets}
+          onSelect={handleAssetSelect}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
     <div style={{
       display: 'flex', flexDirection: 'column', gap: 7,
       padding: '10px', overflowY: 'auto', height: '100%', minHeight: 0,
@@ -196,7 +297,33 @@ export default function SceneEditorLayerSettings({ layer, onChange }: Props) {
 
       {/* ── Asset ── */}
       <SectionTitle>Asset</SectionTitle>
-      <TextField label="Asset Path" value={layer.assetPath ?? ''} onChange={(v) => set('assetPath', v || undefined)} />
+      <div>
+        <div style={{ display: 'flex', gap: 5, alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <TextField label="Asset Path" value={layer.assetPath ?? ''} onChange={(v) => set('assetPath', v || undefined)} />
+          </div>
+          <button
+            onClick={() => setShowPicker(true)}
+            title="Pick from Asset Library"
+            style={{
+              flexShrink: 0, padding: '5px 8px', marginBottom: 0,
+              background: assets.length > 0 ? 'rgba(50,80,50,0.4)' : 'rgba(30,40,30,0.3)',
+              border: '1px solid rgba(80,140,50,0.3)',
+              cursor: assets.length > 0 ? 'pointer' : 'not-allowed',
+              color: assets.length > 0 ? '#A8D090' : 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center',
+            }}
+            disabled={assets.length === 0}
+          >
+            <Image size={12} />
+          </button>
+        </div>
+        {layer.assetPath && (
+          <div style={{ marginTop: 4, width: 40, height: 40, background: 'rgba(0,0,0,0.4)', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <img src={layer.assetPath} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
+          </div>
+        )}
+      </div>
       {(layer.type === 'text' || layer.type === 'button') && (
         <>
           <TextField label="Text / Label" value={layer.text ?? layer.content ?? ''} onChange={(v) => set('text', v || undefined)} />
@@ -301,6 +428,7 @@ export default function SceneEditorLayerSettings({ layer, onChange }: Props) {
         <NumField label="Blur (px)"   value={layer.effects?.blur}           onChange={(v) => setEffect('blur', v)} step={1} min={0} />
       </Grid2>
       <TextField label="Color Mood (css color)" value={layer.effects?.colorMood ?? ''} onChange={(v) => setEffect('colorMood', v || undefined)} />
+    </div>
     </div>
   );
 }

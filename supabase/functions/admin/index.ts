@@ -104,6 +104,12 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && path === "/skull-gate-scenes/duplicate")   return await handleDuplicateScene(supabase, username, await req.json());
     if (req.method === "POST" && path === "/skull-gate-scenes/archive")     return await handleArchiveScene(supabase, username, await req.json());
 
+    // ── Asset Library routes ─────────────────────────────────────────────────
+    if (req.method === "GET"  && path === "/skull-gate-assets")             return await handleListAssets(supabase);
+    if (req.method === "POST" && path === "/skull-gate-assets/create")      return await handleCreateAsset(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/skull-gate-assets/update")      return await handleUpdateAsset(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/skull-gate-assets/delete")      return await handleDeleteAsset(supabase, username, await req.json());
+
     return errorResponse("Not found", 404);
   } catch (err) {
     return errorResponse(err instanceof Error ? err.message : "Internal error", 500);
@@ -812,4 +818,100 @@ async function handleArchiveScene(
     payload_json: { id, slug: data.slug },
   });
   return jsonResponse({ success: true, scene: data });
+}
+
+// ── Asset Library handlers ────────────────────────────────────────────────────
+
+async function handleListAssets(supabase: ReturnType<typeof createClient>) {
+  const { data, error } = await supabase
+    .from("skull_gate_assets")
+    .select("*")
+    .order("asset_type")
+    .order("label");
+  if (error) return errorResponse(error.message);
+  return jsonResponse({ assets: data ?? [] });
+}
+
+async function handleCreateAsset(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: { asset_path: string; asset_type: string; label: string; tags?: string[]; notes?: string },
+) {
+  const { asset_path, asset_type, label, tags, notes } = body;
+  if (!asset_path) return errorResponse("Missing asset_path");
+  if (!asset_type) return errorResponse("Missing asset_type");
+
+  const { data, error } = await supabase
+    .from("skull_gate_assets")
+    .insert({ asset_path, asset_type, label: label || asset_path.split("/").pop() || "", tags: tags ?? [], notes: notes ?? null })
+    .select("*")
+    .maybeSingle();
+  if (error) return errorResponse(error.message);
+
+  await supabase.from("admin_audit_log").insert({
+    admin_actor: actor,
+    action: "create_skull_gate_asset",
+    payload_json: { id: data?.id, asset_path },
+  });
+  return jsonResponse({ success: true, asset: data });
+}
+
+async function handleUpdateAsset(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: { id: string; asset_path?: string; asset_type?: string; label?: string; tags?: string[]; notes?: string },
+) {
+  const { id, ...rest } = body;
+  if (!id) return errorResponse("Missing id");
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (rest.asset_path !== undefined) updates.asset_path = rest.asset_path;
+  if (rest.asset_type !== undefined) updates.asset_type = rest.asset_type;
+  if (rest.label      !== undefined) updates.label      = rest.label;
+  if (rest.tags       !== undefined) updates.tags       = rest.tags;
+  if (rest.notes      !== undefined) updates.notes      = rest.notes;
+
+  const { data, error } = await supabase
+    .from("skull_gate_assets")
+    .update(updates)
+    .eq("id", id)
+    .select("*")
+    .maybeSingle();
+  if (error) return errorResponse(error.message);
+  if (!data)  return errorResponse("Asset not found", 404);
+
+  await supabase.from("admin_audit_log").insert({
+    admin_actor: actor,
+    action: "update_skull_gate_asset",
+    payload_json: { id, asset_path: data.asset_path },
+  });
+  return jsonResponse({ success: true, asset: data });
+}
+
+async function handleDeleteAsset(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: { id: string },
+) {
+  const { id } = body;
+  if (!id) return errorResponse("Missing id");
+
+  const { data: existing } = await supabase
+    .from("skull_gate_assets")
+    .select("asset_path")
+    .eq("id", id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from("skull_gate_assets")
+    .delete()
+    .eq("id", id);
+  if (error) return errorResponse(error.message);
+
+  await supabase.from("admin_audit_log").insert({
+    admin_actor: actor,
+    action: "delete_skull_gate_asset",
+    payload_json: { id, asset_path: existing?.asset_path },
+  });
+  return jsonResponse({ success: true });
 }

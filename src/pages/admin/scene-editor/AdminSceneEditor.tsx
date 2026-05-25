@@ -19,10 +19,12 @@ import {
 import type { SkullGateSceneConfig, SceneLayer, LayerType } from '../../../lib/types';
 import { DEFAULT_SKULL_GATE_SCENES } from '../../../lib/skullGateScenes';
 import { useSkullGateScenes, type SkullGateSceneRow } from '../../../hooks/useSkullGateScenes';
+import { useSkullGateAssets } from '../../../hooks/useSkullGateAssets';
 import SceneEditorCanvas from './SceneEditorCanvas';
 import SceneEditorLayerList from './SceneEditorLayerList';
 import SceneEditorLayerSettings from './SceneEditorLayerSettings';
 import SceneEditorSceneSettings from './SceneEditorSceneSettings';
+import AdminAssetLibrary from './AdminAssetLibrary';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +32,7 @@ type PreviewPhase   = 'idle' | 'selected' | 'revealing' | 'done';
 type PreviewOutcome = 'SURVIVE' | 'DIE' | null;
 type RightTab       = 'layers' | 'layer_settings';
 type CanvasMode     = 'editor' | 'preview';
+type LeftTab        = 'scenes' | 'assets';
 
 const UF = "'Inter', system-ui, sans-serif";
 const FF = "'Metal Mania','Cinzel',Georgia,serif";
@@ -199,7 +202,11 @@ function SceneListItem({ row, active, onClick }: {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminSceneEditor() {
-  const sceneApi = useSkullGateScenes();
+  const sceneApi  = useSkullGateScenes();
+  const assetApi  = useSkullGateAssets();
+
+  // Left panel tab
+  const [leftTab, setLeftTab] = useState<LeftTab>('scenes');
 
   // DB rows
   const [rows,    setRows]    = useState<SkullGateSceneRow[]>([]);
@@ -259,7 +266,7 @@ export default function AdminSceneEditor() {
     }
   }, [sceneApi]);
 
-  useEffect(() => { loadScenes(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadScenes(); assetApi.listAssets(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derive active row + initialise draft ────────────────────────────────────
 
@@ -703,18 +710,44 @@ export default function AdminSceneEditor() {
         gap: 12, alignItems: 'start',
       }}>
 
-        {/* ── Left: Scene list + controls ── */}
+        {/* ── Left: Scene list + controls / Asset Library ── */}
         <div style={{
           background: 'rgba(11,15,12,0.85)',
           border: '1px solid rgba(40,55,42,0.4)',
           display: 'flex', flexDirection: 'column',
         }}>
 
-          {/* Scene list */}
-          <div style={{ borderBottom: '1px solid rgba(30,42,32,0.6)' }}>
-            <div style={{ padding: '8px 10px', fontSize: 9, fontFamily: UF, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.32)' }}>
-              Scenes ({rows.length || 1})
+          {/* Left tab switcher */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(40,55,42,0.5)', flexShrink: 0 }}>
+            {(['scenes', 'assets'] as LeftTab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setLeftTab(t)}
+                style={{
+                  flex: 1, padding: '7px 4px',
+                  background: leftTab === t ? 'rgba(245,208,96,0.07)' : 'transparent',
+                  border: 'none',
+                  borderBottom: leftTab === t ? '2px solid rgba(245,208,96,0.5)' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontFamily: UF, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
+                  color: leftTab === t ? 'rgba(245,208,96,0.8)' : 'rgba(255,255,255,0.3)',
+                }}
+              >
+                {t === 'scenes' ? `Scenes (${rows.length || 1})` : `Assets (${assetApi.assets.length})`}
+              </button>
+            ))}
+          </div>
+
+          {/* Asset Library panel */}
+          {leftTab === 'assets' && (
+            <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <AdminAssetLibrary />
             </div>
+          )}
+
+          {/* Scene list */}
+          {leftTab === 'scenes' && (
+          <div style={{ borderBottom: '1px solid rgba(30,42,32,0.6)' }}>
             <div>
               {rows.length > 0
                 ? rows.map((row) => (
@@ -736,8 +769,10 @@ export default function AdminSceneEditor() {
               }
             </div>
           </div>
+          )}
 
-          {/* Scene settings */}
+          {/* Scene settings — only when scenes tab active */}
+          {leftTab === 'scenes' && (
           <CollapsibleSection
             title={`Scene — ${scene.title}`}
             open={sceneSettingsOpen}
@@ -745,6 +780,7 @@ export default function AdminSceneEditor() {
           >
             <SceneEditorSceneSettings scene={scene} onChange={updateDraft} />
           </CollapsibleSection>
+          )}
 
           {/* Canvas & preview controls */}
           <CollapsibleSection
@@ -926,7 +962,7 @@ export default function AdminSceneEditor() {
 
           {rightTab === 'layer_settings' && selectedLayer && (
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              <SceneEditorLayerSettings layer={selectedLayer} onChange={setLayerField} />
+              <SceneEditorLayerSettings layer={selectedLayer} onChange={setLayerField} assets={assetApi.assets} />
             </div>
           )}
 
