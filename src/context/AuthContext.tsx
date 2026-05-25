@@ -17,7 +17,13 @@ interface AuthContextValue {
   completeEmailUpgrade: (email: string, password?: string) => Promise<{ error: string | null }>;
   upgradeWithOAuth: (provider: 'google' | 'facebook') => Promise<{ error: string | null }>;
   isGuest: boolean;
+  /** guest user_id stored before the user clicked "Log in instead" */
+  pendingGuestMergeId: string | null;
+  setPendingGuestMergeId: (id: string | null) => void;
+  clearPendingGuestMergeId: () => void;
 }
+
+const PENDING_MERGE_KEY = 'pending_guest_merge_user_id';
 
 const AuthContext = createContext<AuthContextValue>({
   session: null,
@@ -33,6 +39,9 @@ const AuthContext = createContext<AuthContextValue>({
   completeEmailUpgrade: async () => ({ error: null }),
   upgradeWithOAuth: async () => ({ error: null }),
   isGuest: true,
+  pendingGuestMergeId: null,
+  setPendingGuestMergeId: () => {},
+  clearPendingGuestMergeId: () => {},
 });
 
 export function useAuth() {
@@ -44,6 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [playerState, setPlayerState] = useState<PlayerState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingGuestMergeId, setPendingGuestMergeIdState] = useState<string | null>(
+    () => localStorage.getItem(PENDING_MERGE_KEY),
+  );
+
+  const setPendingGuestMergeId = useCallback((id: string | null) => {
+    if (id) {
+      localStorage.setItem(PENDING_MERGE_KEY, id);
+    } else {
+      localStorage.removeItem(PENDING_MERGE_KEY);
+    }
+    setPendingGuestMergeIdState(id);
+  }, []);
+
+  const clearPendingGuestMergeId = useCallback(() => {
+    localStorage.removeItem(PENDING_MERGE_KEY);
+    setPendingGuestMergeIdState(null);
+  }, []);
 
   const fetchPlayerState = useCallback(async () => {
     const { data, error: rpcError } = await supabase.rpc('get_my_state');
@@ -222,6 +248,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sendEmailUpgradeCode, verifyEmailUpgradeCode, completeEmailUpgrade,
       upgradeWithOAuth,
       isGuest,
+      pendingGuestMergeId,
+      setPendingGuestMergeId,
+      clearPendingGuestMergeId,
     }}>
       {children}
     </AuthContext.Provider>

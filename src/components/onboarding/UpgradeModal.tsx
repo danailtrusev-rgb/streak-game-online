@@ -233,7 +233,16 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
   onSuccess: () => void;
   onOpenLogin?: (email: string) => void;
 }) {
-  const { sendEmailUpgradeCode, verifyEmailUpgradeCode, completeEmailUpgrade } = useAuth();
+  const { sendEmailUpgradeCode, verifyEmailUpgradeCode, completeEmailUpgrade, session, setPendingGuestMergeId } = useAuth();
+
+  const handleOpenLogin = (email: string) => {
+    // Store current guest user_id before switching to login, so merge can be offered after
+    const guestId = session?.user?.id;
+    if (guestId) {
+      setPendingGuestMergeId(guestId);
+    }
+    onOpenLogin?.(email);
+  };
 
   const [step, setStep]                       = useState<EmailStep>('address');
   const [email, setEmail]                     = useState('');
@@ -355,7 +364,7 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
           {error && <ErrorBox msg={error} />}
           {emailAlreadyExists && onOpenLogin && (
             <button
-              onClick={() => onOpenLogin(email)}
+              onClick={() => handleOpenLogin(email)}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 16px', background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.25)', cursor: 'pointer', fontFamily: 'Inter,system-ui,sans-serif', fontSize: 13, fontWeight: 600, color: '#FF9A30', transition: 'background 0.15s ease' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,122,0,0.1)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,122,0,0.06)')}

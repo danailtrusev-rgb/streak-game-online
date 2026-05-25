@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { useAuth } from './context/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 import GameLayout from './components/layout/GameLayout';
 import HomePage from './pages/HomePage';
@@ -13,6 +14,7 @@ import TestLevelPage from './pages/TestLevelPage';
 import TestModeBadge from './components/ui/TestModeBadge';
 import { parseTestMode } from './lib/testMode';
 import OnboardingModal from './components/onboarding/OnboardingModal';
+import MergeGuestProgressModal from './components/onboarding/MergeGuestProgressModal';
 import { useOnboarding } from './hooks/useOnboarding';
 import DicePage from './pages/games/DicePage';
 import PickPage from './pages/games/PickPage';
@@ -71,6 +73,10 @@ function UrlErrorCleaner() {
 
 function AppWithOnboarding() {
   const { showOnboarding, completeOnboarding } = useOnboarding();
+  const { isGuest, pendingGuestMergeId, clearPendingGuestMergeId, loading } = useAuth();
+
+  // Show merge modal when: not loading, not guest (just logged in), and we have a pending guest ID
+  const showMergeModal = !loading && !isGuest && !!pendingGuestMergeId;
 
   return (
     <>
@@ -104,6 +110,13 @@ function AppWithOnboarding() {
         </Route>
       </Routes>
       {showOnboarding && <OnboardingModal onClose={completeOnboarding} />}
+      {showMergeModal && (
+        <MergeGuestProgressModal
+          guestUserId={pendingGuestMergeId!}
+          onDismiss={clearPendingGuestMergeId}
+          onMergeComplete={clearPendingGuestMergeId}
+        />
+      )}
     </>
   );
 }
