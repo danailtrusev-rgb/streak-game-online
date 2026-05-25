@@ -1,0 +1,756 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    background: #060806;
+  }
+
+  body {
+    font-family: 'Lora', 'Inter', system-ui, sans-serif;
+    color: #D8D0C5;
+    background: #060806;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    cursor: default;
+    /* Outer dark surround on desktop */
+    display: flex;
+    justify-content: center;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    position: relative;
+    background: #0B0F0C;
+    /* Shadow to give the centered shell depth on desktop */
+    box-shadow: 0 0 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,122,0,0.04);
+  }
+
+  /* Interactive elements */
+  a, button, [role="button"], [tabindex]:not([tabindex="-1"]),
+  input, select, textarea {
+    cursor: pointer;
+  }
+
+  /* Children of buttons/links inherit pointer cursor */
+  button *, a *, [role="button"] * {
+    cursor: inherit;
+  }
+  input[type="text"], input[type="email"], input[type="password"],
+  input[type="number"], textarea {
+    cursor: text;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  h1, h2 {
+    font-family: 'Metal Mania', 'Cinzel', Georgia, serif;
+    letter-spacing: 0.04em;
+  }
+
+  h3, h4, h5, h6 {
+    font-family: 'Lora', Georgia, serif;
+    font-weight: 600;
+  }
+
+  ::-webkit-scrollbar {
+    width: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255,122,0,0.15);
+  }
+}
+
+@layer components {
+
+  /* ===== IMAGE-DRIVEN BACKGROUND SYSTEM ===== */
+
+  .ritual-root {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  .ritual-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-color: #0B0F0C;
+    background-image: url('/assets/bg/jungle_gate_home.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+
+  .ritual-bg--survive {
+    filter: brightness(0.55) saturate(0.8);
+  }
+
+  .ritual-bg--die {
+    filter: brightness(0.25) saturate(0.4);
+  }
+
+  .ritual-vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse at 50% 35%, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.82) 100%);
+    pointer-events: none;
+  }
+
+  .ritual-torch-bloom {
+    position: absolute;
+    left: -10%;
+    top: 8%;
+    width: 55%;
+    height: 50%;
+    z-index: 2;
+    background: radial-gradient(ellipse at center, rgba(255,140,20,0.1) 0%, transparent 70%);
+    pointer-events: none;
+    animation: torchPulse 3s ease-in-out infinite;
+  }
+
+  .ritual-torch-bloom--right {
+    left: auto;
+    right: -10%;
+    animation-delay: 1.5s;
+  }
+
+  .ritual-embers {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .ember {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #FF7A00;
+    border-radius: 50%;
+    opacity: 0;
+    animation: emberFloat linear infinite;
+  }
+
+  @keyframes emberFloat {
+    0% {
+      opacity: 0;
+      transform: translateY(0) translateX(0) scale(0.6);
+    }
+    8% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 0.35;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-100vh) translateX(25px) scale(0);
+    }
+  }
+
+  .ritual-content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* ===== OLD GRADIENT BACKGROUND (non-gate pages) ===== */
+
+  .ritual-background {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background:
+      linear-gradient(180deg, #0B0F0C 0%, #0E1510 30%, #111D15 60%, #0B0F0C 100%);
+    z-index: 0;
+  }
+
+  .ritual-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .torch-glow {
+    position: absolute;
+    top: 0;
+    width: 40%;
+    height: 70%;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .torch-glow--left {
+    left: 0;
+    background: radial-gradient(ellipse at 0% 30%, rgba(255,122,0,0.08) 0%, transparent 70%);
+    animation: torchPulse 3s ease-in-out infinite;
+  }
+  .torch-glow--right {
+    right: 0;
+    background: radial-gradient(ellipse at 100% 30%, rgba(255,122,0,0.08) 0%, transparent 70%);
+    animation: torchPulse 3s ease-in-out infinite;
+    animation-delay: 1.5s;
+  }
+
+  /* ===== PLAQUES ===== */
+
+  .plaque {
+    position: relative;
+    padding: 10px 28px;
+    background: linear-gradient(180deg, rgba(60,45,20,0.85) 0%, rgba(35,25,10,0.9) 100%);
+    border: 2px solid rgba(180,130,50,0.4);
+    box-shadow:
+      inset 0 1px 0 rgba(255,200,100,0.15),
+      inset 0 -1px 0 rgba(0,0,0,0.3),
+      0 4px 12px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+
+  .plaque--cta {
+    padding: 20px 40px;
+    background: linear-gradient(180deg, rgba(70,50,20,0.92) 0%, rgba(40,28,10,0.95) 100%);
+    border: 2px solid rgba(200,150,60,0.5);
+    box-shadow:
+      inset 0 2px 0 rgba(255,200,100,0.2),
+      inset 0 -2px 0 rgba(0,0,0,0.4),
+      0 6px 20px rgba(0,0,0,0.6),
+      0 0 30px rgba(255,140,20,0.1);
+  }
+
+  .plaque--badge {
+    display: inline-block;
+    padding: 6px 22px;
+    background: linear-gradient(180deg, rgba(50,38,15,0.85) 0%, rgba(30,22,8,0.9) 100%);
+    border: 1px solid rgba(160,120,40,0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255,200,100,0.1),
+      0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  /* ===== CARVED BUTTONS ===== */
+
+  .btn-carved {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 20px;
+    font-family: 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #F5F0E8;
+    border: 2px solid;
+    cursor: pointer;
+    transition: all 200ms ease;
+    position: relative;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .btn-carved::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255,255,255,0.06);
+    pointer-events: none;
+  }
+
+  .btn-carved:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .btn-carved:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(0.5);
+  }
+
+  .btn-carved--green {
+    background: linear-gradient(180deg, #3A6B2A 0%, #1E4A14 50%, #163A0E 100%);
+    border-color: #4A8535;
+    box-shadow:
+      inset 0 1px 0 rgba(120,200,80,0.25),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      0 4px 12px rgba(0,0,0,0.4);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  .btn-carved--green:hover:not(:disabled) {
+    background: linear-gradient(180deg, #457A32 0%, #24551A 50%, #1C4212 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(120,200,80,0.3),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      0 4px 16px rgba(0,0,0,0.5),
+      0 0 20px rgba(80,160,40,0.15);
+  }
+
+  .btn-carved--orange {
+    background: linear-gradient(180deg, #9A5A15 0%, #7A4210 50%, #5A300A 100%);
+    border-color: #B87020;
+    box-shadow:
+      inset 0 1px 0 rgba(255,180,80,0.25),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      0 4px 12px rgba(0,0,0,0.4);
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+
+  .btn-carved--orange:hover:not(:disabled) {
+    background: linear-gradient(180deg, #AA6A1A 0%, #8A4A12 50%, #6A380C 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,180,80,0.3),
+      inset 0 -2px 0 rgba(0,0,0,0.3),
+      0 4px 16px rgba(0,0,0,0.5),
+      0 0 20px rgba(200,120,20,0.15);
+  }
+
+  /* ===== PROPS ===== */
+
+  .prop-skull {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(200,160,80,0.3));
+    pointer-events: none;
+  }
+
+  .prop-torch {
+    width: 48px;
+    height: 76px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 12px rgba(255,140,20,0.5));
+    pointer-events: none;
+  }
+
+  /* ===== JUNGLE BUTTONS (non-gate pages) ===== */
+
+  .jungle-button {
+    display: block;
+    width: 100%;
+    padding: 18px 32px;
+    font-family: 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    color: #D8D0C5;
+    background: linear-gradient(180deg, #1E2D24 0%, #151E18 100%);
+    border: 1px solid rgba(255,122,0,0.25);
+    box-shadow: 0 0 20px rgba(255,122,0,0.35), 0 0 60px rgba(255,122,0,0.12);
+    cursor: pointer;
+    transition: all 300ms ease;
+    animation: btnGlow 3s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+  }
+  .jungle-button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,122,0,0.04) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  .jungle-button:hover:not(:disabled),
+  .jungle-button:active:not(:disabled) {
+    transform: scale(1.03);
+    border-color: rgba(255,122,0,0.5);
+    box-shadow: 0 0 30px rgba(255,122,0,0.5), 0 0 80px rgba(255,122,0,0.2);
+  }
+  .jungle-button:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+  .jungle-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    box-shadow: none;
+    animation: none;
+    border-color: rgba(255,122,0,0.08);
+  }
+
+  @keyframes btnGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,122,0,0.35), 0 0 60px rgba(255,122,0,0.12); }
+    50% { box-shadow: 0 0 30px rgba(255,122,0,0.5), 0 0 80px rgba(255,122,0,0.18); }
+  }
+
+  /* ===== RITUAL TEXT ===== */
+
+  .ritual-text {
+    font-family: 'Lora', Georgia, serif;
+    color: #D8D0C5;
+    text-align: center;
+  }
+
+  .ritual-title {
+    font-family: 'Metal Mania', 'Cinzel', Georgia, serif;
+    color: #D8D0C5;
+    text-align: center;
+    letter-spacing: 0.04em;
+    text-shadow:
+      0 0 20px rgba(255,140,20,0.35),
+      0 2px 8px rgba(0,0,0,0.8),
+      0 0 60px rgba(255,140,20,0.1);
+  }
+
+  .ritual-title--gold {
+    font-family: 'Metal Mania', 'Cinzel', Georgia, serif;
+    background: linear-gradient(180deg, #F5D060 0%, #D4A020 50%, #B08018 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.04em;
+    filter: drop-shadow(0 0 12px rgba(255,180,40,0.4));
+  }
+
+  .ritual-title--torch {
+    font-family: 'Metal Mania', 'Cinzel', Georgia, serif;
+    color: #FF7A00;
+    letter-spacing: 0.04em;
+    text-shadow:
+      0 0 20px rgba(255,122,0,0.5),
+      0 0 50px rgba(255,122,0,0.2),
+      0 2px 8px rgba(0,0,0,0.8);
+  }
+
+  .ritual-text--torch {
+    color: #FF7A00;
+    text-shadow: 0 0 12px rgba(255,122,0,0.4), 0 0 30px rgba(255,122,0,0.15);
+  }
+
+  .ritual-text--death {
+    color: #7A0F0F;
+    text-shadow: 0 0 12px rgba(122,15,15,0.4), 0 0 30px rgba(122,15,15,0.15);
+  }
+
+  .ritual-text--muted {
+    color: #6B655C;
+  }
+
+  .ritual-text--gold {
+    background: linear-gradient(180deg, #F5D060 0%, #D4A020 50%, #B08018 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 8px rgba(255,180,40,0.3));
+  }
+
+  /* ===== PANELS ===== */
+
+  .ritual-panel {
+    background: linear-gradient(180deg, rgba(17,25,21,0.9) 0%, rgba(11,15,12,0.95) 100%);
+    border: 1px solid rgba(30,45,36,0.6);
+    padding: 16px;
+  }
+
+  .ritual-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    color: #D8D0C5;
+    background: rgba(11,15,12,0.8);
+    border: 1px solid rgba(30,45,36,0.8);
+    outline: none;
+    transition: border-color 300ms ease;
+  }
+  .ritual-input:focus {
+    border-color: rgba(255,122,0,0.4);
+  }
+  .ritual-input::placeholder {
+    color: #4A453E;
+  }
+
+  .ritual-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(30,45,36,0.6) 50%, transparent 100%);
+  }
+
+  .jungle-button-secondary {
+    display: block;
+    width: 100%;
+    padding: 12px 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    color: #9E9688;
+    background: transparent;
+    border: 1px solid rgba(30,45,36,0.6);
+    cursor: pointer;
+    transition: all 300ms ease;
+    text-align: center;
+  }
+  .jungle-button-secondary:hover:not(:disabled) {
+    border-color: rgba(255,122,0,0.3);
+    color: #D8D0C5;
+  }
+  .jungle-button-secondary:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* ===== STAKE MODAL ===== */
+
+  .stake-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0,0,0,0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .stake-card {
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(180deg, rgba(55,42,18,0.97) 0%, rgba(25,18,8,0.98) 100%);
+    border: 2px solid rgba(180,130,50,0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255,200,100,0.12),
+      0 8px 40px rgba(0,0,0,0.7),
+      0 0 40px rgba(255,140,20,0.08);
+    padding: 28px 24px;
+  }
+
+  .stake-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border: 1px solid rgba(180,130,50,0.2);
+    background: rgba(40,30,12,0.5);
+    cursor: pointer;
+    transition: all 200ms ease;
+  }
+
+  .stake-option:hover:not(.stake-option--locked) {
+    border-color: rgba(255,180,60,0.5);
+    background: rgba(60,44,18,0.6);
+  }
+
+  .stake-option--selected {
+    border-color: #D4A020 !important;
+    background: rgba(80,60,20,0.5) !important;
+    box-shadow: 0 0 12px rgba(212,160,32,0.15);
+  }
+
+  .stake-option--locked {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* ===== ENTRANCE ANIMATION UTILITIES ===== */
+
+@keyframes anim-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes anim-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* fade-up variant that preserves a translateX(-50%) centering offset */
+@keyframes anim-fade-up-centered {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* progress bar fill: scaleX 0 → 1 from left origin */
+@keyframes anim-bar-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes anim-soft-scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes anim-scene-enter {
+  from { opacity: 0; transform: scale(1.015); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: anim-fade-in 400ms ease-out both;
+}
+
+.animate-fade-up {
+  animation: anim-fade-up 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-soft-scale-in {
+  animation: anim-soft-scale-in 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-scene-enter {
+  animation: anim-scene-enter 550ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-up-centered {
+  animation: anim-fade-up-centered 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-bar-fill {
+  transform-origin: left center;
+  animation: anim-bar-fill 750ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-delay-1 { animation-delay: 80ms; }
+.animate-delay-2 { animation-delay: 160ms; }
+.animate-delay-3 { animation-delay: 240ms; }
+.animate-delay-4 { animation-delay: 340ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-fade-up,
+  .animate-fade-up-centered,
+  .animate-soft-scale-in,
+  .animate-scene-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .animate-bar-fill {
+    animation: none !important;
+    transform: scaleX(1) !important;
+  }
+}
+
+/* ===== PAGE TRANSITION WRAPPERS ===== */
+
+@keyframes pg-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pg-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pg-scale-in {
+  from { opacity: 0; transform: scale(0.975); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.pg-transition {
+  animation-duration: 340ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+.pg-transition--fade-up    { animation-name: pg-fade-up; }
+.pg-transition--fade-in    { animation-name: pg-fade-in; }
+.pg-transition--scale-in   { animation-name: pg-scale-in; }
+
+/* Staggered child fade-up: apply to parent */
+.pg-stagger > * {
+  animation: pg-fade-up 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.pg-stagger > *:nth-child(1)  { animation-delay:  0ms; }
+.pg-stagger > *:nth-child(2)  { animation-delay: 55ms; }
+.pg-stagger > *:nth-child(3)  { animation-delay: 110ms; }
+.pg-stagger > *:nth-child(4)  { animation-delay: 160ms; }
+.pg-stagger > *:nth-child(5)  { animation-delay: 210ms; }
+.pg-stagger > *:nth-child(6)  { animation-delay: 260ms; }
+.pg-stagger > *:nth-child(7)  { animation-delay: 310ms; }
+.pg-stagger > *:nth-child(8)  { animation-delay: 355ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-transition,
+  .pg-stagger > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ===== HEADING FADE-UP ===== */
+
+.heading-reveal {
+  animation: pg-fade-up 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.heading-reveal--delayed {
+  animation: pg-fade-up 420ms 80ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heading-reveal,
+  .heading-reveal--delayed {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── Skull Gate animated gradient border ─────────────────────────── */
+@keyframes skull-gate-border-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.skull-gate-glow-border {
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.skull-gate-glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(255, 140, 20, 0.55) 40deg,
+    rgba(245, 208, 96, 0.7) 80deg,
+    rgba(255, 122, 0, 0.4) 120deg,
+    transparent 160deg,
+    transparent 200deg,
+    rgba(255, 180, 40, 0.45) 240deg,
+    rgba(245, 208, 96, 0.6) 280deg,
+    transparent 320deg,
+    transparent 360deg
+  );
+  animation: skull-gate-border-spin 4s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.skull-gate-glow-border > * {
+  position: relative;
+  z-index: 1;
+}

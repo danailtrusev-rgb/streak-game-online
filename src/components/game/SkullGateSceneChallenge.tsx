@@ -1,0 +1,195 @@
+// SkullGateSceneChallenge
+//
+// Scene-renderer-driven version of SkullGateChallenge.
+// Rendered ONLY when USE_SCENE_BASED_SKULL_GATE = true AND an assignment with
+// a valid scene config exists. Caller (HomePage) guarantees both conditions.
+//
+// Props mirror SkullGateChallenge exactly so the switch in HomePage is trivial.
+//
+// What this component does:
+//   - Renders the assigned scene via SkullGateSceneRenderer (player mode)
+//   - Manages idle → selected → revealing → done phase progression
+//   - Allows choice switching before CTA; locks choice after CTA press
+//   - Calls onComplete() when reveal finishes (same as SkullGateChallenge)
+//   - Uses pendingResult.outcome ONLY for visual reveal styling
+//   - Fire-and-forgets markStarted / markCompleted for analytics
+//
+// What this component does NOT do:
+//   - Never calls play_daily_gate
+//   - Never decides survive/die
+//   - Never modifies wallet, streak, or pot
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { PlayResult } from '../../lib/types';
+import type { SkullGateSceneConfig } from '../../lib/types';
+import SkullGateSceneRenderer from './SkullGateSceneRenderer';
+import type { SkullGateAssignment } from '../../hooks/useSkullGateAssignment';
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const REVEAL_HOLD_MS = 1800;
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type ChallengePhase = 'idle' | 'selected' | 'revealing' | 'done';
+
+interface Props {
+  pendingResult: PlayResult;
+  onComplete:    () => void;
+  sceneConfig:   SkullGateSceneConfig;
+  assignment:    SkullGateAssignment;
+  onMarkStarted:   (id: string | null) => void;
+  onMarkCompleted: (id: string | null, outcome: 'SURVIVE' | 'DIE') => void;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function SkullGateSceneChallenge({
+  pendingResult,
+  onComplete,
+  sceneConfig,
+  assignment,
+  onMarkStarted,
+  onMarkCompleted,
+}: Props) {
+  const [phase,          setPhase]          = useState<ChallengePhase>('idle');
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [visible,        setVisible]        = useState(false);
+  const startedRef = useRef(false);
+
+  const survived = pendingResult.outcome === 'SURVIVE';
+
+  // Fade-in entrance
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  // Mark started once on first render (analytics, fire-and-forget)
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    onMarkStarted(assignment.assignment_id);
+  }, [assignment.assignment_id, onMarkStarted]);
+
+  // Allow switching choice freely until CTA is pressed
+  const handleChoiceSelect = useCallback((choiceId: string) => {
+    if (phase !== 'idle' && phase !== 'selected') return;
+    setSelectedChoice(choiceId);
+    setPhase('selected');
+  }, [phase]);
+
+  // CTA pressed — lock choice and begin reveal
+  const handleCta = useCallback(() => {
+    if (phase !== 'selected' || !selectedChoice) return;
+    setPhase('revealing');
+    setTimeout(() => {
+      setPhase('done');
+      // Mark analytics
+      onMarkCompleted(assignment.assignment_id, pendingResult.outcome);
+      // Brief hold then hand back to HomePage
+      setTimeout(onComplete, 400);
+    }, REVEAL_HOLD_MS);
+  }, [phase, selectedChoice, assignment.assignment_id, pendingResult.outcome, onMarkCompleted, onComplete]);
+
+  // Map ChallengePhase → renderer phase
+  const rendererPhase: 'idle' | 'selected' | 'revealing' | 'done' =
+    phase === 'idle' ? 'idle' :
+    phase === 'selected' ? 'selected' :
+    phase === 'revealing' ? 'revealing' : 'done';
+
+  const rendererOutcome: 'SURVIVE' | 'DIE' | null =
+    (phase === 'revealing' || phase === 'done') ? pendingResult.outcome : null;
+
+  return (
+    <div
+      style={{
+        position:      'fixed',
+        inset:          0,
+        zIndex:         150,
+        background:    'rgba(2,5,3,0.96)',
+        opacity:        visible ? 1 : 0,
+        transition:    'opacity 0.4s ease',
+        overflow:      'hidden',
+        display:       'flex',
+        flexDirection: 'column',
+        alignItems:    'center',
+      }}
+    >
+      {/* 9:16-ish play area, max 480px wide, fills full height */}
+      <div
+        className="animate-scene-enter"
+        style={{
+          position:  'relative',
+          width:     '100%',
+          maxWidth:   480,
+          height:    '100%',
+          overflow:  'hidden',
+        }}
+      >
+        <SkullGateSceneRenderer
+          sceneConfig={sceneConfig}
+          mode="player"
+          selectedChoiceId={selectedChoice}
+          resultOutcome={rendererOutcome}
+          revealPhase={rendererPhase}
+          onChoiceSelect={handleChoiceSelect}
+          onCta={handleCta}
+          showEditorOutlines={false}
+        />
+
+        {/* Idle nudge overlay — only before any choice is made */}
+        {phase === 'idle' && (
+          <div
+            style={{
+              position:  'absolute',
+              bottom:    'max(env(safe-area-inset-bottom, 0px), 24px)',
+              left:       0, right: 0,
+              display:   'flex',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex:     100,
+            }}
+          >
+            <span style={{
+              fontSize:      11,
+              color:         'rgba(255,255,255,0.28)',
+              fontFamily:    "'Inter', system-ui, sans-serif",
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}>
+              {sceneConfig.instructionText ?? 'Tap to begin'}
+            </span>
+          </div>
+        )}
+
+        {/* Reveal status bar — appears during/after reveal, above renderer layers */}
+        {(phase === 'revealing' || phase === 'done') && (
+          <div
+            style={{
+              position:   'absolute',
+              bottom:     'max(env(safe-area-inset-bottom, 0px), 20px)',
+              left:       20, right: 20,
+              zIndex:     200,
+              padding:    '14px 20px',
+              border:     `1px solid ${survived ? 'rgba(245,208,96,0.35)' : 'rgba(160,20,20,0.35)'}`,
+              background:  survived ? 'rgba(245,208,96,0.06)' : 'rgba(100,0,0,0.14)',
+              fontFamily: "'Metal Mania', 'Cinzel', Georgia, serif",
+              fontSize:    15, letterSpacing: '0.1em',
+              textAlign:  'center',
+              color:       survived ? '#D4A020' : '#993333',
+              transition: 'all 0.5s ease',
+              textShadow:  survived
+                ? '0 0 12px rgba(245,208,96,0.4)'
+                : '0 0 10px rgba(160,20,20,0.5)',
+            }}
+          >
+            {survived
+              ? (sceneConfig.surviveText ?? 'The gate opens. Your streak lives.')
+              : (sceneConfig.failText    ?? 'The flame fades. The gate rejects you.')
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

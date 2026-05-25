@@ -1,0 +1,54 @@
+{
+  "levels": [
+    {
+      "id": 1,
+      "name": "The Skull Gate",
+      "bg_video": "/assets/video/bg_mode_01.mp4",
+      "objective_text": "Choose a gate to enter. One leads to safety.",
+      "choices": {
+        "left": "/assets/items/asset_door_skull_L",
+        "right": "/assets/items/asset_door_skull_R"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Twin Tunnels",
+      "bg_video": "/assets/video/bg_mode_02.mp4",
+      "objective_text": "Choose the tunnel that leads to the surface.",
+      "choices": {
+        "left": "/assets/items/asset_tunnel_moss",
+        "right": "/assets/items/asset_tunnel_rock"
+      }
+    },
+    {
+      "id": 3,
+      "name": "The Herbalist",
+      "bg_video": "/assets/video/bg_mode_03.mp4",
+      "objective_text": "Consume the berry that restores your strength.",
+      "choices": {
+        "left": "/assets/items/asset_berry_red",
+        "right": "/assets/items/asset_berry_blue"
+      }
+    },
+    {
+      "id": 4,
+      "name": "The Vault",
+      "bg_video": "/assets/video/bg_mode_04.mp4",
+      "objective_text": "Unlock the chest containing the key.",
+      "choices": {
+        "left": "/assets/items/asset_chest_iron",
+        "right": "/assets/items/asset_chest_gold"
+      }
+    },
+    {
+      "id": 5,
+      "name": "River Fork",
+      "bg_video": "/assets/video/bg_mode_05.mp4",
+      "objective_text": "Steer your boat into the calm current.",
+      "choices": {
+        "left": "/assets/items/asset_boat_L",
+        "right": "/assets/items/asset_boat_R"
+      }
+    }
+  ]
+}
