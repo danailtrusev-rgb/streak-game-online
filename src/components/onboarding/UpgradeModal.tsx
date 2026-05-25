@@ -390,9 +390,11 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
               Log in with this email instead
             </button>
           )}
-          <PrimaryButton onClick={handleSendCode} disabled={!emailValid} loading={loading}>
-            Send Verification Code
-          </PrimaryButton>
+          {!emailAlreadyExists && (
+            <PrimaryButton onClick={handleSendCode} disabled={!emailValid} loading={loading}>
+              Send Verification Code
+            </PrimaryButton>
+          )}
         </>
       )}
 
