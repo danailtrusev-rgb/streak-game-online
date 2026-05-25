@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
-  X, Mail, Smartphone, ChevronLeft, RefreshCw, Check, Eye, EyeOff, Lock,
+  X, Mail, ChevronLeft, RefreshCw, Check, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabase';
-import PhoneInput, { validatePhone, buildE164 } from '../ui/PhoneInput';
 
 // ── Shared ─────────────────────────────────────────────────────────────────
 
@@ -161,43 +159,19 @@ function InfoBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Notify prefs sync ───────────────────────────────────────────────────────
-
-async function markNotifVerified(channel: 'email' | 'sms', contactValue: string) {
-  try {
-    await supabase.rpc('upsert_notification_channel', {
-      p_channel:       channel,
-      p_contact_value: contactValue,
-    });
-    // Directly verify via RPC — set a bypass code and immediately verify
-    const bypassCode = '000000';
-    await supabase.rpc('set_notification_verification_code', {
-      p_channel: channel,
-      p_code:    bypassCode,
-    });
-    await supabase.rpc('verify_notification_channel', {
-      p_channel: channel,
-      p_code:    bypassCode,
-    });
-  } catch {
-    // Non-fatal — notification prefs sync is best-effort
-  }
-}
-
 // ── Method selection screen ─────────────────────────────────────────────────
 
 interface MethodOption {
-  id:    'email' | 'phone' | 'google' | 'facebook';
+  id:    'email' | 'google' | 'facebook';
   label: string;
   icon:  React.ReactNode;
   desc:  string;
 }
 
 const METHODS: MethodOption[] = [
-  { id: 'email',    label: 'Continue with Email',   icon: <Mail size={20} strokeWidth={1.4} />,                           desc: 'Verify with a 6-digit code' },
-  { id: 'phone',    label: 'Continue with Phone',   icon: <Smartphone size={20} strokeWidth={1.4} />,                     desc: 'Verify with an SMS code' },
-  { id: 'google',   label: 'Continue with Google',  icon: <GoogleIcon />,                                                 desc: 'Link your Google account' },
-  { id: 'facebook', label: 'Continue with Facebook',icon: <FacebookIcon />,                                               desc: 'Link your Facebook account' },
+  { id: 'email',    label: 'Continue with Email',    icon: <Mail size={20} strokeWidth={1.4} />, desc: 'Verify with a 6-digit code' },
+  { id: 'google',   label: 'Continue with Google',   icon: <GoogleIcon />,                       desc: 'Link your Google account' },
+  { id: 'facebook', label: 'Continue with Facebook', icon: <FacebookIcon />,                     desc: 'Link your Facebook account' },
 ];
 
 function GoogleIcon() {
@@ -286,7 +260,6 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
       if (errCode === 'EMAIL_ALREADY_EXISTS') {
         setEmailExists(true);
       } else if (errCode === 'ACCOUNT_ALREADY_UPGRADED') {
-        // This user already owns this email — upgrade succeeded previously
         setStep('done');
         setTimeout(onSuccess, 1400);
         return;
@@ -479,116 +452,6 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
   );
 }
 
-// ── Phone upgrade flow ──────────────────────────────────────────────────────
-
-type PhoneStep = 'number' | 'code' | 'done';
-
-function PhoneFlow({ onBack, onSuccess }: { onBack: () => void; onSuccess: () => void }) {
-  const { upgradeWithPhone, verifyPhoneOtp } = useAuth();
-
-  const [step, setStep]         = useState<PhoneStep>('number');
-  const [countryCode, setCC]    = useState('+34');
-  const [local, setLocal]       = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
-  const [sentAt, setSentAt]     = useState<number | null>(null);
-
-  const countdown = useCountdown(sentAt);
-  const fullPhone  = buildE164(countryCode, local);
-  const phoneValid = validatePhone(local) === 'valid';
-
-  const handleSendCode = async () => {
-    if (!phoneValid) return;
-    setLoading(true);
-    setError(null);
-    const { error: err } = await upgradeWithPhone(fullPhone);
-    setLoading(false);
-    if (err) { setError(err); return; }
-    setSentAt(Date.now());
-    setStep('code');
-  };
-
-  const handleVerifyCode = async (code: string) => {
-    setLoading(true);
-    setError(null);
-    const { error: err } = await verifyPhoneOtp(fullPhone, code);
-    setLoading(false);
-    if (err) { setError(err); return; }
-    await markNotifVerified('sms', fullPhone);
-    setStep('done');
-    setTimeout(onSuccess, 1400);
-  };
-
-  const handleResend = async () => {
-    if (countdown > 0) return;
-    setLoading(true);
-    const { error: err } = await upgradeWithPhone(fullPhone);
-    setLoading(false);
-    if (!err) setSentAt(Date.now());
-  };
-
-  if (step === 'done') {
-    return (
-      <div style={{ textAlign: 'center', padding: '32px 0' }}>
-        <div style={{ width: 56, height: 56, background: 'rgba(120,176,96,0.12)', border: '1px solid rgba(120,176,96,0.3)', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-          <Check size={28} style={{ color: '#78B060' }} />
-        </div>
-        <div style={{ fontFamily: FF, fontSize: 20, color: '#F5D060', letterSpacing: '0.06em', marginBottom: 8 }}>Account Secured</div>
-        <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>Your streak, wallet, and progress are safe.</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <BackButton onClick={onBack} />
-      <FlowTitle icon={<Smartphone size={18} style={{ color: '#FF9A30' }} />} title="Phone Verification" />
-
-      {step === 'number' && (
-        <>
-          <div>
-            <FieldLabel>Phone Number</FieldLabel>
-            <PhoneInput
-              countryCode={countryCode}
-              localNumber={local}
-              onCountryChange={setCC}
-              onLocalChange={setLocal}
-              autoFocus
-              onEnter={() => phoneValid && handleSendCode()}
-            />
-          </div>
-          {error && <ErrorBox msg={error} />}
-          <PrimaryButton onClick={handleSendCode} disabled={!phoneValid} loading={loading}>
-            Send Verification Code
-          </PrimaryButton>
-        </>
-      )}
-
-      {step === 'code' && (
-        <>
-          <div style={{ fontFamily: UF, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-            We sent a 6-digit code to <span style={{ color: '#FF9A30' }}>{fullPhone}</span>
-          </div>
-          {error && <ErrorBox msg={error} />}
-          <CodeInput onSubmit={handleVerifyCode} loading={loading} />
-          <div style={{ textAlign: 'center' }}>
-            {countdown > 0 ? (
-              <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Resend in {countdown}s</span>
-            ) : (
-              <button onClick={handleResend} disabled={loading} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,122,0,0.7)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <RefreshCw size={12} /> Resend code
-              </button>
-            )}
-          </div>
-          <button onClick={() => setStep('number')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '4px 0' }}>
-            ← Change number
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
 // ── OAuth flow ───────────────────────────────────────────────────────────────
 
 function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBack: () => void }) {
@@ -605,14 +468,12 @@ function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBa
     const { error: err } = await upgradeWithOAuth(provider);
     setLoading(false);
     if (err) {
-      // Common error: provider not enabled in Supabase dashboard
       if (err.toLowerCase().includes('provider') || err.toLowerCase().includes('not enabled') || err.toLowerCase().includes('unsupported')) {
         setError(`${label} sign-in is not yet configured. Enable the ${label} provider in the Supabase dashboard to use this option.`);
       } else {
         setError(err);
       }
     }
-    // On success, Supabase redirects — nothing to do here
   };
 
   return (
@@ -658,7 +519,7 @@ function FlowTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
 
 // ── Main UpgradeModal ─────────────────────────────────────────────────────────
 
-type ActiveMethod = null | 'email' | 'phone' | 'google' | 'facebook';
+type ActiveMethod = null | 'email' | 'google' | 'facebook';
 
 export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
   onClose: () => void;
@@ -719,10 +580,9 @@ export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
           )}
 
           {/* Active method flows */}
-          {active === 'email'    && <EmailFlow    onBack={() => setActive(null)} onSuccess={onSuccess} onOpenLogin={onOpenLogin} />}
-          {active === 'phone'    && <PhoneFlow    onBack={() => setActive(null)} onSuccess={onSuccess} />}
-          {active === 'google'   && <OAuthFlow    provider="google"   onBack={() => setActive(null)} />}
-          {active === 'facebook' && <OAuthFlow    provider="facebook" onBack={() => setActive(null)} />}
+          {active === 'email'    && <EmailFlow  onBack={() => setActive(null)} onSuccess={onSuccess} onOpenLogin={onOpenLogin} />}
+          {active === 'google'   && <OAuthFlow  provider="google"   onBack={() => setActive(null)} />}
+          {active === 'facebook' && <OAuthFlow  provider="facebook" onBack={() => setActive(null)} />}
         </div>
       </div>
     </div>

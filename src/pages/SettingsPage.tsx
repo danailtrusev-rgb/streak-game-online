@@ -190,12 +190,12 @@ const CHANNELS: ChannelConfig[] = [
     providerReady: true,
   },
   {
-    id:          'sms',
-    label:       'SMS / Text',
-    Icon:        Smartphone,
-    description: 'Text message reminders to your mobile phone.',
+    id:          'telegram',
+    label:       'Telegram',
+    Icon:        Send,
+    description: 'Reminders via Telegram bot.',
     providerReady: false,
-    pendingNote: 'SMS sending is being set up. You can save your number now and it will be activated automatically.',
+    pendingNote: 'Telegram bot setup is coming soon. You can save your username now.',
   },
   {
     id:          'whatsapp',
@@ -206,20 +206,20 @@ const CHANNELS: ChannelConfig[] = [
     pendingNote: 'WhatsApp integration is coming soon. Save your number now to be among the first to receive alerts.',
   },
   {
-    id:          'telegram',
-    label:       'Telegram',
-    Icon:        Send,
-    description: 'Reminders via Telegram bot.',
-    providerReady: false,
-    pendingNote: 'Telegram bot setup is coming soon. You can save your username now.',
-  },
-  {
     id:          'discord',
     label:       'Discord',
     Icon:        Hash,
     description: 'Reminder DMs via Discord.',
     providerReady: false,
     pendingNote: 'Discord integration is coming soon.',
+  },
+  {
+    id:          'sms',
+    label:       'SMS / Text',
+    Icon:        Smartphone,
+    description: 'Text message reminders to your mobile phone.',
+    providerReady: false,
+    pendingNote: 'SMS sending is being set up. You can save your number now and it will be activated automatically.',
   },
 ];
 

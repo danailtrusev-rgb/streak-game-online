@@ -15,8 +15,6 @@ interface AuthContextValue {
   sendEmailUpgradeCode: (email: string) => Promise<{ error: string | null; devCode?: string; code?: string }>;
   verifyEmailUpgradeCode: (email: string, code: string) => Promise<{ error: string | null }>;
   completeEmailUpgrade: (email: string, password?: string) => Promise<{ error: string | null }>;
-  upgradeWithPhone: (phone: string) => Promise<{ error: string | null }>;
-  verifyPhoneOtp: (phone: string, token: string) => Promise<{ error: string | null }>;
   upgradeWithOAuth: (provider: 'google' | 'facebook') => Promise<{ error: string | null }>;
   isGuest: boolean;
 }
@@ -33,8 +31,6 @@ const AuthContext = createContext<AuthContextValue>({
   sendEmailUpgradeCode: async () => ({ error: null }),
   verifyEmailUpgradeCode: async () => ({ error: null }),
   completeEmailUpgrade: async () => ({ error: null }),
-  upgradeWithPhone: async () => ({ error: null }),
-  verifyPhoneOtp: async () => ({ error: null }),
   upgradeWithOAuth: async () => ({ error: null }),
   isGuest: true,
 });
@@ -141,21 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [edgeHeaders, fetchPlayerState]);
 
-  // Send OTP to phone for upgrade
-  const upgradeWithPhone = useCallback(async (phone: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.updateUser({ phone });
-    if (error) return { error: error.message };
-    return { error: null };
-  }, []);
-
-  // Verify phone OTP
-  const verifyPhoneOtp = useCallback(async (phone: string, token: string): Promise<{ error: string | null }> => {
-    const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'phone_change' });
-    if (error) return { error: error.message };
-    await fetchPlayerState();
-    return { error: null };
-  }, [fetchPlayerState]);
-
   // OAuth upgrade (Google / Facebook) — preserves guest session via linkIdentity
   const upgradeWithOAuth = useCallback(async (provider: 'google' | 'facebook'): Promise<{ error: string | null }> => {
     // linkIdentity links the OAuth identity to the existing guest account
@@ -239,7 +220,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn, signOut,
       upgradeAccount,
       sendEmailUpgradeCode, verifyEmailUpgradeCode, completeEmailUpgrade,
-      upgradeWithPhone, verifyPhoneOtp,
       upgradeWithOAuth,
       isGuest,
     }}>
