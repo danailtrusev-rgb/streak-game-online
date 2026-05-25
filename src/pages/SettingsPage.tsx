@@ -596,6 +596,7 @@ export default function SettingsPage() {
   const [showLogin, setShowLogin]             = useState(false);
   const [loginPrefillEmail, setLoginPrefill]  = useState<string | undefined>(undefined);
   const [upgraded, setUpgraded]               = useState(false);
+  const [signingOut, setSigningOut]           = useState(false);
   const [activeChannel, setActiveChannel]     = useState<NotificationChannel | null>(null);
   const [refreshKey, setRefreshKey]           = useState(0);
 
@@ -605,8 +606,13 @@ export default function SettingsPage() {
     setShowLogin(true);
   }, []);
 
-  const email      = session?.user?.email ?? '';
-  const isGuestAcc = isGuest && !upgraded;
+  const accountEmail = session?.user?.email ?? '';
+  const isGuestAcc   = isGuest && !upgraded;
+
+  // Reset local upgraded flag whenever auth state switches back to guest
+  useEffect(() => {
+    if (isGuest) setUpgraded(false);
+  }, [isGuest]);
 
   useEffect(() => {
     if (!isGuestAcc) fetchPrefs();
@@ -616,9 +622,59 @@ export default function SettingsPage() {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  const displayName = isGuestAcc
-    ? (playerState?.user?.guest_id ? `user_${playerState.user.guest_id.slice(0, 8)}` : 'Guest')
-    : email.split('@')[0];
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true);
+    await signOut();
+    // signOut clears session in AuthContext; isGuest will flip to true once
+    // the new guest session is created. Reset local state immediately.
+    setUpgraded(false);
+    setSigningOut(false);
+  }, [signOut]);
+
+  // ── Derive display name from session / identities ────────────────────────
+  const displayName = (() => {
+    if (isGuestAcc) {
+      return playerState?.user?.guest_id
+        ? `user_${playerState.user.guest_id.slice(0, 8)}`
+        : 'Guest';
+    }
+    // Full email for email/password or upgraded accounts
+    if (accountEmail && !accountEmail.endsWith('@survive.local')) {
+      return accountEmail;
+    }
+    // OAuth — check identities for a display name or email
+    const identities = session?.user?.identities ?? [];
+    const googleId   = identities.find((id) => id.provider === 'google');
+    const facebookId = identities.find((id) => id.provider === 'facebook');
+    if (googleId) {
+      return (googleId.identity_data?.email as string | undefined)
+        ?? (googleId.identity_data?.name as string | undefined)
+        ?? 'Google Account';
+    }
+    if (facebookId) {
+      return (facebookId.identity_data?.email as string | undefined)
+        ?? (facebookId.identity_data?.name as string | undefined)
+        ?? 'Facebook Account';
+    }
+    return 'Registered Account';
+  })();
+
+  // Secondary label under the display name
+  const accountLabel = (() => {
+    if (isGuestAcc) return null;
+    const identities = session?.user?.identities ?? [];
+    const googleId   = identities.find((id) => id.provider === 'google');
+    const facebookId = identities.find((id) => id.provider === 'facebook');
+    if (googleId && displayName !== accountEmail) {
+      const email = googleId.identity_data?.email as string | undefined;
+      return email ? `Google · ${email}` : 'Google Account';
+    }
+    if (facebookId && displayName !== accountEmail) {
+      const email = facebookId.identity_data?.email as string | undefined;
+      return email ? `Facebook · ${email}` : 'Facebook Account';
+    }
+    return null;
+  })();
 
   // ── Channel detail view ───────────────────────────────────────────────────
   if (activeChannel) {
@@ -631,7 +687,7 @@ export default function SettingsPage() {
           pref={pref}
           onBack={() => setActiveChannel(null)}
           onUpdated={handleChannelUpdated}
-          userEmail={email}
+          userEmail={accountEmail}
           isGuest={isGuestAcc}
         />
       </div>
@@ -651,10 +707,15 @@ export default function SettingsPage() {
               <AssetIcon src={ICONS.user} fallback={User} size={22} style={{ filter: 'drop-shadow(0 0 4px rgba(255,122,0,0.4))' }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: UF, fontSize: 16, fontWeight: 600, color: '#E8E0D4', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ fontFamily: UF, fontSize: 15, fontWeight: 600, color: '#E8E0D4', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {displayName}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              {accountLabel && (
+                <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {accountLabel}
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: accountLabel ? 4 : 4 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: isGuestAcc ? '#FF7A00' : '#78B060', flexShrink: 0 }} />
                 <span style={{ fontFamily: UF, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: isGuestAcc ? '#FF9A30' : '#78B060' }}>
                   {isGuestAcc ? 'Guest Account' : 'Registered Account'}
@@ -697,16 +758,19 @@ export default function SettingsPage() {
         <div>
           <SectionLabel label="Session" />
           <button
-            onClick={signOut}
-            style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s ease' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(180,40,40,0.07)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(180,40,40,0.2)'; }}
+            onClick={signingOut ? undefined : handleSignOut}
+            disabled={signingOut}
+            style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', cursor: signingOut ? 'not-allowed' : 'pointer', textAlign: 'left', transition: 'background 0.15s ease', opacity: signingOut ? 0.5 : 1 }}
+            onMouseEnter={(e) => { if (!signingOut) { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(180,40,40,0.07)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(180,40,40,0.2)'; } }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.02)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.05)'; }}
           >
             <div style={{ width: 38, height: 38, background: 'rgba(180,40,40,0.06)', border: '1px solid rgba(180,40,40,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <LogOut size={17} strokeWidth={1.4} style={{ color: 'rgba(200,80,80,0.8)' }} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(200,80,80,0.9)' }}>Log Out</div>
+              <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(200,80,80,0.9)' }}>
+                {signingOut ? 'Signing out…' : 'Log Out'}
+              </div>
               <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Sign out of your account</div>
             </div>
           </button>
