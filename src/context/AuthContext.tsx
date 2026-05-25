@@ -205,10 +205,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      setSession(newSession);
       if (event === 'SIGNED_OUT') {
+        // Session is gone — clear state then provision a fresh guest session
+        setSession(null);
         setPlayerState(null);
+        (async () => {
+          const guestId  = crypto.randomUUID();
+          const password = crypto.randomUUID();
+          const { data, error } = await supabase.auth.signUp({
+            email: `${guestId}@survive.local`,
+            password,
+            options: { data: { guest_id: guestId } },
+          });
+          if (!error && data.session) {
+            setSession(data.session);
+            const { data: ps } = await supabase.rpc('get_my_state');
+            if (ps) setPlayerState(ps as PlayerState);
+          }
+        })();
+        return;
       }
+      setSession(newSession);
     });
 
     return () => subscription.unsubscribe();

@@ -599,6 +599,7 @@ export default function SettingsPage() {
   const [signingOut, setSigningOut]           = useState(false);
   const [activeChannel, setActiveChannel]     = useState<NotificationChannel | null>(null);
   const [refreshKey, setRefreshKey]           = useState(0);
+  const signOutFallbackRef                    = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleOpenLoginFromUpgrade = useCallback((email: string) => {
     setShowUpgrade(false);
@@ -609,9 +610,18 @@ export default function SettingsPage() {
   const accountEmail = session?.user?.email ?? '';
   const isGuestAcc   = isGuest && !upgraded;
 
-  // Reset local upgraded flag whenever auth state switches back to guest
+  // Reset local state whenever auth state switches back to guest (after logout)
   useEffect(() => {
-    if (isGuest) setUpgraded(false);
+    if (isGuest) {
+      if (signOutFallbackRef.current) {
+        clearTimeout(signOutFallbackRef.current);
+        signOutFallbackRef.current = null;
+      }
+      setUpgraded(false);
+      setSigningOut(false);
+      setShowUpgrade(false);
+      setShowLogin(false);
+    }
   }, [isGuest]);
 
   useEffect(() => {
@@ -625,10 +635,10 @@ export default function SettingsPage() {
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
     await signOut();
-    // signOut clears session in AuthContext; isGuest will flip to true once
-    // the new guest session is created. Reset local state immediately.
-    setUpgraded(false);
-    setSigningOut(false);
+    // Keep signingOut=true — the isGuest effect clears it once the new guest
+    // session arrives. Fallback reload if it takes more than 1500ms.
+    if (signOutFallbackRef.current) clearTimeout(signOutFallbackRef.current);
+    signOutFallbackRef.current = setTimeout(() => window.location.reload(), 1500);
   }, [signOut]);
 
   // ── Derive display name from session / identities ────────────────────────
