@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { X, Mail, Eye, EyeOff, Lock, ChevronLeft, LogIn, Coins, Star, Shield } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Mail, Eye, EyeOff, Lock, ChevronLeft, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -115,66 +115,13 @@ function ErrorBox({ msg }: { msg: string }) {
   );
 }
 
-// ── Guest progress snapshot ───────────────────────────────────────────────────
-
-interface GuestProgress {
-  walletCents: number;
-  qualPoints: number;
-  badgeCount: number;
-  loaded: boolean;
-}
-
-function useGuestProgress(): GuestProgress {
-  const { playerState } = useAuth();
-  const [qualPoints, setQualPoints]   = useState(0);
-  const [badgeCount, setBadgeCount]   = useState(0);
-  const [loaded, setLoaded]           = useState(false);
-  const fetchedRef                     = useRef(false);
-
-  useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-    Promise.all([
-      supabase.rpc('get_my_qualification'),
-      supabase.rpc('get_my_badges'),
-    ]).then(([{ data: qual }, { data: badges }]) => {
-      if (qual && typeof (qual as { total_points?: number }).total_points === 'number') {
-        setQualPoints((qual as { total_points: number }).total_points);
-      }
-      if (Array.isArray(badges)) {
-        setBadgeCount(badges.length);
-      }
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
-  }, []);
-
-  return {
-    walletCents: playerState?.wallet_balance_cents ?? 0,
-    qualPoints,
-    badgeCount,
-    loaded,
-  };
-}
-
 // ── Guest warning confirmation step ─────────────────────────────────────────
 
 function GuestWarning({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
-  const progress = useGuestProgress();
-
-  const hasProgress =
-    progress.walletCents > 0 || progress.qualPoints > 0 || progress.badgeCount > 0;
-
-  const formatCents = (c: number) => `€${(c / 100).toFixed(2)}`;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 40, height: 40,
-          background: hasProgress ? 'rgba(255,122,0,0.10)' : 'rgba(255,122,0,0.06)',
-          border: `1px solid ${hasProgress ? 'rgba(255,122,0,0.35)' : 'rgba(255,122,0,0.18)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
+        <div style={{ width: 40, height: 40, background: 'rgba(255,122,0,0.08)', border: '1px solid rgba(255,122,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <LogIn size={18} style={{ color: '#FF9A30' }} />
         </div>
         <div style={{ fontFamily: FF, fontSize: 17, letterSpacing: '0.06em', color: '#F5D060' }}>
@@ -182,51 +129,14 @@ function GuestWarning({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
         </div>
       </div>
 
-      {hasProgress ? (
-        // ── Guest has something worth flagging ─────────────────────────────
-        <>
-          <div style={{ padding: '14px 16px', background: 'rgba(255,122,0,0.06)', border: '1px solid rgba(255,122,0,0.22)', borderLeft: '2px solid rgba(255,122,0,0.55)' }}>
-            <div style={{ fontFamily: UF, fontSize: 13, color: 'rgba(255,200,120,0.9)', lineHeight: 1.6, marginBottom: 6 }}>
-              You are currently using a guest account with progress on it.
-            </div>
-            <div style={{ fontFamily: BF, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65 }}>
-              After logging in, you may be asked whether you want to merge eligible guest progress into your existing account.
-            </div>
-          </div>
-
-          {/* Guest-side progress lines — only shown if non-zero */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {progress.walletCents > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Coins size={14} style={{ color: '#FF9A30', flexShrink: 0 }} />
-                <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.6)', flex: 1 }}>Guest credits</span>
-                <span style={{ fontFamily: UF, fontSize: 12, fontWeight: 600, color: '#F5D060' }}>{formatCents(progress.walletCents)}</span>
-              </div>
-            )}
-            {progress.qualPoints > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Star size={14} style={{ color: '#FF9A30', flexShrink: 0 }} />
-                <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.6)', flex: 1 }}>Qualification points</span>
-                <span style={{ fontFamily: UF, fontSize: 12, fontWeight: 600, color: '#F5D060' }}>{progress.qualPoints}</span>
-              </div>
-            )}
-            {progress.badgeCount > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Shield size={14} style={{ color: '#FF9A30', flexShrink: 0 }} />
-                <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.6)', flex: 1 }}>Badges earned</span>
-                <span style={{ fontFamily: UF, fontSize: 12, fontWeight: 600, color: '#F5D060' }}>{progress.badgeCount}</span>
-              </div>
-            )}
-          </div>
-        </>
-      ) : (
-        // ── Guest has nothing meaningful ───────────────────────────────────
-        <div style={{ padding: '13px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
-            You are currently using a guest account. Logging in will switch to your existing account.
-          </div>
+      <div style={{ padding: '14px 16px', background: 'rgba(255,122,0,0.05)', border: '1px solid rgba(255,122,0,0.2)', borderLeft: '2px solid rgba(255,122,0,0.5)' }}>
+        <div style={{ fontFamily: UF, fontSize: 13, color: 'rgba(255,200,120,0.9)', lineHeight: 1.6, marginBottom: 8 }}>
+          You are currently using a guest account.
         </div>
-      )}
+        <div style={{ fontFamily: BF, fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
+          Logging in will switch to your existing account. Your current guest progress and wallet balance will not be transferred to the new account.
+        </div>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <PrimaryButton onClick={onConfirm}>
