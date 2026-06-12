@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Mail, Eye, EyeOff, Lock, ChevronLeft, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../context/I18nContext';
 import { supabase } from '../../lib/supabase';
 
 const FF = "'Metal Mania', 'Cinzel', Georgia, serif";
@@ -118,6 +119,7 @@ function ErrorBox({ msg }: { msg: string }) {
 // ── Guest warning confirmation step ─────────────────────────────────────────
 
 function GuestWarning({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -125,22 +127,19 @@ function GuestWarning({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
           <LogIn size={18} style={{ color: '#FF9A30' }} />
         </div>
         <div style={{ fontFamily: FF, fontSize: 17, letterSpacing: '0.06em', color: '#F5D060' }}>
-          Switch Account?
+          {t('auth.guest_warning.title')}
         </div>
       </div>
 
       <div style={{ padding: '14px 16px', background: 'rgba(255,122,0,0.05)', border: '1px solid rgba(255,122,0,0.2)', borderLeft: '2px solid rgba(255,122,0,0.5)' }}>
         <div style={{ fontFamily: UF, fontSize: 13, color: 'rgba(255,200,120,0.9)', lineHeight: 1.6, marginBottom: 8 }}>
-          You are currently using a guest account.
-        </div>
-        <div style={{ fontFamily: BF, fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
-          Logging in will switch to your existing account. Your current guest progress and wallet balance will not be transferred to the new account.
+          {t('auth.guest_warning.no_progress')}
         </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <PrimaryButton onClick={onConfirm}>
-          Continue to Log In
+          {t('auth.guest_warning.confirm')}
         </PrimaryButton>
         <button
           onClick={onCancel}
@@ -148,7 +147,7 @@ function GuestWarning({ onConfirm, onCancel }: { onConfirm: () => void; onCancel
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.75)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
         >
-          Cancel — Keep Guest Account
+          {t('auth.guest_warning.cancel')}
         </button>
       </div>
     </div>
@@ -163,6 +162,7 @@ function EmailLoginFlow({ onBack, onSuccess, prefillEmail }: {
   prefillEmail?: string;
 }) {
   const { signIn } = useAuth();
+  const { t } = useI18n();
   const [email, setEmail]       = useState(prefillEmail ?? '');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd]   = useState(false);
@@ -184,7 +184,7 @@ function EmailLoginFlow({ onBack, onSuccess, prefillEmail }: {
     setLoading(false);
     if (err) {
       if (err.toLowerCase().includes('invalid login') || err.toLowerCase().includes('credentials')) {
-        setError('Incorrect email or password. Please try again.');
+        setError(t('auth.login.error_bad_creds'));
       } else {
         setError(err);
       }
@@ -208,12 +208,6 @@ function EmailLoginFlow({ onBack, onSuccess, prefillEmail }: {
         <Mail size={18} style={{ color: '#FF9A30' }} />
         <div style={{ fontFamily: FF, fontSize: 18, letterSpacing: '0.06em', color: '#F5D060' }}>
           Log In with Email
-        </div>
-      </div>
-
-      <div>
-        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', fontFamily: UF, marginBottom: 7 }}>
-          Email Address
         </div>
         <div style={{ position: 'relative' }}>
           <Mail size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
@@ -345,6 +339,7 @@ interface LoginModalProps {
 
 export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginModalProps) {
   const { isGuest } = useAuth();
+  const { t } = useI18n();
 
   // If guest, show warning first; track if they confirmed
   const [guestWarningDismissed, setGuestWarningDismissed] = useState(!isGuest);
@@ -405,10 +400,10 @@ export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginMo
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
                 <h2 style={{ fontFamily: FF, fontSize: 22, letterSpacing: '0.08em', color: '#F5D060', textShadow: '0 0 20px rgba(245,208,96,0.3)', margin: '0 0 6px' }}>
-                  Log In
+                  {t('auth.login.title')}
                 </h2>
                 <p style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65, margin: 0 }}>
-                  Access your existing account to restore your streak, wallet, and progress.
+                  {t('auth.login.subtitle')}
                 </p>
               </div>
 
@@ -417,19 +412,19 @@ export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginMo
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <OAuthButton
                   icon={<Mail size={20} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.6)' }} />}
-                  label="Continue with Email"
+                  label={t('auth.login.email')}
                   onClick={() => setView('email')}
                   disabled={false}
                 />
                 <OAuthButton
                   icon={<GoogleIcon />}
-                  label="Continue with Google"
+                  label={t('auth.login.google')}
                   onClick={() => setView('google')}
                   disabled={false}
                 />
                 <OAuthButton
                   icon={<FacebookIcon />}
-                  label="Continue with Facebook"
+                  label={t('auth.login.facebook')}
                   onClick={() => setView('facebook')}
                   disabled={false}
                 />
@@ -437,7 +432,7 @@ export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginMo
 
               <div style={{ textAlign: 'center', paddingTop: 4 }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontFamily: UF, lineHeight: 1.6 }}>
-                  Logging in will switch you to your existing account.
+                  {t('auth.login.footer')}
                 </div>
               </div>
             </div>

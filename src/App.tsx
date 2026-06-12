@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
+import { I18nProvider } from './context/I18nContext';
 import AppLayout from './components/layout/AppLayout';
 import GameLayout from './components/layout/GameLayout';
 import HomePage from './pages/HomePage';
@@ -129,7 +130,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppWithOnboarding />
+        <I18nProvider>
+          <AppWithOnboarding />
+        </I18nProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCents } from '../../lib/constants';
+import { useI18n } from '../../context/I18nContext';
 import type { PlayResult, BadgeKey } from '../../lib/types';
 import { PROPS, BUTTONS, ICONS } from '../../lib/assets';
 import EmberParticles from '../fx/EmberParticles';
@@ -49,6 +50,7 @@ export default function ResultModal({
   cashingOut = false,
 }: ResultModalProps) {
   const navigate    = useNavigate();
+  const { t }       = useI18n();
   const [phase, setPhase]           = useState<'enter' | 'visible' | 'exit'>('enter');
   const [displayPot, setDisplayPot] = useState(0);
   const survived    = result.outcome === 'SURVIVE';
@@ -190,10 +192,8 @@ export default function ResultModal({
           textShadow: '0 0 28px rgba(255,180,40,0.4), 0 2px 8px rgba(0,0,0,0.8)',
           margin: '0 0 6px',
         }}>
-          YOU SURVIVED
+          {t('result.survived.headline')}
         </h2>
-
-        {/* Subtitle */}
         <p style={{
           fontFamily: BF, fontSize: 13, lineHeight: 1.6,
           color: 'rgba(255,255,255,0.55)',
@@ -287,7 +287,7 @@ export default function ResultModal({
           background: 'rgba(255,122,0,0.04)',
         }}>
           <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'rgba(255,255,255,0.35)', fontFamily: UF }}>
-            Next Gate Opens
+            {t('result.next_gate')}
           </span>
           <span style={{
             fontFamily: FF, fontSize: 18, letterSpacing: '0.12em',
@@ -311,7 +311,7 @@ export default function ResultModal({
             textTransform: 'uppercase', color: '#F5D060',
             textShadow: '0 0 12px rgba(245,208,96,0.5), 0 2px 4px rgba(0,0,0,0.9)',
           }}>
-            Keep the Streak Alive
+            {t('result.survived.cta')}
           </span>
         </ImageButton>
 
@@ -341,7 +341,6 @@ export default function ResultModal({
           View Streak Path
         </button>
 
-        {/* Cashout — subdued, only when pot > 0 */}
         {onCashout && (potCents ?? 0) > 0 && (
           <button
             onClick={cashingOut ? undefined : onCashout}
@@ -364,7 +363,7 @@ export default function ResultModal({
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)';
             }}
           >
-            {cashingOut ? 'Collecting…' : `Cash Out €${formatCents(potCents ?? 0)}`}
+            {cashingOut ? t('result.survived.cashing_out') : t('result.survived.cashout', { amount: formatCents(potCents ?? 0) })}
           </button>
         )}
       </>
@@ -406,10 +405,8 @@ export default function ResultModal({
           textShadow: '0 0 28px rgba(122,15,15,0.5), 0 2px 8px rgba(0,0,0,0.8)',
           margin: '0 0 6px',
         }}>
-          YOU FELL
+          {t('result.died.headline')}
         </h2>
-
-        {/* Subtitle */}
         <p style={{
           fontFamily: BF, fontSize: 13, lineHeight: 1.6,
           color: 'rgba(255,255,255,0.45)',
@@ -472,7 +469,7 @@ export default function ResultModal({
           background: 'rgba(0,0,0,0.2)',
         }}>
           <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'rgba(255,255,255,0.28)', fontFamily: UF }}>
-            Next Gate Opens
+            {t('result.next_gate')}
           </span>
           <span style={{
             fontFamily: FF, fontSize: 18, letterSpacing: '0.12em',
@@ -496,7 +493,7 @@ export default function ResultModal({
             color: 'rgba(255,255,255,0.8)',
             textShadow: '0 2px 4px rgba(0,0,0,0.9)',
           }}>
-            Return Tomorrow
+            {t('result.died.cta')}
           </span>
         </ImageButton>
       </>

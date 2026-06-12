@@ -2,16 +2,17 @@ import { NavLink } from 'react-router-dom';
 import { Skull, Gamepad2, Wallet, Trophy, Settings } from 'lucide-react';
 import AssetIcon from '../ui/AssetIcon';
 import { ICONS } from '../../lib/assets';
-
-const navItems = [
-  { to: '/',            assetSrc: ICONS.skull,    fallback: Skull,    label: 'Gate'   },
-  { to: '/games',       assetSrc: ICONS.gamepad,  fallback: Gamepad2, label: 'Games'  },
-  { to: '/wallet',      assetSrc: ICONS.wallet,   fallback: Wallet,   label: 'Wallet' },
-  { to: '/leaderboard', assetSrc: ICONS.trophy,   fallback: Trophy,   label: 'Ranks'  },
-  { to: '/settings',    assetSrc: ICONS.settings, fallback: Settings, label: 'Settings' },
-];
+import { useI18n } from '../../context/I18nContext';
 
 export default function BottomNav() {
+  const { t } = useI18n();
+  const navItems = [
+    { to: '/',            assetSrc: ICONS.skull,    fallback: Skull,    label: t('nav.gate')     },
+    { to: '/games',       assetSrc: ICONS.gamepad,  fallback: Gamepad2, label: t('nav.games')    },
+    { to: '/wallet',      assetSrc: ICONS.wallet,   fallback: Wallet,   label: t('nav.wallet')   },
+    { to: '/leaderboard', assetSrc: ICONS.trophy,   fallback: Trophy,   label: t('nav.ranks')    },
+    { to: '/settings',    assetSrc: ICONS.settings, fallback: Settings, label: t('nav.settings') },
+  ];
   return (
     <nav
       style={{

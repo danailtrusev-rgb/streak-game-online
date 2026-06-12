@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Shield, BarChart3, Users, Settings, FileText, LogOut, Lock,
-  Gamepad2, Trophy, CalendarDays, Image, Crown, Layers, PenLine,
+  Gamepad2, Trophy, CalendarDays, Image, Crown, Layers, PenLine, Globe,
 } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import AdminKPIs from './AdminKPIs';
@@ -15,6 +15,7 @@ import AdminFlyers from './AdminFlyers';
 import AdminWinners from './AdminWinners';
 import AdminSkullGatePreview from './AdminSkullGatePreview';
 import AdminSceneEditor from './scene-editor/AdminSceneEditor';
+import AdminTranslations from './AdminTranslations';
 
 const tabs = [
   { key: 'kpis', label: 'KPIs', icon: BarChart3 },
@@ -28,6 +29,7 @@ const tabs = [
   { key: 'audit', label: 'Audit', icon: FileText },
   { key: 'gate_preview', label: 'Gate Preview', icon: Layers },
   { key: 'scene_editor', label: 'Scene Editor', icon: PenLine },
+  { key: 'translations', label: 'Translations', icon: Globe },
 ];
 
 export default function AdminPage() {
@@ -184,6 +186,7 @@ export default function AdminPage() {
       {activeTab === 'audit' && <AdminAuditLog />}
       {activeTab === 'gate_preview' && <AdminSkullGatePreview />}
       {activeTab === 'scene_editor' && <AdminSceneEditor />}
+      {activeTab === 'translations' && <AdminTranslations />}
     </div>
   );
 }

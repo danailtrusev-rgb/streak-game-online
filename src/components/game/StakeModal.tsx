@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Lock, Wallet, X, ChevronRight } from 'lucide-react';
 import { formatCents } from '../../lib/constants';
+import { useI18n } from '../../context/I18nContext';
 import type { StakeTier } from '../../lib/types';
 import { BUTTONS, ICONS } from '../../lib/assets';
 import ImageButton from '../ui/ImageButton';
@@ -19,6 +20,7 @@ const BF = "'Lora', Georgia, serif";
 const UF = "'Inter', system-ui, sans-serif";
 
 export default function StakeModal({ tiers, walletBalance, streak, onConfirm, onClose }: StakeModalProps) {
+  const { t } = useI18n();
   const [selected, setSelected] = useState<number | null>(() => {
     // Pre-select the highest affordable unlocked tier
     const affordable = tiers.filter(
@@ -96,13 +98,13 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
             textShadow: '0 0 16px rgba(245,208,96,0.35), 0 2px 4px rgba(0,0,0,0.8)',
             margin: '0 0 6px',
           }}>
-            Enter the Gate
+          {t('stake.title')}
           </h2>
           <p style={{
             fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)',
             lineHeight: 1.5, margin: 0,
           }}>
-            Choose your stake. Survive to grow your pot. Fall and the streak resets.
+            {t('stake.subtitle')}
           </p>
         </div>
 
@@ -119,7 +121,7 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <Wallet size={14} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.35)' }} />
             <span style={{ fontFamily: UF, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>
-              Wallet Balance
+              {t('stake.wallet_balance')}
             </span>
           </div>
           <span style={{
@@ -140,7 +142,7 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
           }}>
             <span style={{ color: '#CC4444', fontSize: 14, flexShrink: 0, lineHeight: 1.4 }}>!</span>
             <p style={{ fontFamily: BF, fontSize: 12, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, margin: 0 }}>
-              Your balance is too low to enter. Top up your wallet to continue.
+              {t('stake.low_balance')}
             </p>
           </div>
         )}
@@ -291,8 +293,8 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
             textShadow: '0 0 12px rgba(245,208,96,0.45), 0 2px 4px rgba(0,0,0,0.9)',
           }}>
             {selected !== null
-              ? `Face the Gate · €${formatCents(selectedTier?.stake_cents ?? 0)}`
-              : 'Choose a Stake'}
+              ? t('stake.confirm', { amount: formatCents(selectedTier?.stake_cents ?? 0) })
+              : t('stake.choose')}
           </span>
         </ImageButton>
       </div>

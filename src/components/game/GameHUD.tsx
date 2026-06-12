@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Flame, Trophy, Crown, Wallet } from 'lucide-react';
 import AssetIcon from '../ui/AssetIcon';
 import { ICONS } from '../../lib/assets';
+import { useI18n } from '../../context/I18nContext';
 import type { QualificationStatus } from '../../lib/types';
 
 interface GameHUDProps {
@@ -21,6 +22,7 @@ export default function GameHUD({
   hidePot     = false,
 }: GameHUDProps) {
   const navigate  = useNavigate();
+  const { t }     = useI18n();
   const satQual   = qualification?.saturday_qualified ?? false;
   const sunQual   = qualification?.sunday_qualified   ?? false;
   const pts       = qualification?.total_points       ?? 0;
@@ -54,7 +56,7 @@ export default function GameHUD({
           textShadow:    '0 0 18px rgba(255,180,40,0.5), 0 1px 4px rgba(0,0,0,0.9)',
           lineHeight:     1,
         }}>
-          Survive the Streak
+          {t('common.app_name')}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <AssetIcon src={ICONS.wallet} fallback={Wallet} size={16} style={{ opacity: 0.55 }} />
@@ -78,7 +80,7 @@ export default function GameHUD({
               lineHeight:     1,
               marginTop:      2,
             }}>
-              Credits
+              {t('common.credits')}
             </div>
           </div>
         </div>
@@ -124,7 +126,7 @@ export default function GameHUD({
               textTransform: 'uppercase',
               color:          'rgba(255,255,255,0.6)',
             }}>
-              streak
+              {t('common.streak')}
             </span>
           </div>
         </button>
@@ -161,7 +163,7 @@ export default function GameHUD({
                 textTransform: 'uppercase',
                 color:          'rgba(255,255,255,0.6)',
               }}>
-                pot
+                {t('common.pot')}
               </span>
             </button>
           </>
@@ -186,7 +188,7 @@ export default function GameHUD({
                 textTransform: 'uppercase',
                 color:          'rgba(255,255,255,0.45)',
               }}>
-                pts
+                {t('common.pts')}
               </span>
             </div>
           )}

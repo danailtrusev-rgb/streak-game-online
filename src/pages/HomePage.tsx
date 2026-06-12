@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Skull, ChevronRight, Flame, Zap, X, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../context/I18nContext';
 import { useGame } from '../hooks/useGame';
 import { useQualification } from '../hooks/useQualification';
 import { useFlyers } from '../hooks/useFlyers';
@@ -79,15 +80,15 @@ function getGameStatus(
   return 'play';
 }
 
-function statusLabel(status: GameStatusKey): string {
+function statusLabel(status: GameStatusKey, t: (key: string) => string): string {
   switch (status) {
-    case 'play':         return 'Play';
-    case 'done':         return 'Done';
-    case 'won':          return 'Won';
-    case 'locked':       return 'Locked';
-    case 'coming_soon':  return 'Soon';
-    case 'qualified':    return 'Qualified';
-    case 'not_qualified':return 'Not Qualified';
+    case 'play':         return t('games.status.play');
+    case 'done':         return t('games.status.done');
+    case 'won':          return t('games.status.won');
+    case 'locked':       return t('games.status.locked');
+    case 'coming_soon':  return t('games.status.soon');
+    case 'qualified':    return t('games.status.qualified');
+    case 'not_qualified':return t('games.status.not_qualified');
   }
 }
 
@@ -308,11 +309,12 @@ function GameRow({ game, progress, onClick }: {
   progress: TodayGameProgress | null;
   onClick: () => void;
 }) {
+  const { t } = useI18n();
   const def    = getGameDef(game.game_id);
   const Icon   = def.icon;
   const status = getGameStatus(game, progress);
   const isPlayable = status === 'play';
-  const label  = statusLabel(status);
+  const label  = statusLabel(status, t);
   const color  = statusColor(status);
 
   return (
@@ -396,6 +398,7 @@ export default function HomePage() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { playerState, loading } = useAuth();
+  const { t } = useI18n();
   const { play, revealResult, recoverTodayPlay, restoreResult, playing, recovering, pendingResult, lastResult, error, clearResult } = useGame();
   const { qualification, fetchQualification, getGameProgress } = useQualification();
   const { banners, winners, fetchAssets } = useFlyers();
@@ -444,7 +447,7 @@ export default function HomePage() {
       <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <LoadingSpinner size="lg" />
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', fontFamily: "'Lora', Georgia, serif", letterSpacing: '0.08em' }}>Entering the jungle…</p>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', fontFamily: "'Lora', Georgia, serif", letterSpacing: '0.08em' }}>{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -692,10 +695,10 @@ export default function HomePage() {
                     WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                     letterSpacing: '0.06em', marginBottom: 6,
                   }}>
-                    Skull Gate
+                    {t('home.skull_gate')}
                   </h1>
                   <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', fontFamily: "'Lora', Georgia, serif", marginBottom: 18, lineHeight: 1.6 }}>
-                    Face the gate. Survive to build your streak and grow the pot.
+                    {t('home.skull_gate_desc')}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 28, marginBottom: 18 }}>
@@ -743,7 +746,7 @@ export default function HomePage() {
                   }}>
                     <AssetIcon src={PROPS.skull_gate_icon} fallback={Skull} size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(255,122,0,0.8))' }} />
                     <span style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#FF9A30', fontFamily: "'Inter', system-ui, sans-serif" }}>
-                      Enter the Gate
+                      {t('home.enter_gate')}
                     </span>
                   </div>
                 </div>
@@ -755,7 +758,7 @@ export default function HomePage() {
 
       {/* ══ QUALIFICATION & WEEKEND EVENTS ═══════════════════════════ */}
       <section className="animate-fade-up animate-delay-2" style={{ marginBottom: 24 }}>
-        <SectionHeading label="This Week" action="All Games" onAction={() => navigate('/games')} />
+        <SectionHeading label={t('home.this_week')} action={t('common.all_games')} onAction={() => navigate('/games')} />
         <div style={{ background: 'rgba(11,15,12,0.75)', border: '1px solid rgba(30,50,36,0.5)', padding: '16px' }}>
           <QualificationBar qualification={qualification} showPlayButtons={true} />
         </div>
@@ -764,7 +767,7 @@ export default function HomePage() {
       {/* ══ TODAY'S CHALLENGES ═══════════════════════════════════════ */}
       {challengeGames.length > 0 && (
         <section className="animate-fade-up animate-delay-3" style={{ marginBottom: 24 }}>
-          <SectionHeading label="Today's Challenges" action="All" onAction={() => navigate('/games')} />
+          <SectionHeading label={t('home.todays_challenges')} action={t('common.all')} onAction={() => navigate('/games')} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {challengeGames.map((game) => (
               <GameRow
@@ -801,7 +804,7 @@ export default function HomePage() {
       {winners.length > 0 && (
         <section style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.16em', color: 'rgba(255,255,255,0.85)', fontWeight: 700, marginBottom: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
-            Recent Champions
+            {t('home.recent_champions')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {winners.slice(0, 2).map((winner) => (
@@ -821,7 +824,7 @@ export default function HomePage() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <AssetIcon src={ICONS.zap} fallback={Zap} size={16} style={{ filter: 'drop-shadow(0 0 5px rgba(245,208,96,0.5))' }} />
-            <span style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.65)', fontFamily: "'Inter', system-ui, sans-serif" }}>Jackpot Pool</span>
+            <span style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.65)', fontFamily: "'Inter', system-ui, sans-serif" }}>{t('home.jackpot_pool')}</span>
           </div>
           <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 20, fontWeight: 700, color: '#F5D060', textShadow: '0 0 10px rgba(245,208,96,0.3)' }}>
             {playerState.jackpot_cents != null ? `€${formatCents(playerState.jackpot_cents)}` : '—'}

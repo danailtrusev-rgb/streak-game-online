@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   User, Shield, Bell, Flame, BookOpen, ChevronRight, ChevronLeft,
-  HelpCircle, Info, LogOut,
+  HelpCircle, Info, LogOut, Globe,
   Mail, MessageCircle, Send, Hash, Smartphone, Check, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useI18n } from '../context/I18nContext';
 import { ICONS } from '../lib/assets';
 import AssetIcon from '../components/ui/AssetIcon';
 import { useNotifications, type NotificationChannel, type NotificationPref } from '../hooks/useNotifications';
@@ -580,6 +581,7 @@ function ChannelRow({
 
 export default function SettingsPage() {
   const { playerState, session, isGuest, signOut } = useAuth();
+  const { t, language, setLanguage, languages } = useI18n();
   const {
     prefs, loading: prefsLoading, fetchPrefs, getPref, error: notifError,
   } = useNotifications();
@@ -702,7 +704,7 @@ export default function SettingsPage() {
 
       {/* Account block */}
       <div>
-        <SectionLabel label="Account" />
+        <SectionLabel label={t('settings.section.account')} />
         <div style={{ background: 'linear-gradient(180deg,rgba(18,26,20,0.9)0%,rgba(10,14,11,0.95)100%)', border: '1px solid rgba(245,208,96,0.10)', padding: '20px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 48, height: 48, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,122,0,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -755,10 +757,51 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Language */}
+      {languages.length > 1 && (
+        <div>
+          <SectionLabel label={t('settings.section.language')} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {languages.map((lang) => {
+              const active = lang.code === language;
+              return (
+                <button
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    width: '100%', padding: '13px 16px',
+                    background: active ? 'rgba(255,122,0,0.07)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${active ? 'rgba(255,122,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
+                    cursor: 'pointer', textAlign: 'left',
+                    transition: 'background 0.15s ease, border-color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
+                  onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.02)'; }}
+                >
+                  <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Globe size={17} strokeWidth={1.4} style={{ color: active ? '#FF9A30' : 'rgba(255,255,255,0.4)' }} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: active ? '#FF9A30' : 'rgba(255,255,255,0.85)' }}>
+                      {lang.native_name}
+                    </div>
+                    {lang.native_name !== lang.name && (
+                      <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{lang.name}</div>
+                    )}
+                  </div>
+                  {active && <Check size={15} style={{ color: '#FF9A30', flexShrink: 0 }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Logout — only for registered accounts */}
       {!isGuestAcc && (
         <div>
-          <SectionLabel label="Session" />
+          <SectionLabel label={t('settings.session')} />
           <button
             onClick={signingOut ? undefined : handleSignOut}
             disabled={signingOut}
@@ -782,10 +825,10 @@ export default function SettingsPage() {
       {/* Notifications & Reminders */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <SectionLabel label="Notifications & Reminders" />
+          <SectionLabel label={t('settings.section.notifications')} />
           {isGuestAcc && (
             <span style={{ fontFamily: UF, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,122,0,0.7)', border: '1px solid rgba(255,122,0,0.25)', padding: '2px 8px' }}>
-              Upgrade Required
+              {t('settings.upgrade_required')}
             </span>
           )}
         </div>
@@ -824,12 +867,12 @@ export default function SettingsPage() {
       {/* Reminder types summary (if any channel active) */}
       {!isGuestAcc && prefs.some((p) => p.enabled) && (
         <div>
-          <SectionLabel label="What you'll be reminded about" />
+          <SectionLabel label={t('settings.reminders_title')} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {[
-              { Icon: Flame,    label: 'Daily Streak Reminder',  desc: 'Remind you to face the gate each day' },
-              { Icon: BookOpen, label: 'Qualification Alert',    desc: "Alert when you're close to qualifying" },
-              { Icon: Bell,     label: 'Weekend Event Alert',    desc: 'Alert before Saturday and Sunday events' },
+              { Icon: Flame,    label: t('settings.reminder_streak'),  desc: t('settings.reminder_streak_desc') },
+              { Icon: BookOpen, label: t('settings.reminder_qual'),    desc: t('settings.reminder_qual_desc') },
+              { Icon: Bell,     label: t('settings.reminder_event'),   desc: t('settings.reminder_event_desc') },
             ].map(({ Icon, label, desc }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.04)' }}>
                 <Icon size={15} strokeWidth={1.4} style={{ color: 'rgba(255,122,0,0.6)', flexShrink: 0 }} />
@@ -845,7 +888,7 @@ export default function SettingsPage() {
 
       {/* Support */}
       <div>
-        <SectionLabel label="Support" />
+        <SectionLabel label={t('settings.support')} />
         <button
           style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s ease' }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
