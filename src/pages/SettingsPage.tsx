@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   User, Shield, Bell, Flame, BookOpen, ChevronRight, ChevronLeft,
   HelpCircle, Info, LogOut, Globe,
-  Mail, MessageCircle, Send, Hash, Smartphone, Check, RefreshCw,
+  Mail, MessageCircle, Send, Hash, Smartphone, Check, RefreshCw, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useI18n } from '../context/I18nContext';
@@ -12,6 +12,7 @@ import { useNotifications, type NotificationChannel, type NotificationPref } fro
 import UpgradeModal from '../components/onboarding/UpgradeModal';
 import LoginModal from '../components/onboarding/LoginModal';
 import PhoneInput, { validatePhone, buildE164, COUNTRIES } from '../components/ui/PhoneInput';
+import { supabase } from '../lib/supabase';
 
 // ── Shared style helpers ──────────────────────────────────────────────────────
 
@@ -577,6 +578,87 @@ function ChannelRow({
   );
 }
 
+// ── FAQ Accordion ─────────────────────────────────────────────────────────────
+
+interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  sort_order: number;
+  enabled: boolean;
+}
+
+function FaqAccordion() {
+  const [items, setItems] = useState<FaqItem[]>([]);
+  const [open, setOpen] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from('faq_items')
+      .select('id, question, answer, sort_order, enabled')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true })
+      .then(({ data }) => {
+        setItems((data ?? []) as FaqItem[]);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return null;
+  if (items.length === 0) return null;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {items.map((item) => {
+        const isOpen = open === item.id;
+        return (
+          <div
+            key={item.id}
+            style={{
+              border: `1px solid ${isOpen ? 'rgba(255,122,0,0.22)' : 'rgba(255,255,255,0.05)'}`,
+              background: isOpen ? 'rgba(255,122,0,0.03)' : 'rgba(255,255,255,0.02)',
+              transition: 'border-color 0.2s ease, background 0.2s ease',
+            }}
+          >
+            <button
+              onClick={() => setOpen(isOpen ? null : item.id)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', padding: '13px 16px',
+                background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <span style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: isOpen ? '#FF9A30' : 'rgba(255,255,255,0.8)', lineHeight: 1.3, flex: 1, paddingRight: 8 }}>
+                {item.question}
+              </span>
+              <ChevronDown
+                size={15}
+                style={{
+                  color: isOpen ? '#FF9A30' : 'rgba(255,255,255,0.3)',
+                  flexShrink: 0,
+                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease, color 0.2s ease',
+                }}
+              />
+            </button>
+            {isOpen && (
+              <div style={{ padding: '0 16px 14px' }}>
+                <p style={{
+                  fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.55)',
+                  lineHeight: 1.7, margin: 0,
+                }}>
+                  {item.answer}
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main SettingsPage ─────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -722,7 +804,7 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: accountLabel ? 4 : 4 }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: isGuestAcc ? '#FF7A00' : '#78B060', flexShrink: 0 }} />
                 <span style={{ fontFamily: UF, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: isGuestAcc ? '#FF9A30' : '#78B060' }}>
-                  {isGuestAcc ? 'Guest Account' : 'Registered Account'}
+                  {isGuestAcc ? t('settings.account_type_guest') : t('settings.account_type_registered')}
                 </span>
               </div>
             </div>
@@ -731,7 +813,7 @@ export default function SettingsPage() {
           {isGuestAcc && (
             <div style={{ marginTop: 16 }}>
               <div style={{ padding: '10px 14px', background: 'rgba(255,122,0,0.05)', border: '1px solid rgba(255,122,0,0.12)', fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: BF, lineHeight: 1.6, marginBottom: 14 }}>
-                Your progress and wallet are tied to this device. Upgrade to keep them safe across devices.
+                {t('settings.guest_warning')}
               </div>
               <button
                 onClick={() => setShowUpgrade(true)}
@@ -740,7 +822,7 @@ export default function SettingsPage() {
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(80,140,50,0.35)'; }}
               >
                 <Shield size={16} strokeWidth={1.4} style={{ color: '#78B060' }} />
-                <span style={{ fontFamily: UF, fontSize: 14, fontWeight: 600, color: '#A8D090' }}>Upgrade Account</span>
+                <span style={{ fontFamily: UF, fontSize: 14, fontWeight: 600, color: '#A8D090' }}>{t('settings.upgrade_account')}</span>
                 <ChevronRight size={14} style={{ color: 'rgba(120,176,96,0.5)', marginLeft: 'auto' }} />
               </button>
               <button
@@ -749,8 +831,8 @@ export default function SettingsPage() {
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}
               >
-                <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Already have an account?</span>
-                <span style={{ fontFamily: UF, fontSize: 12, fontWeight: 600, color: '#FF9A30', marginLeft: 6 }}>Log In</span>
+                <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>{t('settings.already_have_account')}</span>
+                <span style={{ fontFamily: UF, fontSize: 12, fontWeight: 600, color: '#FF9A30', marginLeft: 6 }}>{t('settings.log_in')}</span>
               </button>
             </div>
           )}
@@ -814,9 +896,9 @@ export default function SettingsPage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(200,80,80,0.9)' }}>
-                {signingOut ? 'Signing out…' : 'Log Out'}
+                {signingOut ? t('settings.signing_out') : t('settings.log_out')}
               </div>
-              <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Sign out of your account</div>
+              <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t('settings.sign_out_desc')}</div>
             </div>
           </button>
         </div>
@@ -835,15 +917,15 @@ export default function SettingsPage() {
 
         {isGuestAcc ? (
           <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: BF, lineHeight: 1.6 }}>
-            Upgrade your account to set up reminders and notifications.
+            {t('settings.upgrade_to_notify')}
           </div>
         ) : (
           <>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontFamily: BF, lineHeight: 1.6, marginBottom: 14 }}>
-              Choose how you want to be reminded to face the gate each day and stay on top of events.
+              {t('settings.notifications_desc')}
             </div>
             {prefsLoading && prefs.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.2)', fontFamily: UF, fontSize: 12 }}>Loading…</div>
+              <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.2)', fontFamily: UF, fontSize: 12 }}>{t('common.loading')}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {CHANNELS.map((config) => (
@@ -889,32 +971,28 @@ export default function SettingsPage() {
       {/* Support */}
       <div>
         <SectionLabel label={t('settings.support')} />
-        <button
-          style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s ease' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.02)'; }}
-        >
-          <div style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <HelpCircle size={18} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.5)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderBottom: 'none' }}>
+            <div style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <HelpCircle size={18} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>{t('settings.faq_title')}</div>
+              <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t('settings.faq_subtitle')}</div>
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>Help & FAQ</div>
-            <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>Rules, gameplay, and common questions</div>
-          </div>
-          <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
-        </button>
+          <FaqAccordion />
+        </div>
       </div>
 
       {/* About */}
       <div style={{ padding: '16px', background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <Info size={14} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.25)' }} />
-          <span style={{ fontFamily: UF, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.25)' }}>About</span>
+          <span style={{ fontFamily: UF, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.25)' }}>{t('settings.about')}</span>
         </div>
         <p style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, margin: 0 }}>
-          Survive the Streak is a daily game ecosystem. Face the ancient skull gate, earn points,
-          play daily challenges, and qualify for the Saturday Showdown and Sunday Crown.
-          Build your streak. Cash out your winnings. One play per day. Choose wisely.
+          {t('settings.about_desc')}
         </p>
         <div style={{ fontFamily: UF, fontSize: 10, color: 'rgba(255,255,255,0.15)', marginTop: 10, letterSpacing: '0.08em' }}>v1.3.0</div>
       </div>

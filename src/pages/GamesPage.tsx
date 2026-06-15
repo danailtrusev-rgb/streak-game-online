@@ -10,16 +10,19 @@ import AssetIcon from '../components/ui/AssetIcon';
 import QualificationBar from '../components/ecosystem/QualificationBar';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import type { GameModule, TodayGameProgress } from '../lib/types';
+import { useI18n } from '../context/I18nContext';
 
 type FilterKey = 'all' | 'daily' | 'weekend' | 'special' | 'done';
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all',     label: 'All'     },
-  { key: 'daily',   label: 'Daily'   },
-  { key: 'weekend', label: 'Weekend' },
-  { key: 'special', label: 'Special' },
-  { key: 'done',    label: 'Done'    },
-];
+function getFilterLabels(t: (k: string) => string): { key: FilterKey; label: string }[] {
+  return [
+    { key: 'all',     label: t('games.filter.all')     },
+    { key: 'daily',   label: t('games.filter.daily')   },
+    { key: 'weekend', label: t('games.filter.weekend') },
+    { key: 'special', label: t('games.filter.special') },
+    { key: 'done',    label: t('games.filter.done')    },
+  ];
+}
 
 const GAME_BG: Record<string, string> = {
   daily_dice:    BACKGROUNDS.gate_home,
@@ -42,13 +45,13 @@ function getGameStatus(game: GameModule, progress: TodayGameProgress | null): Ga
   return 'play';
 }
 
-function statusLabel(status: GameStatusKey): string {
+function statusLabel(status: GameStatusKey, t: (k: string) => string): string {
   switch (status) {
-    case 'play':        return 'Play Today';
-    case 'done':        return 'Done Today';
-    case 'won':         return 'Won Today';
-    case 'locked':      return 'Locked';
-    case 'coming_soon': return 'Coming Soon';
+    case 'play':        return t('games.status.play');
+    case 'done':        return t('games.status.done');
+    case 'won':         return t('games.status.won');
+    case 'locked':      return t('games.status.locked');
+    case 'coming_soon': return t('games.status.coming_soon');
   }
 }
 
@@ -92,6 +95,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
   const won     = status === 'won';
   const isSoon  = status === 'coming_soon';
   const bgSrc   = GAME_BG[game.game_id] ?? config?.background ?? '';
+  const { t }   = useI18n();
 
   return (
     <div
@@ -150,7 +154,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
               </div>
               {config?.winChance && (
                 <div style={{ fontSize: 11, color: '#8A8070', marginTop: 3, fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.08em' }}>
-                  Win chance: {config.winChance}
+                  {t('games.win_chance', { value: config.winChance })}
                 </div>
               )}
             </div>
@@ -182,7 +186,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
               padding: '10px 14px', marginBottom: 20,
             }}>
               <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.5)', fontFamily: "'Inter', system-ui, sans-serif", marginBottom: 6 }}>
-                How to play
+                {t('games.how_to_play')}
               </div>
               <p style={{ fontSize: 13, color: '#C8BE9E', fontFamily: "'Lora', Georgia, serif", lineHeight: 1.5, margin: 0 }}>
                 {config.instruction_text}
@@ -194,7 +198,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20 }}>
               <AssetIcon src={ICONS.flame} fallback={Zap} size={14} style={{ filter: 'drop-shadow(0 0 4px rgba(255,122,0,0.6))' }} />
               <span style={{ fontSize: 12, color: '#8A8070', fontFamily: "'Inter', system-ui, sans-serif" }}>
-                +{game.points_on_play} pts on play · +{game.points_on_win} pts on win
+                {t('games.points_on_play', { play: String(game.points_on_play), win: String(game.points_on_win) })}
               </span>
             </div>
           )}
@@ -206,7 +210,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
             }}>
               <Lock size={14} style={{ color: '#554F46' }} />
               <span style={{ fontSize: 12, color: '#554F46', fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                Coming Soon
+                {t('games.status.coming_soon')}
               </span>
             </div>
           ) : played ? (
@@ -218,7 +222,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
             }}>
               <CheckCircle size={14} style={{ color: won ? '#78B060' : '#554F46' }} />
               <span style={{ fontSize: 12, color: won ? '#78B060' : '#6B655C', fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                {won ? 'Played · Won Today' : 'Played Today'}
+                {won ? t('games.played_won') : t('games.played_today')}
               </span>
             </div>
           ) : (
@@ -237,7 +241,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(180deg, rgba(50,80,36,0.97) 0%, rgba(28,48,20,0.99) 100%)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(180deg, rgba(40,65,30,0.95) 0%, rgba(22,38,16,0.98) 100%)'; }}
             >
-              Play Now
+              {t('games.play_now')}
             </button>
           )}
         </div>
@@ -260,7 +264,8 @@ function GameCard({ game, progress, onClick }: GameCardProps) {
   const played = status === 'done' || status === 'won';
   const won    = status === 'won';
   const isSoon = status === 'coming_soon';
-  const label  = statusLabel(status);
+  const { t }  = useI18n();
+  const label  = statusLabel(status, t);
   const color  = statusColor(status);
 
   return (
@@ -347,6 +352,8 @@ export default function GamesPage() {
   const { qualification, fetchQualification, getGameProgress } = useQualification();
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
   const [popupGame, setPopupGame] = useState<GameModule | null>(null);
+  const { t } = useI18n();
+  const FILTERS = getFilterLabels(t);
 
   useEffect(() => {
     fetchGames();
@@ -412,14 +419,14 @@ export default function GamesPage() {
                 fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em',
                 color: allDone ? '#78B060' : 'rgba(255,255,255,0.45)',
               }}>
-                {allDone ? 'All daily games complete' : 'Daily games'}
+                {allDone ? t('games.all_daily_done') : t('games.daily_games')}
               </div>
               {!allDone && (
                 <div style={{
                   fontFamily: "'Lora', Georgia, serif",
                   fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2,
                 }}>
-                  Each game earns qualification points toward the weekend.
+                  {t('games.earn_points_desc')}
                 </div>
               )}
             </div>
@@ -437,7 +444,7 @@ export default function GamesPage() {
       {/* Qualification bar */}
       <div style={{ background: 'rgba(11,15,12,0.72)', border: '1px solid rgba(30,50,36,0.55)', padding: '16px' }}>
         <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.55)', marginBottom: 12, fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 600 }}>
-          This Week
+          {t('home.this_week')}
         </div>
         <QualificationBar qualification={qualification} />
       </div>
@@ -475,7 +482,7 @@ export default function GamesPage() {
         <section>
           {activeFilter === 'all' && (
             <div style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.85)', fontWeight: 700, marginBottom: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
-              Daily Challenges
+              {t('games.daily_challenges')}
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -496,7 +503,7 @@ export default function GamesPage() {
         <section>
           {activeFilter === 'all' && (
             <div style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.85)', fontWeight: 700, marginBottom: 12, fontFamily: "'Inter', system-ui, sans-serif" }}>
-              Weekend Events
+              {t('games.weekend_events')}
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -518,7 +525,7 @@ export default function GamesPage() {
           {activeFilter === 'all' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
               <div style={{ fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.65)', fontWeight: 700, fontFamily: "'Inter', system-ui, sans-serif" }}>
-                Coming Soon
+                {t('games.coming_soon')}
               </div>
               <Zap size={13} style={{ color: '#FF7A00', opacity: 0.6 }} />
             </div>
@@ -538,18 +545,17 @@ export default function GamesPage() {
 
       {filteredGames.length === 0 && !loading && (
         <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>
-          No games match this filter.
+          {t('games.no_match')}
         </div>
       )}
 
       {/* How qualification works */}
       <div style={{ border: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)', padding: '16px', marginTop: 4 }}>
         <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.65)', marginBottom: 10, fontFamily: "'Inter', system-ui, sans-serif", fontWeight: 600 }}>
-          How Qualification Works
+          {t('games.how_qual_works')}
         </div>
         <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, margin: 0, fontFamily: "'Lora', Georgia, serif" }}>
-          Earn points by playing daily games. Reach the Saturday threshold to enter the Showdown.
-          Reach the Sunday threshold to enter the Crown. Points reset each Monday.
+          {t('games.how_qual_desc')}
         </p>
       </div>
 

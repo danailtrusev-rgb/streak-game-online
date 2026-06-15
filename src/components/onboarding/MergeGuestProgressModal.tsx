@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, GitMerge, Coins, Star, Shield, Check, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../context/I18nContext';
 
 const FF = "'Metal Mania', 'Cinzel', Georgia, serif";
 const BF = "'Lora', Georgia, serif";
@@ -76,6 +77,7 @@ export default function MergeGuestProgressModal({
   onMergeComplete,
 }: MergeGuestProgressModalProps) {
   const { refresh } = useAuth();
+  const { t } = useI18n();
 
   const [eligibility, setEligibility] = useState<EligibilityResult | null>(null);
   const [checkLoading, setCheckLoading] = useState(true);
@@ -93,7 +95,7 @@ export default function MergeGuestProgressModal({
       if (cancelled) return;
       setCheckLoading(false);
       if (rpcErr || !data) {
-        setError('Could not check guest progress. You can continue without merging.');
+        setError(t('merge.check_error'));
         return;
       }
       setEligibility(data as EligibilityResult);
@@ -114,14 +116,14 @@ export default function MergeGuestProgressModal({
     });
     setMerging(false);
     if (rpcErr || !data) {
-      setError('Merge failed. Please try again or continue without merging.');
+      setError(t('merge.merge_failed_retry'));
       return;
     }
     const result = data as { success: boolean; error?: string };
     if (!result.success) {
       setError(result.error === 'already_merged'
-        ? 'This guest session was already merged previously.'
-        : 'Merge failed. Please try again.');
+        ? t('merge.already_merged')
+        : t('merge.merge_failed'));
       return;
     }
     setMerged(true);
@@ -161,10 +163,10 @@ export default function MergeGuestProgressModal({
               <Check size={28} style={{ color: '#78B060' }} />
             </div>
             <div style={{ fontFamily: FF, fontSize: 20, color: '#F5D060', letterSpacing: '0.06em' }}>
-              Progress Merged
+              {t('merge.progress_merged')}
             </div>
             <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
-              Your guest session credits, points, and badges have been added to this account.
+              {t('merge.progress_merged_desc')}
             </div>
           </div>
         </div>
@@ -179,7 +181,7 @@ export default function MergeGuestProgressModal({
         <div style={cardBase}>
           <div style={{ padding: '48px 28px', textAlign: 'center' }}>
             <div style={{ fontFamily: UF, fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-              Checking guest progress…
+              {t('merge.checking')}
             </div>
           </div>
         </div>
@@ -196,14 +198,14 @@ export default function MergeGuestProgressModal({
           <div style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
             <CloseButton onClick={onDismiss} />
             <div style={{ fontFamily: FF, fontSize: 18, letterSpacing: '0.06em', color: '#F5D060' }}>
-              No Merge Available
+              {t('merge.no_merge_available')}
             </div>
             <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>
               {eligibility?.reason === 'already_merged'
-                ? 'This guest session has already been merged previously.'
-                : 'No eligible guest progress was found to merge.'}
+                ? t('merge.already_merged_reason')
+                : t('merge.no_eligible_progress')}
             </div>
-            <DismissButton onClick={onDismiss} label="Continue" />
+            <DismissButton onClick={onDismiss} label={t('merge.continue')} />
           </div>
         </div>
       </div>
@@ -226,14 +228,14 @@ export default function MergeGuestProgressModal({
             </div>
             <div>
               <h2 style={{ fontFamily: FF, fontSize: 19, letterSpacing: '0.07em', color: '#F5D060', margin: 0 }}>
-                Merge guest progress?
+                {t('merge.title')}
               </h2>
             </div>
           </div>
 
           {/* Body */}
           <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7 }}>
-            You were playing as a guest before logging in. You can merge eligible guest progress into this account. Your existing account streak and pot will stay protected.
+            {t('merge.body')}
           </div>
 
           {/* Eligible items */}
@@ -242,31 +244,31 @@ export default function MergeGuestProgressModal({
               {eligibility.wallet_cents > 0 && (
                 <MergeRow
                   icon={<Coins size={16} />}
-                  label="Wallet Credits"
+                  label={t('merge.wallet_credits')}
                   value={`€${formatCents(eligibility.wallet_cents)}`}
-                  sub="Transferred from guest wallet"
+                  sub={t('merge.wallet_credits_sub')}
                 />
               )}
               {eligibility.qualification_points > 0 && (
                 <MergeRow
                   icon={<Star size={16} />}
-                  label="Qualification Points"
+                  label={t('merge.qual_points')}
                   value={`${eligibility.qualification_points} pts`}
-                  sub="Current week points added"
+                  sub={t('merge.qual_points_sub')}
                 />
               )}
               {eligibility.badges_count > 0 && (
                 <MergeRow
                   icon={<Shield size={16} />}
-                  label="Earned Badges"
+                  label={t('merge.earned_badges')}
                   value={`${eligibility.badges_count}`}
-                  sub="Badges from real game plays"
+                  sub={t('merge.earned_badges_sub')}
                 />
               )}
             </div>
           ) : (
             <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', fontFamily: BF, fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-              No eligible progress found in the guest session — nothing to merge.
+              {t('merge.no_eligible_items')}
             </div>
           )}
 
@@ -274,7 +276,7 @@ export default function MergeGuestProgressModal({
           <div style={{ padding: '10px 14px', background: 'rgba(120,176,96,0.04)', border: '1px solid rgba(120,176,96,0.15)', borderLeft: '2px solid rgba(120,176,96,0.4)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <Shield size={13} style={{ color: '#78B060', flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(120,176,96,0.9)', lineHeight: 1.6 }}>
-              Your existing streak, pot, and daily gate result are never touched — they always stay as-is.
+              {t('merge.protected_note')}
             </div>
           </div>
 
@@ -282,7 +284,7 @@ export default function MergeGuestProgressModal({
           <div style={{ padding: '10px 14px', background: 'rgba(255,180,40,0.04)', border: '1px solid rgba(255,180,40,0.14)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <AlertTriangle size={13} style={{ color: 'rgba(255,180,40,0.8)', flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,180,40,0.75)', lineHeight: 1.6 }}>
-              If you continue without merging, this guest session progress may be lost.
+              {t('merge.warning')}
             </div>
           </div>
 
@@ -315,12 +317,12 @@ export default function MergeGuestProgressModal({
                   transition: 'all 0.15s ease',
                 }}
               >
-                {merging ? 'Merging…' : 'Merge Eligible Progress'}
+                {merging ? t('merge.merging') : t('merge.merge_cta')}
               </button>
             )}
             <DismissButton
               onClick={onDismiss}
-              label={hasAnything ? 'Continue Without Merging' : 'Continue'}
+              label={hasAnything ? t('merge.continue_without') : t('merge.continue')}
             />
           </div>
         </div>

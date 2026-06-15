@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Flame, Lock, Star, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Flame, Lock, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBadges } from '../hooks/useBadges';
 import {
@@ -14,6 +14,7 @@ import type { BadgeDef } from '../lib/types';
 import { ICONS } from '../lib/assets';
 import AssetIcon from '../components/ui/AssetIcon';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { useI18n } from '../context/I18nContext';
 
 // ── Countdown hook ────────────────────────────────────────────────────────────
 function useCountdown() {
@@ -37,6 +38,7 @@ function BadgeCard({
   isNext:      boolean;
   unlockedAt?: string | null;
 }) {
+  const { t } = useI18n();
   const dateStr = unlockedAt
     ? new Date(unlockedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
@@ -119,7 +121,7 @@ function BadgeCard({
               background: 'rgba(120,176,96,0.12)', border: '1px solid rgba(120,176,96,0.28)',
               padding: '2px 7px', flexShrink: 0,
             }}>
-              Earned
+            {t('badge.earned')}
             </span>
           )}
 
@@ -130,7 +132,7 @@ function BadgeCard({
               background: 'rgba(255,122,0,0.08)', border: '1px solid rgba(255,122,0,0.22)',
               padding: '2px 7px', flexShrink: 0,
             }}>
-              Next
+            {t('badge.next')}
             </span>
           )}
         </div>
@@ -141,7 +143,7 @@ function BadgeCard({
           color: unlocked ? 'rgba(255,255,255,0.35)' : isNext ? 'rgba(255,122,0,0.5)' : 'rgba(255,255,255,0.15)',
           fontFamily: "'Inter', system-ui, sans-serif", marginBottom: 4,
         }}>
-          {def.isPrestige ? `Cycle ${def.milestone}` : `Day ${def.milestone}`}
+          {def.isPrestige ? t('badge.cycle_n', { n: String(def.milestone) }) : t('badge.day_n', { n: String(def.milestone) })}
         </div>
 
         <p style={{
@@ -159,7 +161,7 @@ function BadgeCard({
             fontFamily: "'Inter', system-ui, sans-serif",
             marginTop: 5, letterSpacing: '0.08em',
           }}>
-            Earned {dateStr}
+            {t('badge.earned_on', { date: dateStr })}
           </div>
         )}
       </div>
@@ -173,6 +175,7 @@ export default function StreakPage() {
   const { playerState } = useAuth();
   const { badges, loading: badgesLoading, fetchBadges, isUnlocked, getUnlockedAt } = useBadges();
   const countdown = useCountdown();
+  const { t } = useI18n();
 
   useEffect(() => {
     fetchBadges();
@@ -217,7 +220,7 @@ export default function StreakPage() {
           } as React.CSSProperties}
         >
           <ChevronLeft size={14} />
-          Back
+          {t('common.back')}
         </button>
 
         {/* Hero */}
@@ -228,7 +231,7 @@ export default function StreakPage() {
             color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', system-ui, sans-serif",
             marginBottom: 16,
           }}>
-            Streak &amp; Badges
+            {t('streak.streak_and_badges')}
           </div>
 
           {/* Compact streak tile */}
@@ -250,7 +253,7 @@ export default function StreakPage() {
               }}>
                 <AssetIcon src={ICONS.flame} fallback={Flame} size={10} style={{ opacity: 0.7 }} />
                 <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,154,48,0.7)', fontFamily: "'Inter', system-ui, sans-serif" }}>
-                  Active
+                  {t('streak.active')}
                 </span>
               </div>
             )}
@@ -269,7 +272,7 @@ export default function StreakPage() {
               color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', system-ui, sans-serif",
               marginTop: 6,
             }}>
-              {streak === 1 ? 'Day Survived' : 'Days Survived'}
+              {streak === 1 ? t('streak.day_survived') : t('streak.days_survived')}
             </div>
 
             {completedCycles > 0 && (
@@ -284,7 +287,7 @@ export default function StreakPage() {
                   fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.18em',
                   color: 'rgba(245,208,96,0.75)', fontFamily: "'Inter', system-ui, sans-serif",
                 }}>
-                  {completedCycles}× Prestige
+                  {completedCycles}× {t('streak.prestige')}
                 </span>
               </div>
             )}
@@ -305,13 +308,13 @@ export default function StreakPage() {
               fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em',
               color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter', system-ui, sans-serif",
             }}>
-              Streak Path
+              {t('streak.streak_path')}
             </span>
             <span style={{
               fontSize: 11, color: 'rgba(255,154,48,0.8)',
               fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.1em',
             }}>
-              Day {milestone.target} next
+              {t('streak.day_n_next', { n: String(milestone.target) })}
             </span>
           </div>
 
@@ -365,7 +368,7 @@ export default function StreakPage() {
               fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.16em',
               color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', system-ui, sans-serif",
             }}>
-              Next Gate Opens
+              {t('streak.next_gate_opens')}
             </span>
           </div>
           <span style={{
@@ -388,7 +391,7 @@ export default function StreakPage() {
               fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em',
               color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', system-ui, sans-serif",
             }}>
-              Milestone Badges
+              {t('streak.milestone_badges')}
             </span>
             {badgesLoading && <LoadingSpinner size="sm" />}
           </div>
@@ -415,7 +418,7 @@ export default function StreakPage() {
               fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em',
               color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', system-ui, sans-serif",
             }}>
-              Prestige — Repeated 30-Day Cycles
+              {t('streak.prestige_cycles')}
             </span>
             {completedCycles > 0 && (
               <span style={{
@@ -438,7 +441,7 @@ export default function StreakPage() {
               fontSize: 12, color: 'rgba(255,255,255,0.38)',
               fontFamily: "'Lora', Georgia, serif", lineHeight: 1.55, margin: 0,
             }}>
-              Complete a full 30-day streak cycle. The streak resets — but your prestige is remembered forever.
+              {t('streak.prestige_desc')}
             </p>
           </div>
 

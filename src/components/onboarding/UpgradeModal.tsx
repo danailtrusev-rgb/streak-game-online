@@ -3,6 +3,7 @@ import {
   X, Mail, ChevronLeft, RefreshCw, Check, Eye, EyeOff, Lock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useI18n } from '../../context/I18nContext';
 
 // ── Shared ─────────────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ function useCountdown(sentAt: number | null, duration = 120) {
 // ── 6-digit code input ──────────────────────────────────────────────────────
 
 function CodeInput({ onSubmit, loading }: { onSubmit: (code: string) => void; loading: boolean }) {
+  const { t } = useI18n();
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const inputRefs = Array.from({ length: 6 }, () => useRef<HTMLInputElement>(null));
 
@@ -100,7 +102,7 @@ function CodeInput({ onSubmit, loading }: { onSubmit: (code: string) => void; lo
         ))}
       </div>
       <PrimaryButton onClick={() => ready && !loading && onSubmit(code)} disabled={!ready || loading} loading={loading}>
-        Confirm Code
+        {t('upgrade.confirm_code')}
       </PrimaryButton>
     </div>
   );
@@ -109,6 +111,7 @@ function CodeInput({ onSubmit, loading }: { onSubmit: (code: string) => void; lo
 // ── Shared UI atoms ─────────────────────────────────────────────────────────
 
 function PrimaryButton({ onClick, disabled, loading, children }: { onClick: () => void; disabled?: boolean; loading?: boolean; children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <button
       onClick={onClick}
@@ -130,7 +133,7 @@ function PrimaryButton({ onClick, disabled, loading, children }: { onClick: () =
         transition:     'all 0.15s ease',
       }}
     >
-      {loading ? 'Please wait…' : children}
+      {loading ? t('upgrade.please_wait') : children}
     </button>
   );
 }
@@ -168,11 +171,13 @@ interface MethodOption {
   desc:  string;
 }
 
-const METHODS: MethodOption[] = [
-  { id: 'email',    label: 'Continue with Email',    icon: <Mail size={20} strokeWidth={1.4} />, desc: 'Verify with a 6-digit code' },
-  { id: 'google',   label: 'Continue with Google',   icon: <GoogleIcon />,                       desc: 'Link your Google account' },
-  { id: 'facebook', label: 'Continue with Facebook', icon: <FacebookIcon />,                     desc: 'Link your Facebook account' },
-];
+function getMethodOptions(t: (k: string) => string): MethodOption[] {
+  return [
+    { id: 'email',    label: t('upgrade.method_email'),    icon: <Mail size={20} strokeWidth={1.4} />, desc: t('upgrade.method_email_desc') },
+    { id: 'google',   label: t('upgrade.method_google'),   icon: <GoogleIcon />,                       desc: t('upgrade.method_google_desc') },
+    { id: 'facebook', label: t('upgrade.method_facebook'), icon: <FacebookIcon />,                     desc: t('upgrade.method_facebook_desc') },
+  ];
+}
 
 function GoogleIcon() {
   return (
@@ -234,6 +239,7 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
   onOpenLogin?: (email: string) => void;
 }) {
   const { sendEmailUpgradeCode, verifyEmailUpgradeCode, completeEmailUpgrade, session, setPendingGuestMergeId } = useAuth();
+  const { t } = useI18n();
 
   const handleOpenLogin = (email: string) => {
     // Store current guest user_id before switching to login, so merge can be offered after
@@ -331,8 +337,8 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
         <div style={{ width: 56, height: 56, background: 'rgba(120,176,96,0.12)', border: '1px solid rgba(120,176,96,0.3)', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           <Check size={28} style={{ color: '#78B060' }} />
         </div>
-        <div style={{ fontFamily: FF, fontSize: 20, color: '#F5D060', letterSpacing: '0.06em', marginBottom: 8 }}>Account Secured</div>
-        <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>Your streak, wallet, and progress are safe.</div>
+        <div style={{ fontFamily: FF, fontSize: 20, color: '#F5D060', letterSpacing: '0.06em', marginBottom: 8 }}>{t('upgrade.account_secured')}</div>
+        <div style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>{t('upgrade.account_secured_desc')}</div>
       </div>
     );
   }
@@ -340,12 +346,12 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <BackButton onClick={onBack} />
-      <FlowTitle icon={<Mail size={18} style={{ color: '#FF9A30' }} />} title="Email Verification" />
+      <FlowTitle icon={<Mail size={18} style={{ color: '#FF9A30' }} />} title={t('upgrade.email_verification')} />
 
       {step === 'address' && (
         <>
           <div>
-            <FieldLabel>Email Address</FieldLabel>
+            <FieldLabel>{t('upgrade.email_address')}</FieldLabel>
             <div style={{ position: 'relative' }}>
               <Mail size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
               <input
@@ -369,12 +375,12 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,122,0,0.1)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(255,122,0,0.06)')}
             >
-              Log in with this email instead
+              {t('upgrade.log_in_with_email')}
             </button>
           )}
           {!emailAlreadyExists && (
             <PrimaryButton onClick={handleSendCode} disabled={!emailValid} loading={loading}>
-              Send Verification Code
+              {t('upgrade.send_code')}
             </PrimaryButton>
           )}
         </>
@@ -383,10 +389,10 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
       {step === 'code' && (
         <>
           <div style={{ fontFamily: UF, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-            We sent a 6-digit code to <span style={{ color: '#FF9A30' }}>{email}</span>
+            {t('upgrade.code_sent_to')} <span style={{ color: '#FF9A30' }}>{email}</span>
           </div>
           <InfoBox>
-            The code can take a minute or two to arrive. Check your spam folder if you do not see it.
+            {t('upgrade.code_delay_note')}
           </InfoBox>
           {devCode && (
             <div style={{ padding: '8px 12px', background: 'rgba(245,208,96,0.06)', border: '1px solid rgba(245,208,96,0.2)', fontSize: 12, color: 'rgba(245,208,96,0.8)', fontFamily: UF }}>
@@ -397,7 +403,7 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
           <CodeInput onSubmit={handleVerifyCode} loading={loading} />
           <div style={{ textAlign: 'center' }}>
             {countdown > 0 ? (
-              <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>Resend available in {countdown}s</span>
+              <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{t('upgrade.resend_countdown', { n: String(countdown) })}</span>
             ) : (
               <button onClick={handleResend} disabled={loading} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,122,0,0.7)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <RefreshCw size={12} /> Resend code

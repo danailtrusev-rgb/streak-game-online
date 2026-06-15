@@ -4,6 +4,7 @@ import { ICONS } from '../../lib/assets';
 import { supabase } from '../../lib/supabase';
 import AssetIcon from '../ui/AssetIcon';
 import type { LucideIcon } from 'lucide-react';
+import { useI18n } from '../../context/I18nContext';
 
 interface OnboardingModalProps {
   onClose: () => void;
@@ -102,6 +103,7 @@ const FALLBACK_SLIDES: SlideDefinition[] = [
 export default function OnboardingModal({ onClose }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
   const [overrides, setOverrides] = useState<SlideOverride[]>([]);
+  const { t } = useI18n();
 
   useEffect(() => {
     supabase
@@ -340,7 +342,7 @@ export default function OnboardingModal({ onClose }: OnboardingModalProps) {
                     transition:     'background 0.15s ease',
                   }}
                 >
-                  Enter
+                  {t('onboarding.enter')}
                 </button>
               ) : (
                 <button

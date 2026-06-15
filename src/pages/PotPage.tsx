@@ -9,6 +9,7 @@ import { BUTTONS, ICONS, PROPS, BACKGROUNDS } from '../lib/assets';
 import AssetIcon from '../components/ui/AssetIcon';
 import ImageButton from '../components/ui/ImageButton';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { useI18n } from '../context/I18nContext';
 
 function ConfirmModal({
   potCents,
@@ -23,6 +24,7 @@ function ConfirmModal({
   onCancel: () => void;
   loading: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <div
       style={{
@@ -76,7 +78,7 @@ function ConfirmModal({
           textShadow: '0 2px 8px rgba(0,0,0,0.9)',
           marginBottom: 12,
         }}>
-          Cash Out the Pot?
+          {t('pot.cashout_confirm_title')}
         </h2>
 
         {/* Amount */}
@@ -100,7 +102,7 @@ function ConfirmModal({
             color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', system-ui, sans-serif",
             marginTop: 4,
           }}>
-            moves to your wallet
+            {t('pot.moves_to_wallet')}
           </div>
         </div>
 
@@ -120,7 +122,7 @@ function ConfirmModal({
               fontSize: 13, lineHeight: 1.55,
               color: 'rgba(255,255,255,0.6)', margin: 0,
             }}>
-              Your current streak of <strong style={{ color: '#E8C060' }}>{streak} {streak === 1 ? 'day' : 'days'}</strong> will reset to zero. The jungle forgets nothing — but you start fresh.
+              Your current streak of <strong style={{ color: '#E8C060' }}>{streak} {streak === 1 ? t('common.day') : t('common.days')}</strong> {t('pot.streak_reset_warning')}
             </p>
           </div>
         </div>
@@ -140,7 +142,7 @@ function ConfirmModal({
               color: '#F5D060',
               textShadow: '0 0 12px rgba(245,208,96,0.5), 0 2px 4px rgba(0,0,0,0.9)',
             }}>
-              {loading ? 'Collecting…' : 'Confirm Cashout'}
+              {loading ? t('pot.collecting') : t('pot.confirm_cashout')}
             </span>
           </ImageButton>
 
@@ -168,7 +170,7 @@ function ConfirmModal({
               (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)';
             }}
           >
-            Keep the Streak
+            {t('pot.keep_streak')}
           </button>
         </div>
       </div>
@@ -181,6 +183,7 @@ export default function PotPage() {
   const { playerState } = useAuth();
   const { cashout, cashingOut, error } = useGame();
   const { fetchQualification } = useQualification();
+  const { t } = useI18n();
   const [showConfirm, setShowConfirm] = useState(false);
   const [cashoutDone, setCashoutDone] = useState(false);
   const [cashoutAmount, setCashoutAmount] = useState(0);
@@ -220,7 +223,7 @@ export default function PotPage() {
             fontSize: 14, letterSpacing: '0.2em', textTransform: 'uppercase',
             color: 'rgba(255,255,255,0.5)', marginBottom: 8,
           }}>
-            Collected
+            {t('pot.collected_label')}
           </div>
           <div style={{
             fontFamily: "'Lora', Georgia, serif",
@@ -235,7 +238,7 @@ export default function PotPage() {
             fontSize: 13, color: 'rgba(255,255,255,0.5)',
             fontFamily: "'Lora', Georgia, serif", marginTop: 10, lineHeight: 1.6,
           }}>
-            The pot has been added to your wallet.<br />Your streak resets tomorrow.
+            {t('pot.collected_desc')}
           </div>
         </div>
         <ImageButton
@@ -250,7 +253,7 @@ export default function PotPage() {
             fontSize: 22, letterSpacing: '0.08em', textTransform: 'uppercase',
             color: '#F5D060', textShadow: '0 0 12px rgba(245,208,96,0.5), 0 2px 4px rgba(0,0,0,0.9)',
           }}>
-            Back to Home
+            {t('pot.back_to_home')}
           </span>
         </ImageButton>
       </div>
@@ -283,7 +286,7 @@ export default function PotPage() {
           } as React.CSSProperties}
         >
           <ChevronLeft size={14} />
-          Back
+          {t('common.back')}
         </button>
 
         {/* Page title */}
@@ -293,7 +296,7 @@ export default function PotPage() {
             color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', system-ui, sans-serif",
             marginBottom: 10,
           }}>
-            Pot
+            {t('common.pot')}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
@@ -319,15 +322,13 @@ export default function PotPage() {
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
                 margin: 0, lineHeight: 1.1,
               }}>
-                Your Pot
+                {t('pot.your_pot')}
               </h1>
               <p style={{
                 fontSize: 12, color: 'rgba(255,255,255,0.45)',
                 fontFamily: "'Lora', Georgia, serif", lineHeight: 1.5, margin: '4px 0 0',
               }}>
-                {hasPot
-                  ? 'Every survival grows the pot. Cash out when ready.'
-                  : 'Survive the gate to start filling the pot.'}
+                {hasPot ? t('pot.grows_desc') : t('pot.empty_desc')}
               </p>
             </div>
           </div>
@@ -346,7 +347,7 @@ export default function PotPage() {
             color: 'rgba(255,255,255,0.35)', fontFamily: "'Inter', system-ui, sans-serif",
             marginBottom: 8,
           }}>
-            Current Pot
+            {t('pot.current_pot')}
           </div>
           <div style={{
             fontFamily: "'Lora', Georgia, serif",
@@ -368,7 +369,7 @@ export default function PotPage() {
                 fontSize: 12, color: 'rgba(255,255,255,0.45)',
                 fontFamily: "'Inter', system-ui, sans-serif", letterSpacing: '0.1em',
               }}>
-                {streak}-day streak active
+                {t('pot.streak_active', { streak: String(streak) })}
               </span>
             </div>
           )}
@@ -385,24 +386,24 @@ export default function PotPage() {
             color: 'rgba(255,255,255,0.4)', fontFamily: "'Inter', system-ui, sans-serif",
             marginBottom: 14,
           }}>
-            How the Pot Works
+            {t('pot.how_it_works')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[
               {
                 icon: <TrendingUp size={16} strokeWidth={1.5} style={{ color: '#78B060', flexShrink: 0, marginTop: 1 }} />,
-                title: 'Grows with every survival',
-                body: 'Each gate you survive adds your stake to the pot. The longer the streak, the more the pot accumulates.',
+                title: t('pot.grows_title'),
+                body: t('pot.grows_body'),
               },
               {
                 icon: <AssetIcon src={ICONS.coin} fallback={Coins} size={16} style={{ opacity: 0.7, flexShrink: 0, marginTop: 1 }} />,
-                title: 'Cash out anytime',
-                body: 'You can collect the pot to your wallet whenever you choose. No lock-in. Your choice, your timing.',
+                title: t('pot.cashout_anytime_title'),
+                body: t('pot.cashout_anytime_body'),
               },
               {
                 icon: <Flame size={16} strokeWidth={1.5} style={{ color: '#CC4444', flexShrink: 0, marginTop: 1 }} />,
-                title: 'Cashing out resets your streak',
-                body: 'Collecting the pot ends your current run. Your streak returns to zero. The gate will be waiting tomorrow.',
+                title: t('pot.resets_title'),
+                body: t('pot.resets_body'),
               },
             ].map(({ icon, title, body }) => (
               <div key={title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -461,7 +462,7 @@ export default function PotPage() {
                 color: '#F5D060',
                 textShadow: '0 0 14px rgba(245,208,96,0.5), 0 2px 4px rgba(0,0,0,0.9)',
               }}>
-                Cash Out €{formatCents(potCents)}
+                {t('pot.cashout_cta', { amount: formatCents(potCents) })}
               </span>
             </ImageButton>
             <p style={{
@@ -469,7 +470,7 @@ export default function PotPage() {
               color: 'rgba(255,255,255,0.28)', fontFamily: "'Inter', system-ui, sans-serif",
               letterSpacing: '0.1em', margin: 0,
             }}>
-              This will reset your streak.
+              {t('pot.cashout_streak_warn')}
             </p>
           </div>
         ) : (
@@ -485,7 +486,7 @@ export default function PotPage() {
               fontSize: 22, letterSpacing: '0.08em', textTransform: 'uppercase',
               color: '#F5D060', textShadow: '0 0 12px rgba(245,208,96,0.5), 0 2px 4px rgba(0,0,0,0.9)',
             }}>
-              Face the Gate
+              {t('pot.face_the_gate')}
             </span>
           </ImageButton>
         )}
