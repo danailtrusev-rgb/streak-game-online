@@ -361,23 +361,47 @@ function TranslationEditor({ languages }: { languages: Language[] }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Toolbar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        {/* Language selector */}
-        <div style={{ display: 'flex', gap: 4 }}>
-          {enabledLanguages.map((l) => (
-            <button
-              key={l.code}
-              onClick={() => setSelectedLang(l.code)}
-              style={{
-                padding: '5px 12px', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
-                border: `1px solid ${selectedLang === l.code ? 'rgba(255,122,0,0.45)' : 'rgba(255,255,255,0.1)'}`,
-                background: selectedLang === l.code ? 'rgba(255,122,0,0.08)' : 'transparent',
-                color: selectedLang === l.code ? '#FF9A30' : 'rgba(255,255,255,0.5)',
-                cursor: 'pointer', transition: 'all 0.15s',
-              }}
-            >
-              {l.code.toUpperCase()}
-            </button>
-          ))}
+        {/* Language selector — dropdown */}
+        <div style={{ position: 'relative' }}>
+          <select
+            value={selectedLang}
+            onChange={(e) => setSelectedLang(e.target.value)}
+            style={{
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              padding: '6px 32px 6px 12px',
+              fontSize: 11,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              border: '1px solid rgba(255,122,0,0.35)',
+              background: 'rgba(255,122,0,0.06)',
+              color: '#FF9A30',
+              cursor: 'pointer',
+              outline: 'none',
+              minWidth: 140,
+            }}
+          >
+            {enabledLanguages.map((l) => (
+              <option
+                key={l.code}
+                value={l.code}
+                style={{ background: '#0B0F0C', color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase' }}
+              >
+                {l.code.toUpperCase()} — {l.native_name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={12}
+            style={{
+              position: 'absolute',
+              right: 10,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#FF9A30',
+              pointerEvents: 'none',
+            }}
+          />
         </div>
 
         {/* Search */}
