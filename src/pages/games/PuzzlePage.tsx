@@ -1,1 +1,5 @@
-{"code":"rate-limited","message":"You have hit the rate limit. Please upgrade to keep chatting.","providerLimitHit":false,"isRetryable":false}
+import MicrogamePage from '../../components/game/MicrogamePage';
+
+export default function PuzzlePage() {
+  return <MicrogamePage gameId="daily_puzzle" />;
+}

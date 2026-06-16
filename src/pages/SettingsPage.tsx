@@ -166,7 +166,7 @@ function CodeInput({ onSubmit, loading }: { onSubmit: (code: string) => void; lo
           color:       ready && !loading ? '#A8D090' : 'rgba(255,255,255,0.2)',
         }}
       >
-        {loading ? 'Verifying…' : 'Confirm Code'}
+        {loading ? t('settings.verifying') : t('settings.confirm_code')}
       </button>
     </div>
   );
@@ -183,49 +183,51 @@ interface ChannelConfig {
   pendingNote?: string;
 }
 
-const CHANNELS: ChannelConfig[] = [
-  {
-    id:          'email',
-    label:       'Email',
-    Icon:        Mail,
-    description: 'Daily streak reminders and event alerts sent to your email.',
-    providerReady: true,
-  },
-  {
-    id:          'telegram',
-    label:       'Telegram',
-    Icon:        Send,
-    description: 'Reminders via Telegram bot.',
-    providerReady: false,
-    pendingNote: 'Telegram bot setup is coming soon. You can save your username now.',
-  },
-  {
-    id:          'whatsapp',
-    label:       'WhatsApp',
-    Icon:        MessageCircle,
-    description: 'WhatsApp reminders via our messaging service.',
-    providerReady: false,
-    pendingNote: 'WhatsApp integration is coming soon. Save your number now to be among the first to receive alerts.',
-  },
-  {
-    id:          'discord',
-    label:       'Discord',
-    Icon:        Hash,
-    description: 'Reminder DMs via Discord.',
-    providerReady: false,
-    pendingNote: 'Discord integration is coming soon.',
-  },
-  {
-    id:          'sms',
-    label:       'SMS / Text',
-    Icon:        Smartphone,
-    description: 'Text message reminders to your mobile phone.',
-    providerReady: false,
-    pendingNote: 'SMS sending is being set up. You can save your number now and it will be activated automatically.',
-  },
-];
-
 type PanelState = 'form' | 'verify' | 'done';
+
+function getChannels(t: (k: string) => string): ChannelConfig[] {
+  return [
+    {
+      id:          'email',
+      label:       t('settings.channel.email'),
+      Icon:        Mail,
+      description: t('settings.channel.email_desc'),
+      providerReady: true,
+    },
+    {
+      id:          'telegram',
+      label:       t('settings.channel.telegram'),
+      Icon:        Send,
+      description: t('settings.channel.telegram_desc'),
+      providerReady: false,
+      pendingNote: t('settings.channel.telegram_pending'),
+    },
+    {
+      id:          'whatsapp',
+      label:       t('settings.channel.whatsapp'),
+      Icon:        MessageCircle,
+      description: t('settings.channel.whatsapp_desc'),
+      providerReady: false,
+      pendingNote: t('settings.channel.whatsapp_pending'),
+    },
+    {
+      id:          'discord',
+      label:       t('settings.channel.discord'),
+      Icon:        Hash,
+      description: t('settings.channel.discord_desc'),
+      providerReady: false,
+      pendingNote: t('settings.channel.discord_pending'),
+    },
+    {
+      id:          'sms',
+      label:       t('settings.channel.sms'),
+      Icon:        Smartphone,
+      description: t('settings.channel.sms_desc'),
+      providerReady: false,
+      pendingNote: t('settings.channel.sms_pending'),
+    },
+  ];
+}
 
 function ChannelPanel({
   config,
@@ -243,6 +245,7 @@ function ChannelPanel({
   isGuest:    boolean;
 }) {
   const { upsertChannel, sendCode, verifyCode, toggleChannel, error: hookError } = useNotifications();
+  const { t } = useI18n();
 
   const isEmail = config.id === 'email';
   const isSms   = config.id === 'sms';
@@ -334,7 +337,7 @@ function ChannelPanel({
         onClick={onBack}
         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 0 20px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontFamily: UF, fontSize: 13 }}
       >
-        <ChevronLeft size={16} /> Back
+        <ChevronLeft size={16} /> {t('common.back')}
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
@@ -362,7 +365,7 @@ function ChannelPanel({
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(120,176,96,0.06)', border: '1px solid rgba(120,176,96,0.18)' }}>
             <Check size={16} style={{ color: '#78B060', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: UF, fontSize: 13, color: '#A8D090' }}>Verified</div>
+              <div style={{ fontFamily: UF, fontSize: 13, color: '#A8D090' }}>{t('settings.verified')}</div>
               <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {pref.contact_value}
               </div>
@@ -372,10 +375,10 @@ function ChannelPanel({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div>
               <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>
-                {config.label} Reminders
+                {config.label} {t('settings.reminders_suffix')}
               </div>
               <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
-                {pref.enabled ? 'Reminders are active' : 'Reminders are off'}
+                {pref.enabled ? t('settings.reminders_active') : t('settings.reminders_off')}
               </div>
             </div>
             <Toggle enabled={pref.enabled} onChange={handleToggle} />
@@ -387,7 +390,7 @@ function ChannelPanel({
             onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
           >
-            Change {isEmail ? 'email address' : isSms ? 'phone number' : 'contact details'}
+            {t('settings.change_contact', { type: isEmail ? t('settings.contact_email') : isSms ? t('settings.contact_phone') : t('settings.contact_details') })}
           </button>
         </div>
       )}
@@ -397,7 +400,7 @@ function ChannelPanel({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {isEmail && (
             <div>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', fontFamily: UF, marginBottom: 8 }}>Email Address</div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', fontFamily: UF, marginBottom: 8 }}>{t('settings.email_address_label')}</div>
               <div style={{ position: 'relative' }}>
                 <Mail size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
                 <input
@@ -412,7 +415,7 @@ function ChannelPanel({
               </div>
               {emailAlreadyVerified && (
                 <div style={{ fontSize: 11, color: '#78B060', marginTop: 6, fontFamily: UF, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Check size={12} /> Matches your account email — already verified
+                  <Check size={12} /> {t('settings.email_already_verified')}
                 </div>
               )}
             </div>
@@ -420,7 +423,7 @@ function ChannelPanel({
 
           {isSms && (
             <div>
-              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', fontFamily: UF, marginBottom: 8 }}>Phone Number</div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', fontFamily: UF, marginBottom: 8 }}>{t('settings.phone_number_label')}</div>
               <PhoneInput
                 countryCode={countryCode}
                 localNumber={phoneLocal}
@@ -433,7 +436,7 @@ function ChannelPanel({
           {!isEmail && !isSms && (
             <div>
               <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', fontFamily: UF, marginBottom: 8 }}>
-                {config.id === 'telegram' ? 'Telegram Username' : config.id === 'discord' ? 'Discord Username' : 'Contact / Number'}
+                {config.id === 'telegram' ? t('settings.telegram_username') : config.id === 'discord' ? t('settings.discord_username') : t('settings.contact_or_number')}
               </div>
               <input
                 type="text"
@@ -458,7 +461,7 @@ function ChannelPanel({
             disabled={!contactValid || saving}
             style={{ width: '100%', padding: '14px', background: contactValid && !saving ? 'linear-gradient(180deg,rgba(40,65,30,0.97)0%,rgba(22,38,16,0.99)100%)' : 'rgba(20,28,22,0.5)', border: `1px solid ${contactValid && !saving ? 'rgba(80,140,50,0.4)' : 'rgba(40,55,42,0.15)'}`, cursor: contactValid && !saving ? 'pointer' : 'not-allowed', fontFamily: UF, fontSize: 13, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: contactValid && !saving ? '#A8D090' : 'rgba(255,255,255,0.2)' }}
           >
-            {saving ? 'Sending…' : emailAlreadyVerified ? 'Confirm & Enable' : 'Send Verification Code'}
+            {saving ? t('settings.sending') : emailAlreadyVerified ? t('settings.confirm_enable') : t('settings.send_verification_code')}
           </button>
         </div>
       )}
@@ -468,7 +471,7 @@ function ChannelPanel({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <div style={{ fontFamily: UF, fontSize: 14, color: 'rgba(255,255,255,0.75)', marginBottom: 6 }}>
-              Enter the 6-digit code sent to:
+              {t('settings.enter_code_sent_to')}
             </div>
             <div style={{ fontFamily: UF, fontSize: 13, fontWeight: 600, color: '#FF9A30' }}>
               {contactValue}
@@ -477,7 +480,7 @@ function ChannelPanel({
 
           {isEmail && (
             <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: BF, lineHeight: 1.6 }}>
-              The code can take a minute or two to arrive. Check your spam folder if you do not see it.
+              {t('settings.code_email_note')}
             </div>
           )}
 
@@ -497,7 +500,7 @@ function ChannelPanel({
           <div style={{ textAlign: 'center' }}>
             {countdown > 0 ? (
               <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
-                Resend available in {countdown}s
+                {t('settings.resend_countdown', { n: String(countdown) })}
               </span>
             ) : (
               <button
@@ -507,7 +510,7 @@ function ChannelPanel({
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,122,0,1)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,122,0,0.7)')}
               >
-                <RefreshCw size={13} className={saving ? 'animate-spin' : ''} /> Resend code
+                <RefreshCw size={13} className={saving ? 'animate-spin' : ''} /> {t('settings.resend_code')}
               </button>
             )}
           </div>
@@ -516,7 +519,7 @@ function ChannelPanel({
             onClick={() => setPanelState('form')}
             style={{ padding: '10px', background: 'transparent', border: 'none', fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)', cursor: 'pointer' }}
           >
-            ← Change {isEmail ? 'email' : 'number'}
+            {t('settings.change_contact', { type: isEmail ? t('settings.contact_email') : t('settings.contact_phone') })}
           </button>
         </div>
       )}
@@ -537,15 +540,16 @@ function ChannelRow({
   onClick:  () => void;
   disabled: boolean;
 }) {
+  const { t } = useI18n();
   const statusLabel = disabled
-    ? 'Upgrade required'
+    ? t('settings.upgrade_required')
     : !pref
-    ? 'Not set up'
+    ? t('settings.channel_not_set_up')
     : pref.verified && pref.enabled
-    ? 'On'
+    ? t('settings.channel_on')
     : pref.verified
-    ? 'Off'
-    : 'Pending verification';
+    ? t('settings.channel_off')
+    : t('settings.channel_pending');
 
   const statusColor = disabled || !pref || !pref.verified
     ? 'rgba(255,255,255,0.25)'
@@ -664,6 +668,7 @@ function FaqAccordion() {
 export default function SettingsPage() {
   const { playerState, session, isGuest, signOut } = useAuth();
   const { t, language, setLanguage, languages } = useI18n();
+  const CHANNELS = getChannels(t);
   const {
     prefs, loading: prefsLoading, fetchPrefs, getPref, error: notifError,
   } = useNotifications();

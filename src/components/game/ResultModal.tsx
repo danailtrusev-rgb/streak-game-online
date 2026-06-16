@@ -182,7 +182,7 @@ export default function ResultModal({
           textShadow: '0 0 8px rgba(255,154,48,0.45)',
           marginBottom: 4,
         }}>
-          Day {result.streak} Survived
+          Day {result.streak} {t('result.survived.day_badge')}
         </div>
 
         {/* Headline */}
@@ -216,14 +216,14 @@ export default function ResultModal({
               fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.24em',
               color: 'rgba(120,200,90,0.75)', fontFamily: UF,
             }}>
-              Milestone Reached
+              {t('result.milestone_reached')}
             </div>
             <div style={{
               fontFamily: FF, fontSize: 18, letterSpacing: '0.1em',
               color: '#A8E070',
               textShadow: '0 0 12px rgba(100,200,70,0.45), 0 1px 4px rgba(0,0,0,0.9)',
             }}>
-              Day {result.milestone_hit} Conquered
+              Day {result.milestone_hit} {t('result.milestone_conquered')}
             </div>
           </div>
         )}
@@ -244,6 +244,8 @@ export default function ResultModal({
             value={String(result.streak)}
             label="Streak"
             highlight
+            valueFont={BF}
+            valueFontSize={24}
           />
           <div style={{ width: 1, background: 'rgba(245,208,96,0.12)' }} />
           <StatCell
@@ -338,7 +340,7 @@ export default function ResultModal({
             (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)';
           }}
         >
-          View Streak Path
+          {t('result.view_streak_path')}
         </button>
 
         {onCashout && (potCents ?? 0) > 0 && (
@@ -395,7 +397,7 @@ export default function ResultModal({
           fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.22em',
           color: '#993333', fontFamily: UF, marginBottom: 4,
         }}>
-          {result.streak > 0 ? `Streak of ${result.streak} Ended` : 'No Streak to Lose'}
+          {result.streak > 0 ? t('result.died.streak_ended', { streak: String(result.streak) }) : t('result.died.no_streak')}
         </div>
 
         {/* Headline */}
@@ -456,7 +458,7 @@ export default function ResultModal({
             fontFamily: BF, fontSize: 12, lineHeight: 1.5,
             color: 'rgba(255,255,255,0.3)', margin: 0,
           }}>
-            While you wait — play the daily games to keep earning qualification points.
+            {t('result.died.games_nudge')}
           </p>
         </div>
 

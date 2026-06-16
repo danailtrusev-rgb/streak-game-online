@@ -11,6 +11,7 @@ import DiceDisplay from './DiceDisplay';
 import ImageButton from '../ui/ImageButton';
 import AmbientFireflies from '../fx/AmbientFireflies';
 import type { DiceResult, PickResult } from '../../lib/types';
+import { useI18n } from '../../context/I18nContext';
 
 interface MicrogamePageProps {
   gameId: string;
@@ -20,6 +21,7 @@ const DICE_ROLL_MIN_MS = 1600;
 
 export default function MicrogamePage({ gameId }: MicrogamePageProps) {
   const navigate  = useNavigate();
+  const { t }     = useI18n();
   const config    = getGameConfig(gameId);
   const { phase, selectedZone, result, loading, error, select, confirm, reset } = useMicrogame(gameId);
   const { todayProgress, fetchQualification } = useQualification();
@@ -85,14 +87,14 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
             fontSize: 20, letterSpacing: '0.06em',
             color: 'rgba(255,255,255,0.4)', marginBottom: 10,
           }}>
-            Already Played
+            {t('game.already_played')}
           </div>
           <p style={{
             fontFamily: "'Lora', Georgia, serif",
             fontSize: 14, lineHeight: 1.65,
             color: 'rgba(255,255,255,0.35)', margin: 0,
           }}>
-            You've already completed this challenge today. Come back tomorrow for another attempt.
+            {t('game.already_played_desc')}
           </p>
         </div>
 
@@ -104,7 +106,7 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
           style={{ width: '100%', maxWidth: 340 }}
         >
           <span style={{ fontFamily: "'Metal Mania', 'Cinzel', Georgia, serif", fontSize: 24, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#F5D060' }}>
-            Back to Home
+            {t('common.back_home')}
           </span>
         </ImageButton>
       </div>
@@ -239,7 +241,7 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
               }}
             >
               <ChevronLeft size={15} />
-              Games
+              {t('common.games')}
             </button>
           )}
         </div>
@@ -341,7 +343,7 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
               style={{ width: '100%' }}
             >
               <span style={{ fontFamily: "'Metal Mania', 'Cinzel', Georgia, serif", fontSize: 24, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#F5D060' }}>
-                Back to Games
+                {t('common.back_games')}
               </span>
             </ImageButton>
           ) : (
@@ -355,12 +357,12 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
             >
               <span style={{ fontFamily: "'Metal Mania', 'Cinzel', Georgia, serif", fontSize: 24, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#F5D060' }}>
                 {isRevealing
-                  ? (isDice ? 'Rolling…' : 'Revealing…')
+                  ? (isDice ? t('game.rolling') : t('game.revealing'))
                   : isDice
-                  ? 'Roll the Dice'
+                  ? t('game.roll_dice')
                   : selectedZone !== null
-                  ? `Confirm ${config.zones.find((z) => z.id === selectedZone)?.label ?? ''}`
-                  : 'Choose an Option'}
+                  ? t('game.confirm_choice', { label: config.zones.find((z) => z.id === selectedZone)?.label ?? '' })
+                  : t('game.choose_option')}
               </span>
             </ImageButton>
           )}

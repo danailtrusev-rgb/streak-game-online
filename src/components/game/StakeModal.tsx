@@ -156,8 +156,8 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
             const disabled   = locked || cantAfford;
 
             let lockReason = '';
-            if (locked)     lockReason = `Reach a ${tier.unlock_streak}-day streak to unlock`;
-            if (cantAfford) lockReason = `Need €${formatCents(tier.stake_cents - walletBalance)} more`;
+            if (locked)     lockReason = t('stake.reach_streak', { streak: String(tier.unlock_streak) });
+            if (cantAfford) lockReason = t('stake.need_more', { amount: `€${formatCents(tier.stake_cents - walletBalance)}` });
 
             return (
               <button
@@ -232,18 +232,18 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
                   {locked ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <span style={{ fontFamily: UF, fontSize: 10, color: '#3E3930', letterSpacing: '0.08em' }}>
-                        Day {tier.unlock_streak}+
+                        {t('stake.day_req', { streak: String(tier.unlock_streak) })}
                       </span>
                     </div>
                   ) : cantAfford ? (
                     <span style={{ fontFamily: UF, fontSize: 11, color: '#CC4444' }}>
-                      Insufficient
+                      {t('stake.insufficient')}
                     </span>
                   ) : isSelected ? (
                     <ChevronRight size={16} style={{ color: '#D4A020' }} />
                   ) : (
                     <span style={{ fontFamily: UF, fontSize: 11, color: '#5A7850' }}>
-                      Available
+                      {t('stake.available')}
                     </span>
                   )}
                 </div>
@@ -264,12 +264,13 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
               color: 'rgba(255,255,255,0.35)',
               margin: 0, lineHeight: 1.5, letterSpacing: '0.04em',
             }}>
-              Your streak: {streak} day{streak === 1 ? '' : 's'}.
+              {t('stake.your_streak', { streak: String(streak), unit: t(streak === 1 ? 'common.day' : 'common.days') })}{' '}
               {(() => {
-                const next = tiers.find((t) => !t.unlocked && t.unlock_streak > streak);
+                const next = tiers.find((tier) => !tier.unlocked && tier.unlock_streak > streak);
+                const diff = next ? next.unlock_streak - streak : 0;
                 return next
-                  ? ` ${next.unlock_streak - streak} more day${next.unlock_streak - streak === 1 ? '' : 's'} to unlock €${formatCents(next.stake_cents)}.`
-                  : ' All tiers unlocked.';
+                  ? t('stake.days_to_unlock', { days: String(diff), unit: t(diff === 1 ? 'common.day' : 'common.days'), amount: `€${formatCents(next.stake_cents)}` })
+                  : t('stake.all_unlocked');
               })()}
             </p>
           </div>

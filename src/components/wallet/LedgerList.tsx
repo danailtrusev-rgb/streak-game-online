@@ -3,25 +3,28 @@ import { formatCents } from '../../lib/constants';
 import type { WalletEntry } from '../../lib/types';
 import { ICONS } from '../../lib/assets';
 import AssetIcon from '../ui/AssetIcon';
-
-const typeConfig: Record<string, { label: string; icon: typeof ArrowUpCircle; iconSrc: string; color: string }> = {
-  TOPUP: { label: 'Top Up', icon: ArrowUpCircle, iconSrc: ICONS.arrow_up, color: 'text-moss-light' },
-  STAKE: { label: 'Stake', icon: ArrowDownCircle, iconSrc: ICONS.arrow_down, color: 'text-torch-dim' },
-  CASHOUT: { label: 'Cashout', icon: Sparkles, iconSrc: ICONS.sparkles, color: 'text-torch-ember' },
-  ADMIN_ADJUST: { label: 'Adjustment', icon: Shield, iconSrc: ICONS.shield, color: 'text-bone-muted' },
-  JACKPOT_CONTRIB: { label: 'Jackpot', icon: RefreshCw, iconSrc: ICONS.refresh, color: 'text-bone-dark' },
-  JACKPOT_WIN: { label: 'Jackpot Win', icon: Sparkles, iconSrc: ICONS.sparkles, color: 'text-torch-ember' },
-};
+import { useI18n } from '../../context/I18nContext';
 
 interface LedgerListProps {
   entries: WalletEntry[];
 }
 
 export default function LedgerList({ entries }: LedgerListProps) {
+  const { t } = useI18n();
+
+  const typeConfig: Record<string, { label: string; icon: typeof ArrowUpCircle; iconSrc: string; color: string }> = {
+    TOPUP:          { label: t('wallet.tx.topup'),      icon: ArrowUpCircle, iconSrc: ICONS.arrow_up,   color: 'text-moss-light'  },
+    STAKE:          { label: t('wallet.tx.stake'),      icon: ArrowDownCircle, iconSrc: ICONS.arrow_down, color: 'text-torch-dim' },
+    CASHOUT:        { label: t('wallet.tx.cashout'),    icon: Sparkles,      iconSrc: ICONS.sparkles,   color: 'text-torch-ember' },
+    ADMIN_ADJUST:   { label: t('wallet.tx.adjustment'), icon: Shield,        iconSrc: ICONS.shield,     color: 'text-bone-muted'  },
+    JACKPOT_CONTRIB:{ label: t('wallet.tx.jackpot'),    icon: RefreshCw,     iconSrc: ICONS.refresh,    color: 'text-bone-dark'   },
+    JACKPOT_WIN:    { label: t('wallet.tx.jackpot_win'),icon: Sparkles,      iconSrc: ICONS.sparkles,   color: 'text-torch-ember' },
+  };
+
   if (entries.length === 0) {
     return (
       <div className="py-8 text-center text-sm text-bone-dark">
-        No transactions yet
+        {t('wallet.no_transactions')}
       </div>
     );
   }

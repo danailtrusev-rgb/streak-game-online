@@ -3,6 +3,7 @@ import type { GameModule, TodayGameProgress } from '../../lib/types';
 import { getGameDef } from '../../lib/gameRegistry';
 import { ICONS, UI_ASSETS } from '../../lib/assets';
 import AssetIcon from '../ui/AssetIcon';
+import { useI18n } from '../../context/I18nContext';
 
 interface GameTileProps {
   game: GameModule;
@@ -11,22 +12,23 @@ interface GameTileProps {
   variant?: 'list' | 'card';
 }
 
-function getStatusConfig(game: GameModule, progress: TodayGameProgress | null) {
-  const played = progress?.played_today ?? false;
-  const won = progress?.won_today ?? false;
-  const isActive = game.status === 'active';
-  const isComingSoon = game.status === 'coming_soon' || game.launch_state === 'coming_soon';
-
-  if (isComingSoon) return { label: 'Soon', color: '#4A453E', glow: false, canPlay: false };
-  if (!isActive) return { label: 'Locked', color: '#4A453E', glow: false, canPlay: false };
-  if (played && won) return { label: 'Won', color: '#78B060', glow: false, canPlay: false };
-  if (played) return { label: 'Played', color: '#6B655C', glow: false, canPlay: false };
-  return { label: 'Play', color: '#FF9A30', glow: true, canPlay: true };
-}
-
 export default function GameTile({ game, progress, onClick, variant = 'list' }: GameTileProps) {
   const def = getGameDef(game.game_id);
   const Icon = def.icon;
+  const { t } = useI18n();
+
+  function getStatusConfig(g: GameModule, p: TodayGameProgress | null) {
+    const played = p?.played_today ?? false;
+    const won = p?.won_today ?? false;
+    const isActive = g.status === 'active';
+    const isComingSoon = g.status === 'coming_soon' || g.launch_state === 'coming_soon';
+    if (isComingSoon) return { label: t('games.status.soon'),   color: '#4A453E', glow: false, canPlay: false };
+    if (!isActive)    return { label: t('games.status.locked'), color: '#4A453E', glow: false, canPlay: false };
+    if (played && won)return { label: t('games.status.won'),    color: '#78B060', glow: false, canPlay: false };
+    if (played)       return { label: t('games.status.done'),   color: '#6B655C', glow: false, canPlay: false };
+    return           { label: t('games.status.play'),           color: '#FF9A30', glow: true,  canPlay: true  };
+  }
+
   const status = getStatusConfig(game, progress);
   const isWeekend = game.category === 'weekend';
   const isActive = status.canPlay || isWeekend;

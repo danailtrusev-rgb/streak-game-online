@@ -406,28 +406,28 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
               <span style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>{t('upgrade.resend_countdown', { n: String(countdown) })}</span>
             ) : (
               <button onClick={handleResend} disabled={loading} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,122,0,0.7)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <RefreshCw size={12} /> Resend code
+                <RefreshCw size={12} /> {t('upgrade.resend_code')}
               </button>
             )}
           </div>
           <button onClick={() => { setStep('address'); setError(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.3)', padding: '4px 0' }}>
-            ← Change email
+            {t('upgrade.change_email')}
           </button>
         </>
       )}
 
       {step === 'password' && (
         <>
-          <InfoBox>Email verified. Set a password to secure your account.</InfoBox>
+          <InfoBox>{t('upgrade.email_verified_set_password')}</InfoBox>
           <div>
-            <FieldLabel>Password (min 8 characters)</FieldLabel>
+            <FieldLabel>{t('upgrade.password_label')}</FieldLabel>
             <div style={{ position: 'relative' }}>
               <Lock size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
               <input
                 type={showPwd ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 8 characters"
+                placeholder={t('upgrade.password_placeholder')}
                 style={{ ...inputBase, paddingLeft: 36, paddingRight: 40 }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(255,122,0,0.45)')}
                 onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)')}
@@ -439,27 +439,27 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
             </div>
           </div>
           <div>
-            <FieldLabel>Confirm Password</FieldLabel>
+            <FieldLabel>{t('upgrade.confirm_password_label')}</FieldLabel>
             <div style={{ position: 'relative' }}>
               <Lock size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none' }} />
               <input
                 type={showPwd ? 'text' : 'password'}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Repeat password"
+                placeholder={t('upgrade.password_repeat_placeholder')}
                 style={{ ...inputBase, paddingLeft: 36, borderColor: confirm && confirm !== password ? 'rgba(200,50,50,0.5)' : undefined }}
                 onFocus={(e) => (e.currentTarget.style.borderColor = confirm !== password ? 'rgba(200,50,50,0.5)' : 'rgba(255,122,0,0.45)')}
                 onBlur={(e) => (e.currentTarget.style.borderColor = confirm && confirm !== password ? 'rgba(200,50,50,0.5)' : 'rgba(255,255,255,0.10)')}
               />
             </div>
-            {confirm && confirm !== password && <div style={{ fontSize: 11, color: '#CC5555', marginTop: 4, fontFamily: UF }}>Passwords do not match</div>}
+            {confirm && confirm !== password && <div style={{ fontSize: 11, color: '#CC5555', marginTop: 4, fontFamily: UF }}>{t('upgrade.passwords_no_match')}</div>}
           </div>
           {error && <ErrorBox msg={error} />}
           <PrimaryButton onClick={handleSetPassword} disabled={password.length < 8 || password !== confirm} loading={loading}>
-            Secure Account
+            {t('upgrade.secure_account')}
           </PrimaryButton>
           <button onClick={handleSkipPassword} disabled={loading} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.25)', padding: '4px 0', textAlign: 'center' }}>
-            Skip — set password later
+            {t('upgrade.skip_password')}
           </button>
         </>
       )}
@@ -471,6 +471,7 @@ function EmailFlow({ onBack, onSuccess, onOpenLogin }: {
 
 function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBack: () => void }) {
   const { upgradeWithOAuth } = useAuth();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
 
@@ -484,7 +485,7 @@ function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBa
     setLoading(false);
     if (err) {
       if (err.toLowerCase().includes('provider') || err.toLowerCase().includes('not enabled') || err.toLowerCase().includes('unsupported')) {
-        setError(`${label} sign-in is not yet configured. Enable the ${label} provider in the Supabase dashboard to use this option.`);
+        setError(t('upgrade.oauth_not_configured', { provider: label }));
       } else {
         setError(err);
       }
@@ -494,10 +495,10 @@ function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBa
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <BackButton onClick={onBack} />
-      <FlowTitle icon={<Icon />} title={`Link ${label}`} />
+      <FlowTitle icon={<Icon />} title={t('upgrade.link_provider', { provider: label })} />
 
       <InfoBox>
-        Linking your {label} account secures your progress and wallet. Your streak and balance are preserved — no data is lost.
+        {t('upgrade.oauth_link_desc', { provider: label })}
       </InfoBox>
 
       {error && (
@@ -507,7 +508,7 @@ function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBa
       )}
 
       <PrimaryButton onClick={handleLink} loading={loading}>
-        Continue with {label}
+        {t('upgrade.continue_with', { provider: label })}
       </PrimaryButton>
     </div>
   );
@@ -516,9 +517,10 @@ function OAuthFlow({ provider, onBack }: { provider: 'google' | 'facebook'; onBa
 // ── Shared sub-components ────────────────────────────────────────────────────
 
 function BackButton({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
   return (
     <button onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.4)', padding: '0 0 4px', transition: 'color 0.15s' }} onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
-      <ChevronLeft size={14} /> Back
+      <ChevronLeft size={14} /> {t('common.back')}
     </button>
   );
 }
@@ -541,7 +543,9 @@ export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
   onSuccess: () => void;
   onOpenLogin?: (email: string) => void;
 }) {
+  const { t } = useI18n();
   const [active, setActive] = useState<ActiveMethod>(null);
+  const METHODS = getMethodOptions(t);
 
   return (
     <div
@@ -571,10 +575,10 @@ export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <div>
                 <h2 style={{ fontFamily: FF, fontSize: 22, letterSpacing: '0.08em', color: '#F5D060', textShadow: '0 0 20px rgba(245,208,96,0.3)', margin: '0 0 6px' }}>
-                  Secure Your Account
+                  {t('upgrade.title')}
                 </h2>
                 <p style={{ fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65, margin: 0 }}>
-                  Link your account to protect your streak, wallet, and progress across devices. Nothing is lost.
+                  {t('upgrade.subtitle')}
                 </p>
               </div>
 
@@ -588,7 +592,7 @@ export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
 
               <div style={{ textAlign: 'center', paddingTop: 4 }}>
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontFamily: UF, lineHeight: 1.6 }}>
-                  Upgrading does not create a new account. Your existing progress is preserved.
+                  {t('upgrade.no_new_account')}
                 </div>
               </div>
             </div>

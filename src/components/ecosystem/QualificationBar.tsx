@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { QualificationStatus } from '../../lib/types';
 import { ICONS } from '../../lib/assets';
 import AssetIcon from '../ui/AssetIcon';
+import { useI18n } from '../../context/I18nContext';
 
 interface QualificationBarProps {
   qualification: QualificationStatus | null;
@@ -16,6 +17,7 @@ export default function QualificationBar({
   showPlayButtons = false,
 }: QualificationBarProps) {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   if (!qualification) {
     return (
@@ -70,7 +72,7 @@ export default function QualificationBar({
         iconSrc={ICONS.trophy}
         iconFallback={Trophy}
         iconGlow="rgba(245,208,96,0.55)"
-        name="Saturday Showdown"
+        name={t('qual.saturday_name')}
         pts={qualification.total_points}
         threshold={qualification.sat_pts_threshold}
         pct={satPct}
@@ -87,7 +89,7 @@ export default function QualificationBar({
         iconSrc={ICONS.crown}
         iconFallback={Crown}
         iconGlow="rgba(255,179,71,0.55)"
-        name="Sunday Crown"
+        name={t('qual.sunday_name')}
         pts={qualification.total_points}
         threshold={qualification.sun_pts_threshold}
         pct={sunPct}
@@ -102,9 +104,9 @@ export default function QualificationBar({
       {/* ── Stats row ── */}
       <div style={{ display: 'flex', gap: 24, paddingTop: 4 }}>
         {[
-          { label: 'Points', value: qualification.total_points, color: '#F5D060' },
-          { label: 'Played', value: qualification.games_played_count, color: '#E8E0D4' },
-          { label: 'Won',    value: qualification.games_won_count,    color: '#E8E0D4' },
+          { label: t('qual.stats_points'), value: qualification.total_points, color: '#F5D060' },
+          { label: t('qual.stats_played'), value: qualification.games_played_count, color: '#E8E0D4' },
+          { label: t('qual.stats_won'),    value: qualification.games_won_count,    color: '#E8E0D4' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: "'Lora', Georgia, serif", lineHeight: 1, textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
@@ -145,6 +147,7 @@ function EventRow({
   barActiveGradient, barInactiveGradient,
   showPlayButton, onPlay,
 }: EventRowProps) {
+  const { t } = useI18n();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Top: icon + name + pts + button */}
@@ -179,7 +182,7 @@ function EventRow({
               <>
                 <AssetIcon src={ICONS.check_circle} fallback={CheckCircle} size={12} style={{ filter: `drop-shadow(0 0 3px ${iconGlow})` }} />
                 <span style={{ fontSize: 13, fontWeight: 600, color: qualifiedColor, fontFamily: "'Inter', system-ui, sans-serif" }}>
-                  Qualified
+                  {t('qual.qualified')}
                 </span>
               </>
             ) : (
@@ -213,7 +216,7 @@ function EventRow({
               transition:   'all 0.2s ease',
             }}
           >
-            {qualified ? 'Play' : 'Locked'}
+            {qualified ? t('qual.play') : t('qual.locked')}
           </button>
         )}
       </div>

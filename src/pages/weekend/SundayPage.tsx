@@ -10,9 +10,11 @@ import { WinnerCard } from '../../components/flyers/FlyerCard';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import ImageButton from '../../components/ui/ImageButton';
 import { BUTTONS } from '../../lib/assets';
+import { useI18n } from '../../context/I18nContext';
 
 export default function SundayPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { sunEntry, loading, error, fetchMyEntries, enterEvent } = useWeekendEvents();
   const { qualification, fetchQualification } = useQualification();
   const { winners, fetchAssets } = useFlyers();
@@ -42,7 +44,7 @@ export default function SundayPage() {
           className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em] text-bone-dark hover:text-bone-muted transition-colors"
         >
           <AssetIcon src={ICONS.back} fallback={ChevronLeft} size={14} style={{ transform: 'rotate(180deg)' }} />
-          Back
+          {t('common.back')}
         </button>
 
         {/* Hero */}
@@ -53,16 +55,16 @@ export default function SundayPage() {
             </div>
           </div>
           <h1 className="font-heading text-2xl font-bold text-torch-ember" style={{ textShadow: '0 0 16px rgba(255,179,71,0.3)' }}>
-            Sunday Crown
+            {t('sunday.title')}
           </h1>
           <p className="mt-2 text-[11px] text-bone-muted">
-            The final test of the week. Only the most qualified players enter. The ultimate prize awaits.
+            {t('sunday.subtitle')}
           </p>
         </div>
 
         {/* Entry Status */}
         <div className="border border-moss-dark/30 bg-ritual-surface/30 px-4 py-4">
-          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-3">Your Status</div>
+          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-3">{t('weekend.your_status')}</div>
 
           {loading ? (
             <div className="flex justify-center py-4"><LoadingSpinner size="sm" /></div>
@@ -70,8 +72,8 @@ export default function SundayPage() {
             <div className="flex items-center gap-3">
               <AssetIcon src={ICONS.check_circle} fallback={CheckCircle} size={20} style={{ filter: 'drop-shadow(0 0 4px rgba(255,122,0,0.4))' }} />
               <div>
-                <div className="text-sm font-medium text-torch-ember">You are entered</div>
-                <div className="text-[9px] text-bone-dark mt-0.5">Good luck in Sunday's Crown</div>
+                <div className="text-sm font-medium text-torch-ember">{t('weekend.entered')}</div>
+                <div className="text-[9px] text-bone-dark mt-0.5">{t('sunday.good_luck')}</div>
               </div>
             </div>
           ) : qualified ? (
@@ -79,9 +81,9 @@ export default function SundayPage() {
               <div className="flex items-center gap-3">
                 <AssetIcon src={ICONS.check_circle} fallback={CheckCircle} size={20} style={{ opacity: 0.8 }} />
                 <div>
-                  <div className="text-sm font-medium text-bone">Qualified for Sunday</div>
+                  <div className="text-sm font-medium text-bone">{t('sunday.qualified_label')}</div>
                   <div className="text-[9px] text-bone-dark mt-0.5">
-                    {qualification?.total_points} pts earned this week
+                    {t('weekend.pts_earned_week', { pts: String(qualification?.total_points ?? 0) })}
                   </div>
                 </div>
               </div>
@@ -94,7 +96,7 @@ export default function SundayPage() {
                 style={{ minHeight: 56 }}
               >
                 <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 14, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#F5F0E8', textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
-                  Enter Sunday Crown
+                  {t('sunday.enter')}
                 </span>
               </ImageButton>
             </div>
@@ -103,10 +105,12 @@ export default function SundayPage() {
               <div className="flex items-center gap-3">
                 <AssetIcon src={ICONS.lock} fallback={Lock} size={20} style={{ opacity: 0.6 }} />
                 <div>
-                  <div className="text-sm font-medium text-bone-muted">Not yet qualified</div>
+                  <div className="text-sm font-medium text-bone-muted">{t('weekend.not_qualified')}</div>
                   <div className="text-[9px] text-bone-dark mt-0.5">
-                    Need {qualification?.sun_pts_threshold ?? 100} pts — currently{' '}
-                    {qualification?.total_points ?? 0} pts
+                    {t('weekend.need_pts', {
+                      threshold: String(qualification?.sun_pts_threshold ?? 100),
+                      current: String(qualification?.total_points ?? 0),
+                    })}
                   </div>
                 </div>
               </div>
@@ -119,7 +123,7 @@ export default function SundayPage() {
                 style={{ minHeight: 52 }}
               >
                 <span style={{ fontFamily: "'Lora', Georgia, serif", fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9E9688', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
-                  Play Games to Qualify
+                  {t('weekend.play_to_qualify')}
                 </span>
               </ImageButton>
             </div>
@@ -134,11 +138,11 @@ export default function SundayPage() {
 
         {/* Requirements */}
         <div className="border border-moss-dark/20 bg-ritual-surface/20 px-4 py-4 space-y-3">
-          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">Requirements</div>
+          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">{t('sunday.requirements')}</div>
           {[
-            { icon: Zap, src: ICONS.zap, text: `Earn ${qualification?.sun_pts_threshold ?? 100} qualification points this week` },
-            { icon: CheckCircle, src: ICONS.check_circle, text: 'Play at least 3 different daily games' },
-            { icon: Crown, src: ICONS.crown, text: 'One entry per player — used entries cannot be reclaimed' },
+            { icon: Zap, src: ICONS.zap, text: t('sunday.req_1', { threshold: String(qualification?.sun_pts_threshold ?? 100) }) },
+            { icon: CheckCircle, src: ICONS.check_circle, text: t('sunday.req_2') },
+            { icon: Crown, src: ICONS.crown, text: t('sunday.req_3') },
           ].map(({ icon: Icon, src, text }, i) => (
             <div key={i} className="flex items-start gap-2">
               <AssetIcon src={src} fallback={Icon} size={14} className="flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 2px rgba(255,122,0,0.3))' }} />
@@ -149,7 +153,7 @@ export default function SundayPage() {
 
         {sunWinners.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">Past Champions</div>
+            <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">{t('weekend.past_champions')}</div>
             {sunWinners.slice(0, 3).map((w) => (
               <WinnerCard key={w.id} winner={w} />
             ))}
