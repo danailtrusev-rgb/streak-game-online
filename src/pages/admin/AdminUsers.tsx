@@ -125,7 +125,7 @@ export default function AdminUsers() {
         <button
           onClick={handleSearch}
           disabled={loading}
-          className="jungle-button-secondary px-4 py-2 text-xs flex items-center gap-1.5 flex-shrink-0"
+          className="jungle-button-secondary px-4 text-xs flex items-center gap-1.5 flex-shrink-0"
         >
           {loading ? <LoadingSpinner size="sm" /> : <Search className="h-3.5 w-3.5" />}
           Search
