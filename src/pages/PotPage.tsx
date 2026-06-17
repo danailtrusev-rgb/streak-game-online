@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Coins, TrendingUp, AlertTriangle, X, Flame } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -25,7 +26,7 @@ function ConfirmModal({
   loading: boolean;
 }) {
   const { t } = useI18n();
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 300,
@@ -174,7 +175,8 @@ function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

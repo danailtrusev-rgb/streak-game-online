@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCents } from '../../lib/constants';
@@ -107,7 +108,7 @@ export default function ResultModal({
     ? Math.min((result.streak - prevMilestone) / (nextMil - prevMilestone), 1)
     : 1;
 
-  return (
+  return createPortal(
     <div
       className={`fixed inset-0 z-[200] transition-opacity duration-500 ${overlayOpacity}`}
       onClick={handleClose}
@@ -152,7 +153,8 @@ export default function ResultModal({
           {survived ? <SurviveContent /> : <DieContent />}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 
   // ── SURVIVE ──────────────────────────────────────────────────────────────────

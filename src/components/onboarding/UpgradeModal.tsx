@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, Mail, ChevronLeft, RefreshCw, Check, Eye, EyeOff, Lock,
 } from 'lucide-react';
@@ -547,7 +548,7 @@ export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
   const [active, setActive] = useState<ActiveMethod>(null);
   const METHODS = getMethodOptions(t);
 
-  return (
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={active ? undefined : onClose}
@@ -604,6 +605,7 @@ export default function UpgradeModal({ onClose, onSuccess, onOpenLogin }: {
           {active === 'facebook' && <OAuthFlow  provider="facebook" onBack={() => setActive(null)} />}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

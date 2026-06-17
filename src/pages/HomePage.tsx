@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Skull, ChevronRight, Flame, Zap, X, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -151,7 +152,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
   const isSoon = status === 'coming_soon';
   const bgSrc  = GAME_BG[game.game_id] ?? config?.background ?? '';
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
@@ -299,7 +300,8 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

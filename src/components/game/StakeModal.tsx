@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Lock, Wallet, X, ChevronRight } from 'lucide-react';
 import { formatCents } from '../../lib/constants';
 import { useI18n } from '../../context/I18nContext';
@@ -44,7 +45,7 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
     .filter((t) => t.unlocked)
     .every((t) => walletBalance < t.stake_cents);
 
-  return (
+  return createPortal(
     <div
       style={{
         position:       'fixed',
@@ -299,6 +300,7 @@ export default function StakeModal({ tiers, walletBalance, streak, onConfirm, on
           </span>
         </ImageButton>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

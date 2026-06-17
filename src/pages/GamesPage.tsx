@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { X, Zap, Lock, CheckCircle } from 'lucide-react';
 import { useGamesCatalog } from '../hooks/useGamesCatalog';
@@ -97,7 +98,7 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
   const bgSrc   = GAME_BG[game.game_id] ?? config?.background ?? '';
   const { t }   = useI18n();
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
@@ -246,7 +247,8 @@ function GamePopup({ game, progress, onClose, onPlay }: GamePopupProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
