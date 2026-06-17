@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   User, Shield, Bell, Flame, BookOpen, ChevronRight, ChevronLeft,
   HelpCircle, Info, LogOut, Globe,
@@ -582,90 +583,10 @@ function ChannelRow({
   );
 }
 
-// ── FAQ Accordion ─────────────────────────────────────────────────────────────
-
-interface FaqItem {
-  id: string;
-  question: string;
-  answer: string;
-  sort_order: number;
-  enabled: boolean;
-}
-
-function FaqAccordion() {
-  const [items, setItems] = useState<FaqItem[]>([]);
-  const [open, setOpen] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase
-      .from('faq_items')
-      .select('id, question, answer, sort_order, enabled')
-      .eq('enabled', true)
-      .order('sort_order', { ascending: true })
-      .then(({ data }) => {
-        setItems((data ?? []) as FaqItem[]);
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) return null;
-  if (items.length === 0) return null;
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      {items.map((item) => {
-        const isOpen = open === item.id;
-        return (
-          <div
-            key={item.id}
-            style={{
-              border: `1px solid ${isOpen ? 'rgba(255,122,0,0.22)' : 'rgba(255,255,255,0.05)'}`,
-              background: isOpen ? 'rgba(255,122,0,0.03)' : 'rgba(255,255,255,0.02)',
-              transition: 'border-color 0.2s ease, background 0.2s ease',
-            }}
-          >
-            <button
-              onClick={() => setOpen(isOpen ? null : item.id)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                width: '100%', padding: '13px 16px',
-                background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              <span style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: isOpen ? '#FF9A30' : 'rgba(255,255,255,0.8)', lineHeight: 1.3, flex: 1, paddingRight: 8 }}>
-                {item.question}
-              </span>
-              <ChevronDown
-                size={15}
-                style={{
-                  color: isOpen ? '#FF9A30' : 'rgba(255,255,255,0.3)',
-                  flexShrink: 0,
-                  transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease, color 0.2s ease',
-                }}
-              />
-            </button>
-            {isOpen && (
-              <div style={{ padding: '0 16px 14px' }}>
-                <p style={{
-                  fontFamily: BF, fontSize: 13, color: 'rgba(255,255,255,0.55)',
-                  lineHeight: 1.7, margin: 0,
-                }}>
-                  {item.answer}
-                </p>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Main SettingsPage ─────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { playerState, session, isGuest, signOut } = useAuth();
   const { t, language, setLanguage, languages } = useI18n();
   const CHANNELS = getChannels(t);
@@ -848,39 +769,51 @@ export default function SettingsPage() {
       {languages.length > 1 && (
         <div>
           <SectionLabel label={t('settings.section.language')} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {languages.map((lang) => {
-              const active = lang.code === language;
-              return (
-                <button
-                  key={lang.code}
-                  onClick={() => setLanguage(lang.code)}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '13px 16px',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            <div style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Globe size={17} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {t('settings.section.language')}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    width: '100%', padding: '13px 16px',
-                    background: active ? 'rgba(255,122,0,0.07)' : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${active ? 'rgba(255,122,0,0.28)' : 'rgba(255,255,255,0.05)'}`,
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'background 0.15s ease, border-color 0.15s ease',
+                    width: '100%',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    padding: '9px 36px 9px 12px',
+                    fontFamily: UF, fontSize: 14, fontWeight: 500,
+                    color: '#D8D0C5',
+                    background: 'rgba(0,0,0,0.35)',
+                    border: '1px solid rgba(255,122,0,0.22)',
+                    cursor: 'pointer',
+                    outline: 'none',
                   }}
-                  onMouseEnter={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
-                  onMouseLeave={(e) => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.02)'; }}
                 >
-                  <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Globe size={17} strokeWidth={1.4} style={{ color: active ? '#FF9A30' : 'rgba(255,255,255,0.4)' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: active ? '#FF9A30' : 'rgba(255,255,255,0.85)' }}>
-                      {lang.native_name}
-                    </div>
-                    {lang.native_name !== lang.name && (
-                      <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 1 }}>{lang.name}</div>
-                    )}
-                  </div>
-                  {active && <Check size={15} style={{ color: '#FF9A30', flexShrink: 0 }} />}
-                </button>
-              );
-            })}
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code} style={{ background: '#0B0F0C', color: '#D8D0C5' }}>
+                      {lang.native_name}{lang.native_name !== lang.name ? ` (${lang.name})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    color: 'rgba(255,122,0,0.7)', pointerEvents: 'none',
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -976,18 +909,27 @@ export default function SettingsPage() {
       {/* Support */}
       <div>
         <SectionLabel label={t('settings.support')} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderBottom: 'none' }}>
-            <div style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <HelpCircle size={18} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.5)' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>{t('settings.faq_title')}</div>
-              <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t('settings.faq_subtitle')}</div>
-            </div>
+        <button
+          onClick={() => navigate('/settings/faq')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            width: '100%', padding: '14px 16px',
+            background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)',
+            cursor: 'pointer', textAlign: 'left',
+            transition: 'background 0.15s ease',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.02)'; }}
+        >
+          <div style={{ width: 38, height: 38, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <HelpCircle size={18} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.5)' }} />
           </div>
-          <FaqAccordion />
-        </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: UF, fontSize: 14, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}>{t('settings.faq_title')}</div>
+            <div style={{ fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{t('settings.faq_subtitle')}</div>
+          </div>
+          <ChevronRight size={15} style={{ color: 'rgba(255,255,255,0.25)', flexShrink: 0 }} />
+        </button>
       </div>
 
       {/* About */}

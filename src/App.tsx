@@ -10,6 +10,7 @@ import GamesPage from './pages/GamesPage';
 import WalletPage from './pages/WalletPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import SettingsPage from './pages/SettingsPage';
+import FAQPage from './pages/FAQPage';
 import AdminPage from './pages/admin/AdminPage';
 import TestLevelPage from './pages/TestLevelPage';
 import TestModeBadge from './components/ui/TestModeBadge';
@@ -90,6 +91,7 @@ function AppWithOnboarding() {
           <Route path="/wallet" element={<WalletPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings/faq" element={<FAQPage />} />
         </Route>
 
         {/* Pot and Streak — full-screen pages, no player header/footer */}
