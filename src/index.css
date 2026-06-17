@@ -37,6 +37,11 @@
     box-shadow: 0 0 80px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,122,0,0.04);
   }
 
+  #root.admin-wide {
+    max-width: 100%;
+    box-shadow: none;
+  }
+
   /* Interactive elements */
   a, button, [role="button"], [tabindex]:not([tabindex="-1"]),
   input, select, textarea {

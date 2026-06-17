@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Shield, BarChart3, Users, Settings, FileText, LogOut, Lock,
   Gamepad2, Trophy, CalendarDays, Image, Crown, Layers, PenLine, Globe, HelpCircle,
@@ -42,6 +42,11 @@ export default function AdminPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwError, setPwError] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.getElementById('root')?.classList.add('admin-wide');
+    return () => { document.getElementById('root')?.classList.remove('admin-wide'); };
+  }, []);
 
   const handleLogin = () => {
     if (username && password) login(username, password);
@@ -145,7 +150,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="pg-transition pg-transition--fade-in flex flex-col gap-4">
+    <div className="pg-transition pg-transition--fade-in flex flex-col gap-4" style={{ padding: 16 }}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-torch-ember" strokeWidth={1.2} />
