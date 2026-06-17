@@ -49,6 +49,8 @@ function LanguageManager({ onLanguageChange }: { onLanguageChange: () => void })
   const [newLang, setNewLang] = useState({ code: '', name: '', native_name: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,6 +96,18 @@ function LanguageManager({ onLanguageChange }: { onLanguageChange: () => void })
     if (dbErr) { setError(dbErr.message); return; }
     setNewLang({ code: '', name: '', native_name: '' });
     setShowAddForm(false);
+    await load();
+    onLanguageChange();
+  };
+
+  const handleDeleteLanguage = async (lang: Language) => {
+    if (lang.is_default) return;
+    setDeleting(true);
+    await supabase.from('translations').delete().eq('language_code', lang.code);
+    await supabase.from('app_languages').delete().eq('code', lang.code);
+    invalidateTranslationCache(lang.code);
+    setConfirmDelete(null);
+    setDeleting(false);
     await load();
     onLanguageChange();
   };
@@ -183,12 +197,42 @@ function LanguageManager({ onLanguageChange }: { onLanguageChange: () => void })
               </div>
               <StatusBadge enabled={lang.enabled} />
               {!lang.is_default && (
-                <button
-                  onClick={() => handleToggle(lang)}
-                  style={{ fontSize: 11, color: lang.enabled ? 'rgba(200,80,80,0.7)' : 'rgba(120,176,96,0.8)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.08em', textTransform: 'uppercase' }}
-                >
-                  {lang.enabled ? 'Disable' : 'Enable'}
-                </button>
+                <>
+                  <button
+                    onClick={() => handleToggle(lang)}
+                    style={{ fontSize: 11, color: lang.enabled ? 'rgba(200,80,80,0.7)' : 'rgba(120,176,96,0.8)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}
+                  >
+                    {lang.enabled ? 'Disable' : 'Enable'}
+                  </button>
+                  {confirmDelete === lang.code ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: 'rgba(200,80,80,0.85)', letterSpacing: '0.06em' }}>Delete all {lang.name} translations?</span>
+                      <button
+                        onClick={() => handleDeleteLanguage(lang)}
+                        disabled={deleting}
+                        style={{ padding: '3px 8px', fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', border: '1px solid rgba(200,80,80,0.45)', background: 'rgba(200,80,80,0.08)', color: 'rgba(200,80,80,0.9)', cursor: 'pointer', opacity: deleting ? 0.5 : 1 }}
+                      >
+                        {deleting ? '…' : 'Confirm'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', padding: '3px' }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDelete(lang.code)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.2)', padding: '4px', transition: 'color 0.15s', flexShrink: 0 }}
+                      title="Delete language"
+                      onMouseEnter={(e) => (e.currentTarget.style.color = 'rgba(200,80,80,0.65)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </>
               )}
             </div>
           ))}
