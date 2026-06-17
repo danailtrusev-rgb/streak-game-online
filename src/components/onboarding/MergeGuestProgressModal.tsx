@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, GitMerge, Coins, Star, Shield, Check, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -154,7 +155,7 @@ export default function MergeGuestProgressModal({
 
   // ── Merged success screen ────────────────────────────────────────────────
   if (merged) {
-    return (
+    return createPortal(
       <div style={modalBase}>
         <div style={cardBase}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(120,176,96,0.5),transparent)' }} />
@@ -170,13 +171,14 @@ export default function MergeGuestProgressModal({
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   // ── Loading state ────────────────────────────────────────────────────────
   if (checkLoading) {
-    return (
+    return createPortal(
       <div style={modalBase}>
         <div style={cardBase}>
           <div style={{ padding: '48px 28px', textAlign: 'center' }}>
@@ -185,13 +187,14 @@ export default function MergeGuestProgressModal({
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   // ── Not eligible (already merged, not a guest, etc.) ─────────────────────
   if (!eligibility?.eligible) {
-    return (
+    return createPortal(
       <div style={modalBase}>
         <div style={cardBase}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(255,122,0,0.3),transparent)' }} />
@@ -208,12 +211,13 @@ export default function MergeGuestProgressModal({
             <DismissButton onClick={onDismiss} label={t('merge.continue')} />
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   // ── Main merge offer ─────────────────────────────────────────────────────
-  return (
+  return createPortal(
     <div style={modalBase}>
       <div style={cardBase} onClick={(e) => e.stopPropagation()}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg,transparent,rgba(245,208,96,0.4),transparent)' }} />
@@ -327,7 +331,8 @@ export default function MergeGuestProgressModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

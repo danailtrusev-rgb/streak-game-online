@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Mail, Eye, EyeOff, Lock, ChevronLeft, LogIn } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useI18n } from '../../context/I18nContext';
@@ -347,7 +348,7 @@ export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginMo
 
   // If warning not yet dismissed, show it first
   if (!guestWarningDismissed) {
-    return (
+    return createPortal(
       <div
         style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       >
@@ -371,11 +372,12 @@ export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginMo
             />
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={view === 'methods' ? onClose : undefined}
@@ -455,6 +457,7 @@ export default function LoginModal({ onClose, onSuccess, prefillEmail }: LoginMo
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
