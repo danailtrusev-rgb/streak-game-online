@@ -779,9 +779,6 @@ export default function SettingsPage() {
               <Globe size={17} strokeWidth={1.4} style={{ color: 'rgba(255,255,255,0.5)' }} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: UF, fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                {t('settings.section.language')}
-              </div>
               <div style={{ position: 'relative' }}>
                 <select
                   value={language}
