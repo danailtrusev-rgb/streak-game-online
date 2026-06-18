@@ -1,37 +1,29 @@
 import { useState, useEffect } from 'react';
 import {
   Shield, BarChart3, Users, Settings, FileText, LogOut, Lock,
-  Gamepad2, Trophy, CalendarDays, Image, Crown, Layers, PenLine, Globe, HelpCircle,
+  Gamepad2, Trophy, CalendarDays, Image, Crown,
 } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import AdminKPIs from './AdminKPIs';
 import AdminUsers from './AdminUsers';
-import AdminSettings from './AdminSettings';
+import AdminConfig from './AdminConfig';
 import AdminAuditLog from './AdminAuditLog';
 import AdminGames from './AdminGames';
 import AdminQualificationRules from './AdminQualificationRules';
 import AdminWeekendEvents from './AdminWeekendEvents';
 import AdminFlyers from './AdminFlyers';
 import AdminWinners from './AdminWinners';
-import AdminSkullGatePreview from './AdminSkullGatePreview';
-import AdminSceneEditor from './scene-editor/AdminSceneEditor';
-import AdminTranslations from './AdminTranslations';
-import AdminFAQ from './AdminFAQ';
 
 const tabs = [
-  { key: 'kpis', label: 'KPIs', icon: BarChart3 },
-  { key: 'users', label: 'Players', icon: Users },
-  { key: 'games', label: 'Games', icon: Gamepad2 },
+  { key: 'kpis',          label: 'KPIs',       icon: BarChart3 },
+  { key: 'users',         label: 'Players',    icon: Users },
+  { key: 'games',         label: 'Games',      icon: Gamepad2 },
   { key: 'qualification', label: 'Qual Rules', icon: Trophy },
-  { key: 'events', label: 'Events', icon: CalendarDays },
-  { key: 'flyers', label: 'Flyers', icon: Image },
-  { key: 'winners', label: 'Winners', icon: Crown },
-  { key: 'settings', label: 'Config', icon: Settings },
-  { key: 'audit', label: 'Audit', icon: FileText },
-  { key: 'gate_preview', label: 'Gate Preview', icon: Layers },
-  { key: 'scene_editor', label: 'Scene Editor', icon: PenLine },
-  { key: 'translations', label: 'Translations', icon: Globe },
-  { key: 'faq', label: 'FAQ', icon: HelpCircle },
+  { key: 'events',        label: 'Events',     icon: CalendarDays },
+  { key: 'flyers',        label: 'Flyers',     icon: Image },
+  { key: 'winners',       label: 'Winners',    icon: Crown },
+  { key: 'settings',      label: 'Config',     icon: Settings },
+  { key: 'audit',         label: 'Audit',      icon: FileText },
 ];
 
 export default function AdminPage() {
@@ -189,12 +181,8 @@ export default function AdminPage() {
       {activeTab === 'events' && <AdminWeekendEvents />}
       {activeTab === 'flyers' && <AdminFlyers />}
       {activeTab === 'winners' && <AdminWinners />}
-      {activeTab === 'settings' && <AdminSettings />}
+      {activeTab === 'settings' && <AdminConfig />}
       {activeTab === 'audit' && <AdminAuditLog />}
-      {activeTab === 'gate_preview' && <AdminSkullGatePreview />}
-      {activeTab === 'scene_editor' && <AdminSceneEditor />}
-      {activeTab === 'translations' && <AdminTranslations />}
-      {activeTab === 'faq' && <AdminFAQ />}
     </div>
   );
 }

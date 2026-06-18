@@ -412,7 +412,7 @@ async function handleUpdateSetting(supabase: ReturnType<typeof createClient>, ac
     const prob = typeof value_json === "number" ? value_json : parseFloat(String(value_json));
     if (isNaN(prob) || prob < 0 || prob > 0.6) return errorResponse("Survival probability must be between 0.0 and 0.6");
   }
-  const { error } = await supabase.from("settings").update({ value_json, updated_at: new Date().toISOString() }).eq("key", key);
+  const { error } = await supabase.from("settings").upsert({ key, value_json, updated_at: new Date().toISOString() }, { onConflict: "key" });
   if (error) return errorResponse(error.message);
   await supabase.from("admin_audit_log").insert({ admin_actor: actor, action: "update_setting", payload_json: { key, value_json } });
   return jsonResponse({ success: true });

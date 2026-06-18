@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell, Key } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+
+export type SettingsSection = 'system' | 'economy' | 'reminders' | 'integrations' | 'puzzle' | 'onboarding' | 'all';
 
 interface SettingRow {
   key: string;
@@ -227,7 +229,7 @@ function SaveBtn({ saving, saved, onClick }: { saving: boolean; saved: boolean; 
   );
 }
 
-export default function AdminSettings() {
+export default function AdminSettings({ section = 'all' }: { section?: SettingsSection }) {
   const { fetchSettings, updateSetting, loading, error } = useAdmin();
 
   const [settings, setSettings]     = useState<SettingRow[]>([]);
@@ -315,6 +317,8 @@ export default function AdminSettings() {
       && !REMINDER_KEYS.includes(s.key)
   );
 
+  const show = (s: SettingsSection) => section === 'all' || section === s;
+
   return (
     <div className="space-y-8">
       {error && (
@@ -322,7 +326,7 @@ export default function AdminSettings() {
       )}
 
       {/* ── System Config ─────────────────────────────────────────────────── */}
-      {otherSettings.length > 0 && (
+      {show('system') && otherSettings.length > 0 && (
         <section>
           <SectionHeader icon={<Settings className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="System Config" />
           <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
@@ -399,16 +403,19 @@ export default function AdminSettings() {
       )}
 
       {/* ── Reminders ────────────────────────────────────────────────────── */}
-      <RemindersSection
-        settings={reminderSettings}
-        editValues={editValues}
-        setEditValues={setEditValues}
-        saving={saving}
-        savedKey={savedKey}
-        onSave={handleSave}
-      />
+      {show('reminders') && (
+        <RemindersSection
+          settings={reminderSettings}
+          editValues={editValues}
+          setEditValues={setEditValues}
+          saving={saving}
+          savedKey={savedKey}
+          onSave={handleSave}
+        />
+      )}
 
-      {/* ── Jackpot ───────────────────────────────────────────────────────── */}      {jackpotSettings.length > 0 && (
+      {/* ── Jackpot ───────────────────────────────────────────────────────── */}
+      {show('system') && jackpotSettings.length > 0 && (
         <section>
           <SectionHeader icon={<Coins className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Jackpot" />
           <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
@@ -452,7 +459,7 @@ export default function AdminSettings() {
       )}
 
       {/* ── Daily Puzzle ──────────────────────────────────────────────────── */}
-      {puzzleSettings.length > 0 && (
+      {show('puzzle') && puzzleSettings.length > 0 && (
         <section>
           <SectionHeader icon={<Puzzle className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Daily Puzzle" />
           <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
@@ -487,7 +494,7 @@ export default function AdminSettings() {
       )}
 
       {/* ── Onboarding Slides ─────────────────────────────────────────────── */}
-      {slides.length > 0 && (
+      {show('onboarding') && slides.length > 0 && (
         <section>
           <SectionHeader icon={<BookOpen className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Onboarding Slides" />
           <div className="space-y-2">
@@ -557,15 +564,140 @@ export default function AdminSettings() {
       )}
 
       {/* ── Economy & Financial Model ─────────────────────────────────────── */}
-      <EconomySection
-        settings={economySettings}
-        editValues={editValues}
-        setEditValues={setEditValues}
-        saving={saving}
-        savedKey={savedKey}
-        onSave={handleSave}
-      />
+      {show('economy') && (
+        <EconomySection
+          settings={economySettings}
+          editValues={editValues}
+          setEditValues={setEditValues}
+          saving={saving}
+          savedKey={savedKey}
+          onSave={handleSave}
+        />
+      )}
+
+      {/* ── Integrations ─────────────────────────────────────────────────── */}
+      {show('integrations') && (
+        <IntegrationsSection
+          editValues={editValues}
+          setEditValues={setEditValues}
+          saving={saving}
+          savedKey={savedKey}
+          onSave={handleSave}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Integrations Section ──────────────────────────────────────────────────────
+
+interface IntegrationsSectionProps {
+  editValues: Record<string, string>;
+  setEditValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  saving: string | null;
+  savedKey: string | null;
+  onSave: (key: string) => Promise<void>;
+}
+
+const INTEGRATION_FIELDS = [
+  {
+    key: 'ghl_api_key',
+    label: 'GoHighLevel API Key',
+    description: 'Used for email and SMS reminder delivery. Stored as a settings value — deploy via edge function secrets for production.',
+    placeholder: 'ey...',
+    secret: true,
+  },
+  {
+    key: 'twilio_account_sid',
+    label: 'Twilio Account SID',
+    description: 'Twilio Account SID for direct SMS delivery (alternative to GHL).',
+    placeholder: 'AC...',
+    secret: false,
+  },
+  {
+    key: 'twilio_auth_token',
+    label: 'Twilio Auth Token',
+    description: 'Twilio Auth Token. Store sensitive values as edge function secrets in production.',
+    placeholder: '••••••••',
+    secret: true,
+  },
+  {
+    key: 'twilio_from_number',
+    label: 'Twilio From Number',
+    description: 'E.164 formatted phone number to send SMS from (e.g. +15551234567).',
+    placeholder: '+15551234567',
+    secret: false,
+  },
+  {
+    key: 'sendgrid_api_key',
+    label: 'SendGrid API Key',
+    description: 'SendGrid API key for transactional email delivery.',
+    placeholder: 'SG...',
+    secret: true,
+  },
+  {
+    key: 'reminder_from_email',
+    label: 'From Email Address',
+    description: 'Sender email address shown to players (e.g. noreply@yourdomain.com).',
+    placeholder: 'noreply@example.com',
+    secret: false,
+  },
+] as const;
+
+function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSave }: IntegrationsSectionProps) {
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+
+  return (
+    <section>
+      <SectionHeader icon={<Key className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Integrations & Credentials" />
+      <p className="text-[10px] text-bone-faint mb-3 leading-relaxed">
+        API keys stored here are saved to the <span className="font-mono">settings</span> table and read by edge functions at runtime.
+        For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in DB queries.
+      </p>
+      <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
+        {INTEGRATION_FIELDS.map(({ key, label, description, placeholder, secret }) => {
+          const isRevealed = revealed[key] ?? false;
+          return (
+            <div key={key} className="px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-medium text-bone">{label}</span>
+                    <span className="text-[9px] font-mono text-bone-faint">{key}</span>
+                  </div>
+                  <p className="text-[10px] text-bone-faint leading-relaxed mb-2">{description}</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type={secret && !isRevealed ? 'password' : 'text'}
+                      value={editValues[key] ?? ''}
+                      onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      className="ritual-input flex-1 font-mono text-xs"
+                      onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
+                    />
+                    {secret && (
+                      <button
+                        onClick={() => setRevealed((p) => ({ ...p, [key]: !isRevealed }))}
+                        className="text-[9px] text-bone-dark hover:text-bone-muted border border-moss-dark/25 px-2 py-1.5 flex-shrink-0"
+                      >
+                        {isRevealed ? 'Hide' : 'Show'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="pt-6 flex-shrink-0">
+                  <SaveBtn
+                    saving={saving === key}
+                    saved={savedKey === key}
+                    onClick={() => onSave(key)}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
