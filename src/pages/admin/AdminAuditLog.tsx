@@ -45,13 +45,13 @@ export default function AdminAuditLog() {
           <div key={entry.id} className="border border-moss-dark/30 bg-ritual-surface/30 px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-bone">{entry.action}</span>
-              <span className="text-[9px] text-bone-dark">
+              <span className="text-[11px] text-bone-dark">
                 {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}{' '}
                 {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
-            <div className="mt-1 text-[9px] text-bone-dark">{entry.admin_actor}</div>
-            <pre className="mt-2 overflow-x-auto border border-moss-dark/20 bg-ritual-bg/60 px-2 py-1 text-[10px] text-bone-muted">
+            <div className="mt-1 text-[11px] text-bone-dark">{entry.admin_actor}</div>
+            <pre className="mt-2 overflow-x-auto border border-moss-dark/20 bg-ritual-bg/60 px-2 py-1 text-[12px] text-bone-muted">
               {JSON.stringify(entry.payload_json, null, 2)}
             </pre>
           </div>

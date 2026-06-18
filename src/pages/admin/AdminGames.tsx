@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Gamepad2, ChevronDown, ChevronUp, Check, X, Layers, PenLine, ArrowLeft } from 'lucide-react';
+import { Gamepad2, ChevronDown, ChevronUp, Check, X, Layers, PenLine, ArrowLeft, Library } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import type { GameModule } from '../../lib/types';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import AdminSkullGatePreview from './AdminSkullGatePreview';
 import AdminSceneEditor from './scene-editor/AdminSceneEditor';
+import AdminSceneLibrary from './AdminSceneLibrary';
 
-type GamesTool = null | 'gate_preview' | 'scene_editor';
+type GamesTool = null | 'gate_preview' | 'scene_editor' | 'scene_library';
 
 const LAUNCH_STATES = ['live', 'coming_soon', 'beta'] as const;
 const CATEGORIES    = ['daily', 'qualifier', 'weekend', 'special'] as const;
@@ -59,7 +60,7 @@ export default function AdminGames() {
   if (tool === 'gate_preview') {
     return (
       <div className="space-y-4">
-        <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
+        <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
           <ArrowLeft className="h-3 w-3" /> Games
         </button>
         <AdminSkullGatePreview />
@@ -70,10 +71,21 @@ export default function AdminGames() {
   if (tool === 'scene_editor') {
     return (
       <div className="space-y-4">
-        <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
+        <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
           <ArrowLeft className="h-3 w-3" /> Games
         </button>
         <AdminSceneEditor />
+      </div>
+    );
+  }
+
+  if (tool === 'scene_library') {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
+          <ArrowLeft className="h-3 w-3" /> Games
+        </button>
+        <AdminSceneLibrary />
       </div>
     );
   }
@@ -83,17 +95,23 @@ export default function AdminGames() {
 
       {/* Gate Scene tools — top of page */}
       <div className="border border-moss-dark/20 bg-ritual-surface/10 px-3 py-3">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-bone-faint mb-2.5">Gate Scenes</div>
+        <div className="text-[11px] uppercase tracking-[0.18em] text-bone-faint mb-2.5">Gate Scenes</div>
         <div className="flex gap-2">
           <button
             onClick={() => setTool('scene_editor')}
-            className="flex items-center gap-2 border border-torch-ember/30 bg-torch-ember/5 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-torch-ember/80 hover:text-torch-ember hover:border-torch-ember/50 transition-colors"
+            className="flex items-center gap-2 border border-torch-ember/30 bg-torch-ember/5 px-3 py-2 text-[12px] uppercase tracking-[0.1em] text-torch-ember/80 hover:text-torch-ember hover:border-torch-ember/50 transition-colors"
           >
             <PenLine className="h-3.5 w-3.5" strokeWidth={1.5} /> Gate Scene Editor
           </button>
           <button
+            onClick={() => setTool('scene_library')}
+            className="flex items-center gap-2 border border-moss-dark/25 px-3 py-2 text-[12px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone hover:border-moss-dark/40 transition-colors"
+          >
+            <Library className="h-3.5 w-3.5" strokeWidth={1.5} /> Scene Library
+          </button>
+          <button
             onClick={() => setTool('gate_preview')}
-            className="flex items-center gap-2 border border-moss-dark/25 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone hover:border-moss-dark/40 transition-colors"
+            className="flex items-center gap-2 border border-moss-dark/25 px-3 py-2 text-[12px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone hover:border-moss-dark/40 transition-colors"
           >
             <Layers className="h-3.5 w-3.5" strokeWidth={1.5} /> Gate Preview
           </button>
@@ -105,10 +123,10 @@ export default function AdminGames() {
         <div className="flex items-center gap-2">
           <Gamepad2 className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />
           <h2 className="text-sm font-semibold tracking-[0.1em] uppercase text-bone">Game Catalog</h2>
-          <span className="text-[10px] text-bone-dark">{games.length}</span>
+          <span className="text-[12px] text-bone-dark">{games.length}</span>
         </div>
         {saveMsg && (
-          <span className="flex items-center gap-1 text-[10px] text-moss-light">
+          <span className="flex items-center gap-1 text-[12px] text-moss-light">
             <Check className="h-3 w-3" strokeWidth={2} /> {saveMsg}
           </span>
         )}
@@ -135,10 +153,10 @@ export default function AdminGames() {
                                                  'bg-bone-faint'
                 }`} />
                 <span className="text-xs font-medium text-bone">{game.name}</span>
-                <span className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">{game.category}</span>
+                <span className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">{game.category}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border ${
+                <span className={`text-[11px] uppercase tracking-[0.1em] px-1.5 py-0.5 border ${
                   game.launch_state === 'live'
                     ? 'border-moss-dark/40 text-moss-light'
                     : 'border-bone-faint/20 text-bone-faint'
@@ -153,7 +171,7 @@ export default function AdminGames() {
               <div className="border-t border-moss-dark/20 px-4 py-4 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Launch State</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Launch State</label>
                     <select
                       value={String(ev.launch_state ?? game.launch_state)}
                       onChange={(e) => setField(game.game_id, 'launch_state', e.target.value)}
@@ -163,7 +181,7 @@ export default function AdminGames() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Category</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Category</label>
                     <select
                       value={String(ev.category ?? game.category)}
                       onChange={(e) => setField(game.game_id, 'category', e.target.value)}
@@ -173,7 +191,7 @@ export default function AdminGames() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Points on Play</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Points on Play</label>
                     <input
                       type="number"
                       value={ev.points_on_play ?? game.points_on_play}
@@ -182,7 +200,7 @@ export default function AdminGames() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Points on Win</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Points on Win</label>
                     <input
                       type="number"
                       value={ev.points_on_win ?? game.points_on_win}
@@ -191,7 +209,7 @@ export default function AdminGames() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Sort Order</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Sort Order</label>
                     <input
                       type="number"
                       value={ev.sort_order ?? game.sort_order}
@@ -207,7 +225,7 @@ export default function AdminGames() {
                         onChange={(e) => setField(game.game_id, 'qualification_enabled', e.target.checked)}
                         className="accent-torch-ember"
                       />
-                      <span className="text-[10px] text-bone-muted">Qual Enabled</span>
+                      <span className="text-[12px] text-bone-muted">Qual Enabled</span>
                     </label>
                   </div>
                 </div>
@@ -222,7 +240,7 @@ export default function AdminGames() {
                   </button>
                   <button
                     onClick={() => setEditValues((prev) => ({ ...prev, [game.game_id]: { ...game } }))}
-                    className="flex items-center gap-1 text-[10px] text-bone-dark hover:text-bone-muted"
+                    className="flex items-center gap-1 text-[12px] text-bone-dark hover:text-bone-muted"
                   >
                     <X className="h-3 w-3" /> Reset
                   </button>

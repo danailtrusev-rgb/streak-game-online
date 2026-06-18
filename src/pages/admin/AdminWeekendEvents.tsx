@@ -69,24 +69,24 @@ export default function AdminWeekendEvents() {
           <div className="border border-moss-dark/20 bg-ritual-surface/20 px-4 py-3">
             <div className="flex items-center gap-2 mb-2">
               <Trophy className="h-3.5 w-3.5 text-torch-ember" strokeWidth={1.5} />
-              <span className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Saturday Qual</span>
+              <span className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">Saturday Qual</span>
             </div>
             <div className="text-xl font-bold text-bone font-heading">{kpis.saturday_qualified}</div>
-            <div className="text-[9px] text-bone-faint mt-0.5">{kpis.saturday_entries} entered</div>
+            <div className="text-[11px] text-bone-faint mt-0.5">{kpis.saturday_entries} entered</div>
           </div>
           <div className="border border-moss-dark/20 bg-ritual-surface/20 px-4 py-3">
             <div className="flex items-center gap-2 mb-2">
               <Crown className="h-3.5 w-3.5 text-torch-ember" strokeWidth={1.5} />
-              <span className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Sunday Qual</span>
+              <span className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">Sunday Qual</span>
             </div>
             <div className="text-xl font-bold text-bone font-heading">{kpis.sunday_qualified}</div>
-            <div className="text-[9px] text-bone-faint mt-0.5">{kpis.sunday_entries} entered</div>
+            <div className="text-[11px] text-bone-faint mt-0.5">{kpis.sunday_entries} entered</div>
           </div>
         </div>
       )}
 
       <div className="space-y-2">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">
+        <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
           Saturday Entries ({counts['saturday_main_event'] ?? satEntries.length})
         </div>
         {satEntries.length === 0 ? (
@@ -95,8 +95,8 @@ export default function AdminWeekendEvents() {
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {satEntries.map((e) => (
               <div key={e.id} className="flex items-center justify-between border border-moss-dark/10 px-3 py-2">
-                <span className="text-[10px] text-bone-muted font-mono">{e.user_id.slice(0, 12)}…</span>
-                <span className={`text-[9px] uppercase tracking-[0.1em] ${
+                <span className="text-[12px] text-bone-muted font-mono">{e.user_id.slice(0, 12)}…</span>
+                <span className={`text-[11px] uppercase tracking-[0.1em] ${
                   e.result_status === 'completed' ? 'text-moss-light' : 'text-bone-faint'
                 }`}>{e.result_status}</span>
               </div>
@@ -106,7 +106,7 @@ export default function AdminWeekendEvents() {
       </div>
 
       <div className="space-y-2">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">
+        <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
           Sunday Entries ({counts['sunday_winners_event'] ?? sunEntries.length})
         </div>
         {sunEntries.length === 0 ? (
@@ -115,8 +115,8 @@ export default function AdminWeekendEvents() {
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {sunEntries.map((e) => (
               <div key={e.id} className="flex items-center justify-between border border-moss-dark/10 px-3 py-2">
-                <span className="text-[10px] text-bone-muted font-mono">{e.user_id.slice(0, 12)}…</span>
-                <span className={`text-[9px] uppercase tracking-[0.1em] ${
+                <span className="text-[12px] text-bone-muted font-mono">{e.user_id.slice(0, 12)}…</span>
+                <span className={`text-[11px] uppercase tracking-[0.1em] ${
                   e.result_status === 'completed' ? 'text-moss-light' : 'text-bone-faint'
                 }`}>{e.result_status}</span>
               </div>
@@ -126,13 +126,13 @@ export default function AdminWeekendEvents() {
       </div>
 
       <div className="border border-torch-orange/20 bg-torch-orange/5 px-4 py-4 space-y-3">
-        <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">Finalize Event</div>
+        <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">Finalize Event</div>
         {finalizeMsg && (
           <div className="border border-moss-dark/30 px-3 py-2 text-xs text-moss-light">{finalizeMsg}</div>
         )}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Event</label>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Event</label>
             <select
               value={finalizeForm.eventGameId}
               onChange={(e) => setFinalizeForm((p) => ({ ...p, eventGameId: e.target.value }))}
@@ -143,7 +143,7 @@ export default function AdminWeekendEvents() {
             </select>
           </div>
           <div>
-            <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Payout (cents)</label>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Payout (cents)</label>
             <input
               type="number"
               value={finalizeForm.payoutCents}
@@ -152,7 +152,7 @@ export default function AdminWeekendEvents() {
             />
           </div>
           <div>
-            <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Winner User ID</label>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Winner User ID</label>
             <input
               value={finalizeForm.winnerUserId}
               onChange={(e) => setFinalizeForm((p) => ({ ...p, winnerUserId: e.target.value }))}
@@ -161,7 +161,7 @@ export default function AdminWeekendEvents() {
             />
           </div>
           <div>
-            <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Display Name</label>
+            <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Display Name</label>
             <input
               value={finalizeForm.displayName}
               onChange={(e) => setFinalizeForm((p) => ({ ...p, displayName: e.target.value }))}

@@ -58,7 +58,7 @@ export default function AdminPage() {
           <Lock className="h-8 w-8 text-torch-ember" strokeWidth={1} />
         </div>
         <h2 className="ritual-text text-lg font-bold tracking-[0.15em]">Change Password</h2>
-        <p className="text-[10px] tracking-[0.15em] text-bone-faint text-center max-w-xs">
+        <p className="text-[12px] tracking-[0.15em] text-bone-faint text-center max-w-xs">
           You must set a new password before continuing.
         </p>
         <div className="w-full max-w-xs space-y-3">
@@ -99,7 +99,7 @@ export default function AdminPage() {
           <Lock className="h-8 w-8 text-torch-ember" strokeWidth={1} />
         </div>
         <h2 className="ritual-text text-lg font-bold tracking-[0.15em]">Admin Access</h2>
-        <p className="text-[10px] tracking-[0.15em] text-bone-faint text-center max-w-xs">
+        <p className="text-[12px] tracking-[0.15em] text-bone-faint text-center max-w-xs">
           Enter your credentials to access the dashboard.
         </p>
         <div className="w-full max-w-xs space-y-3">
@@ -144,7 +144,7 @@ export default function AdminPage() {
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-1.5 border border-transparent px-3 py-1.5 text-[10px] tracking-[0.1em] uppercase text-bone-dark transition-all duration-300 hover:border-moss-dark/30 hover:text-bone-muted"
+          className="flex items-center gap-1.5 border border-transparent px-3 py-1.5 text-[12px] tracking-[0.1em] uppercase text-bone-dark transition-all duration-300 hover:border-moss-dark/30 hover:text-bone-muted"
         >
           <LogOut className="h-3.5 w-3.5" />
           Logout
@@ -156,7 +156,7 @@ export default function AdminPage() {
           <button
             key={key}
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 whitespace-nowrap border px-3 py-2 text-[10px] font-medium tracking-[0.1em] uppercase transition-all duration-300 ${
+            className={`flex items-center gap-1.5 whitespace-nowrap border px-3 py-2 text-[12px] font-medium tracking-[0.1em] uppercase transition-all duration-300 ${
               activeTab === key
                 ? 'border-torch-orange/30 bg-torch-orange/5 text-torch-ember'
                 : 'border-transparent text-bone-dark hover:text-bone-muted'

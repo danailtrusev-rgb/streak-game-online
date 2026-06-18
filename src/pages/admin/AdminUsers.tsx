@@ -134,13 +134,13 @@ export default function AdminUsers() {
 
       {/* Count + sort note */}
       <div className="flex items-center justify-between">
-        <div className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">
+        <div className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">
           {query
             ? `${total} result${total !== 1 ? 's' : ''} for "${query}"`
             : `${total} player${total !== 1 ? 's' : ''} · sorted by recent activity`}
         </div>
         {total > 0 && (
-          <div className="text-[9px] text-bone-dark">
+          <div className="text-[11px] text-bone-dark">
             Page {page} of {totalPages}
           </div>
         )}
@@ -178,13 +178,13 @@ export default function AdminUsers() {
                         <div className="text-xs font-medium text-bone truncate max-w-[120px] sm:max-w-none">
                           {user.guest_id}
                         </div>
-                        <div className="text-[9px] text-bone-dark font-mono">{user.id.slice(0, 8)}…</div>
+                        <div className="text-[11px] text-bone-dark font-mono">{user.id.slice(0, 8)}…</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 flex-shrink-0">
                       <div className="text-right">
                         <div className="text-xs font-bold text-bone font-heading">{user.current_streak} streak</div>
-                        <div className="text-[9px] text-bone-dark">{formatCents(user.wallet_balance)}</div>
+                        <div className="text-[11px] text-bone-dark">{formatCents(user.wallet_balance)}</div>
                       </div>
                       {isExpanded
                         ? <ChevronUp className="h-3.5 w-3.5 text-bone-dark" />
@@ -198,15 +198,15 @@ export default function AdminUsers() {
                       {/* Stats grid */}
                       <div className="grid grid-cols-3 gap-2 text-center">
                         <div className="border border-moss-dark/15 px-2 py-2">
-                          <div className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Streak</div>
+                          <div className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">Streak</div>
                           <div className="font-heading font-bold text-bone">{user.current_streak}</div>
                         </div>
                         <div className="border border-moss-dark/15 px-2 py-2">
-                          <div className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Pot</div>
+                          <div className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">Pot</div>
                           <div className="font-heading font-bold text-torch-ember">{formatCents(user.pot_cents)}</div>
                         </div>
                         <div className="border border-moss-dark/15 px-2 py-2">
-                          <div className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Wallet</div>
+                          <div className="text-[11px] uppercase tracking-[0.15em] text-bone-faint">Wallet</div>
                           <div className="font-heading font-bold text-bone">{formatCents(user.wallet_balance)}</div>
                         </div>
                       </div>
@@ -214,7 +214,7 @@ export default function AdminUsers() {
                       {/* Qualification */}
                       {user.qualification && (
                         <div className="border border-moss-dark/15 px-3 py-2">
-                          <div className="text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Qualification</div>
+                          <div className="text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Qualification</div>
                           <div className="flex items-center gap-4 text-xs">
                             <div className="flex items-center gap-1.5">
                               <div className={`h-1.5 w-1.5 rounded-full ${user.qualification.saturday_qualified ? 'bg-moss-light' : 'bg-bone-faint'}`} />
@@ -230,7 +230,7 @@ export default function AdminUsers() {
                                 {user.qualification.sunday_qualified ? 'Qual' : 'No'}
                               </span>
                             </div>
-                            <div className="ml-auto text-[9px] text-bone-faint">
+                            <div className="ml-auto text-[11px] text-bone-faint">
                               {user.qualification.total_points} pts · {user.qualification.games_played_count} games
                             </div>
                           </div>
@@ -240,7 +240,7 @@ export default function AdminUsers() {
                       {/* Recent plays */}
                       {user.recent_plays.length > 0 && (
                         <div>
-                          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-1.5">Recent Plays</div>
+                          <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint mb-1.5">Recent Plays</div>
                           <div className="space-y-1">
                             {user.recent_plays.slice(0, 5).map((p, i) => (
                               <div key={i} className="flex items-center justify-between text-xs gap-2">
@@ -249,7 +249,7 @@ export default function AdminUsers() {
                                   {p.outcome}
                                 </span>
                                 <span className="text-bone-dark">{formatCents(p.stake_cents)}</span>
-                                <span className="text-bone-faint text-[9px]">streak {p.streak_after}</span>
+                                <span className="text-bone-faint text-[11px]">streak {p.streak_after}</span>
                               </div>
                             ))}
                           </div>
@@ -376,7 +376,7 @@ export default function AdminUsers() {
             </h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Event</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Event</label>
                 <select
                   value={qualTarget}
                   onChange={(e) => setQualTarget(e.target.value as typeof qualTarget)}
@@ -387,7 +387,7 @@ export default function AdminUsers() {
                 </select>
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Action</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Action</label>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setQualGrant(true)}

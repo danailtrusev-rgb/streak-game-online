@@ -90,7 +90,7 @@ function validateConfig(cfg: SkullGateSceneConfig): string[] {
 function TabBtn({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      padding: '5px 10px', fontSize: 9, fontFamily: UF,
+      padding: '5px 10px', fontSize: 11, fontFamily: UF,
       letterSpacing: '0.14em', textTransform: 'uppercase',
       border: `1px solid ${active ? 'rgba(245,208,96,0.4)' : 'rgba(40,55,42,0.35)'}`,
       background: active ? 'rgba(245,208,96,0.08)' : 'transparent',
@@ -107,7 +107,7 @@ function Chip({ label, active, onClick, danger = false }: {
 }) {
   return (
     <button onClick={onClick} style={{
-      padding: '4px 9px', fontSize: 9, fontFamily: UF,
+      padding: '4px 9px', fontSize: 11, fontFamily: UF,
       letterSpacing: '0.1em', textTransform: 'uppercase',
       border: `1px solid ${danger ? (active ? 'rgba(204,68,68,0.5)' : 'rgba(80,20,20,0.35)') : (active ? 'rgba(245,208,96,0.45)' : 'rgba(40,55,42,0.35)')}`,
       background: active ? (danger ? 'rgba(204,68,68,0.1)' : 'rgba(245,208,96,0.08)') : 'transparent',
@@ -150,7 +150,7 @@ function CollapsibleSection({ title, open, onToggle, children }: {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         width: '100%', padding: '8px 10px',
         background: 'transparent', border: 'none', cursor: 'pointer',
-        fontFamily: UF, fontSize: 9, letterSpacing: '0.18em',
+        fontFamily: UF, fontSize: 11, letterSpacing: '0.18em',
         textTransform: 'uppercase', color: 'rgba(255,255,255,0.42)',
       }}>
         {title}
@@ -183,14 +183,14 @@ function SceneListItem({ row, active, onClick }: {
       borderLeftColor: active ? 'rgba(245,208,96,0.55)' : 'transparent',
       borderBottomWidth: 1, borderBottomStyle: 'solid', borderBottomColor: 'rgba(30,40,32,0.5)',
     }}>
-      <div style={{ fontSize: 10, fontFamily: UF, color: active ? 'rgba(245,208,96,0.9)' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ fontSize: 12, fontFamily: UF, color: active ? 'rgba(245,208,96,0.9)' : 'rgba(255,255,255,0.6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {row.title}
       </div>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <span style={{ fontSize: 8, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase', color: statusColor }}>
+        <span style={{ fontSize: 10, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase', color: statusColor }}>
           {row.status}
         </span>
-        <span style={{ fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.22)' }}>
+        <span style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.22)' }}>
           {row.slug}
         </span>
       </div>
@@ -666,7 +666,7 @@ export default function AdminSceneEditor() {
           </span>
           {/* DB status */}
           <span style={{
-            fontSize: 8, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
+            fontSize: 10, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
             padding: '2px 6px',
             border: `1px solid ${dbReady ? 'rgba(120,190,80,0.35)' : 'rgba(180,140,0,0.3)'}`,
             color: dbReady ? 'rgba(130,200,90,0.65)' : 'rgba(200,175,80,0.5)',
@@ -676,7 +676,7 @@ export default function AdminSceneEditor() {
           {/* Row status */}
           {rowStatus && (
             <span style={{
-              fontSize: 8, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
+              fontSize: 10, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
               padding: '2px 6px',
               border: `1px solid ${rowStatus === 'published' ? 'rgba(120,190,80,0.35)' : rowStatus === 'archived' ? 'rgba(180,40,40,0.35)' : 'rgba(180,140,0,0.3)'}`,
               color: rowStatus === 'published' ? 'rgba(130,200,90,0.7)' : rowStatus === 'archived' ? 'rgba(200,60,60,0.7)' : 'rgba(200,175,80,0.6)',
@@ -686,7 +686,7 @@ export default function AdminSceneEditor() {
           )}
           {/* Canvas mode */}
           <span style={{
-            fontSize: 8, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
+            fontSize: 10, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
             padding: '2px 6px',
             border: `1px solid ${canvasMode === 'editor' ? 'rgba(245,208,96,0.3)' : 'rgba(120,190,80,0.3)'}`,
             color: canvasMode === 'editor' ? 'rgba(245,208,96,0.6)' : 'rgba(140,210,100,0.6)',
@@ -694,7 +694,7 @@ export default function AdminSceneEditor() {
             {canvasMode}
           </span>
           {/* Save status */}
-          <span style={{ fontSize: 8, fontFamily: UF, color: saveStatusColor }}>
+          <span style={{ fontSize: 10, fontFamily: UF, color: saveStatusColor }}>
             {saveStatusLabel}
           </span>
         </div>
@@ -759,12 +759,12 @@ export default function AdminSceneEditor() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertCircle size={12} style={{ color: 'rgba(200,60,60,0.8)', flexShrink: 0 }} />
-            <span style={{ fontSize: 9, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(200,60,60,0.8)' }}>
+            <span style={{ fontSize: 11, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(200,60,60,0.8)' }}>
               Cannot Publish
             </span>
           </div>
           {publishErrors.map((e, i) => (
-            <div key={i} style={{ fontSize: 10, fontFamily: UF, color: 'rgba(200,80,80,0.8)', paddingLeft: 18 }}>• {e}</div>
+            <div key={i} style={{ fontSize: 12, fontFamily: UF, color: 'rgba(200,80,80,0.8)', paddingLeft: 18 }}>• {e}</div>
           ))}
         </div>
       )}
@@ -776,7 +776,7 @@ export default function AdminSceneEditor() {
           padding: 10, display: 'flex', flexDirection: 'column', gap: 6,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 9, fontFamily: UF, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
+            <span style={{ fontSize: 11, fontFamily: UF, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
               Raw Config JSON (draft)
             </span>
             <div style={{ display: 'flex', gap: 5 }}>
@@ -793,11 +793,11 @@ export default function AdminSceneEditor() {
               background: 'rgba(0,0,0,0.5)',
               border: `1px solid ${jsonError ? 'rgba(200,60,60,0.5)' : 'rgba(40,55,42,0.5)'}`,
               color: 'rgba(255,255,255,0.7)',
-              fontFamily: "'Courier New', monospace", fontSize: 10,
+              fontFamily: "'Courier New', monospace", fontSize: 12,
               padding: 8, resize: 'vertical', outline: 'none',
             }}
           />
-          {jsonError && <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(200,60,60,0.8)' }}>Error: {jsonError}</div>}
+          {jsonError && <div style={{ fontSize: 12, fontFamily: UF, color: 'rgba(200,60,60,0.8)' }}>Error: {jsonError}</div>}
         </div>
       )}
 
@@ -827,7 +827,7 @@ export default function AdminSceneEditor() {
                   border: 'none',
                   borderBottom: leftTab === t ? '2px solid rgba(245,208,96,0.5)' : '2px solid transparent',
                   cursor: 'pointer',
-                  fontFamily: UF, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase',
+                  fontFamily: UF, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase',
                   color: leftTab === t ? 'rgba(245,208,96,0.8)' : 'rgba(255,255,255,0.3)',
                 }}
               >
@@ -852,7 +852,7 @@ export default function AdminSceneEditor() {
                 onClick={() => { setShowCreateForm((v) => !v); setCreateError(null); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 4,
-                  padding: '3px 8px', fontSize: 9, fontFamily: UF,
+                  padding: '3px 8px', fontSize: 11, fontFamily: UF,
                   letterSpacing: '0.1em', textTransform: 'uppercase',
                   border: '1px solid rgba(245,208,96,0.35)',
                   background: showCreateForm ? 'rgba(245,208,96,0.1)' : 'rgba(245,208,96,0.04)',
@@ -873,7 +873,7 @@ export default function AdminSceneEditor() {
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(40,55,42,0.5)',
-                    color: 'rgba(255,255,255,0.7)', fontFamily: UF, fontSize: 10,
+                    color: 'rgba(255,255,255,0.7)', fontFamily: UF, fontSize: 12,
                     padding: '4px 7px', outline: 'none',
                   }}
                 />
@@ -884,7 +884,7 @@ export default function AdminSceneEditor() {
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(40,55,42,0.5)',
-                    color: 'rgba(255,255,255,0.55)', fontFamily: UF, fontSize: 10,
+                    color: 'rgba(255,255,255,0.55)', fontFamily: UF, fontSize: 12,
                     padding: '4px 7px', outline: 'none',
                   }}
                 />
@@ -894,7 +894,7 @@ export default function AdminSceneEditor() {
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(40,55,42,0.5)',
-                    color: 'rgba(255,255,255,0.55)', fontFamily: UF, fontSize: 10,
+                    color: 'rgba(255,255,255,0.55)', fontFamily: UF, fontSize: 12,
                     padding: '4px 7px', outline: 'none',
                   }}
                 >
@@ -903,14 +903,14 @@ export default function AdminSceneEditor() {
                   <option value="ritual_roll">ritual_roll</option>
                 </select>
                 {createError && (
-                  <div style={{ fontSize: 9, fontFamily: UF, color: 'rgba(200,60,60,0.8)' }}>{createError}</div>
+                  <div style={{ fontSize: 11, fontFamily: UF, color: 'rgba(200,60,60,0.8)' }}>{createError}</div>
                 )}
                 <div style={{ display: 'flex', gap: 5 }}>
                   <button
                     onClick={handleCreateScene}
                     disabled={creating}
                     style={{
-                      flex: 1, padding: '4px 0', fontSize: 9, fontFamily: UF,
+                      flex: 1, padding: '4px 0', fontSize: 11, fontFamily: UF,
                       letterSpacing: '0.1em', textTransform: 'uppercase',
                       border: '1px solid rgba(120,190,80,0.4)',
                       background: 'rgba(120,190,80,0.08)',
@@ -923,7 +923,7 @@ export default function AdminSceneEditor() {
                   <button
                     onClick={() => { setShowCreateForm(false); setCreateError(null); setCreateTitle(''); setCreateSlug(''); }}
                     style={{
-                      padding: '4px 10px', fontSize: 9, fontFamily: UF,
+                      padding: '4px 10px', fontSize: 11, fontFamily: UF,
                       letterSpacing: '0.1em', textTransform: 'uppercase',
                       border: '1px solid rgba(40,55,42,0.4)',
                       background: 'transparent',
@@ -947,7 +947,7 @@ export default function AdminSceneEditor() {
                   style={{
                     width: '100%', boxSizing: 'border-box',
                     background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(40,55,42,0.4)',
-                    color: 'rgba(255,255,255,0.6)', fontFamily: UF, fontSize: 9,
+                    color: 'rgba(255,255,255,0.6)', fontFamily: UF, fontSize: 11,
                     padding: '4px 22px 4px 22px', outline: 'none',
                   }}
                 />
@@ -973,7 +973,7 @@ export default function AdminSceneEditor() {
                   key={f}
                   onClick={() => setStatusFilter(f)}
                   style={{
-                    padding: '2px 7px', fontSize: 8, fontFamily: UF,
+                    padding: '2px 7px', fontSize: 10, fontFamily: UF,
                     letterSpacing: '0.1em', textTransform: 'uppercase',
                     border: `1px solid ${statusFilter === f ? 'rgba(245,208,96,0.4)' : 'rgba(40,55,42,0.3)'}`,
                     background: statusFilter === f ? 'rgba(245,208,96,0.07)' : 'transparent',
@@ -996,7 +996,7 @@ export default function AdminSceneEditor() {
                 });
                 if (filtered.length === 0 && rows.length > 0) {
                   return (
-                    <div style={{ padding: '10px', fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+                    <div style={{ padding: '10px', fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
                       No scenes match
                     </div>
                   );
@@ -1014,7 +1014,7 @@ export default function AdminSceneEditor() {
                       />
                     ))
                   : (
-                    <div style={{ padding: '6px 10px', fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.3)' }}>
+                    <div style={{ padding: '6px 10px', fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.3)' }}>
                       Using local fallback
                     </div>
                   );
@@ -1042,7 +1042,7 @@ export default function AdminSceneEditor() {
           >
             <div style={{ padding: '6px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div>
-                <div style={{ fontSize: 9, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 4 }}>Mode</div>
+                <div style={{ fontSize: 11, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 4 }}>Mode</div>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <Chip label="Editor"  active={canvasMode === 'editor'}  onClick={() => setCanvasMode('editor')} />
                   <Chip label="Preview" active={canvasMode === 'preview'} onClick={switchToPreview} />
@@ -1054,7 +1054,7 @@ export default function AdminSceneEditor() {
               {canvasMode === 'preview' && (
                 <>
                   <div>
-                    <div style={{ fontSize: 9, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 4 }}>Phase</div>
+                    <div style={{ fontSize: 11, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 4 }}>Phase</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       {(['idle','selected','revealing','done'] as PreviewPhase[]).map((p) => (
                         <Chip key={p} label={p} active={previewPhase === p} onClick={() => setPreviewPhase(p)} />
@@ -1062,7 +1062,7 @@ export default function AdminSceneEditor() {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 4 }}>Outcome</div>
+                    <div style={{ fontSize: 11, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: 4 }}>Outcome</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       <Chip label="None"    active={previewOutcome === null}     onClick={() => setPreviewOutcome(null)} />
                       <Chip label="Survive" active={previewOutcome === 'SURVIVE'} onClick={() => setPreviewOutcome('SURVIVE')} />
@@ -1081,7 +1081,7 @@ export default function AdminSceneEditor() {
 
           {/* Selected layer info */}
           {selectedLayer && canvasMode === 'editor' && (
-            <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(40,55,42,0.3)', fontSize: 9, fontFamily: UF, lineHeight: 1.8 }}>
+            <div style={{ padding: '8px 10px', borderTop: '1px solid rgba(40,55,42,0.3)', fontSize: 11, fontFamily: UF, lineHeight: 1.8 }}>
               <div style={{ color: 'rgba(255,255,255,0.25)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 3 }}>Selected</div>
               <div style={{ color: 'rgba(245,208,96,0.75)' }}>{selectedLayer.name}</div>
               <div style={{ color: 'rgba(255,255,255,0.32)' }}>{selectedLayer.type} · {selectedLayer.role}</div>
@@ -1093,7 +1093,7 @@ export default function AdminSceneEditor() {
           )}
 
           {canvasMode === 'editor' && selectedLayer && !selectedLayer.locked && (
-            <div style={{ padding: '4px 10px 8px', fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
+            <div style={{ padding: '4px 10px 8px', fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.2)', lineHeight: 1.6 }}>
               Arrow keys nudge · Shift+Arrow = 2× · Drag to move · Corner handles to resize
             </div>
           )}
@@ -1102,7 +1102,7 @@ export default function AdminSceneEditor() {
           {validationErrors.length > 0 && isDirty && (
             <div style={{ margin: '4px 8px 6px', padding: '5px 8px', background: 'rgba(180,140,0,0.06)', border: '1px solid rgba(180,140,0,0.2)' }}>
               {validationErrors.map((e, i) => (
-                <div key={i} style={{ fontSize: 8, fontFamily: UF, color: 'rgba(200,175,80,0.6)', lineHeight: 1.6 }}>⚠ {e}</div>
+                <div key={i} style={{ fontSize: 10, fontFamily: UF, color: 'rgba(200,175,80,0.6)', lineHeight: 1.6 }}>⚠ {e}</div>
               ))}
             </div>
           )}
@@ -1110,17 +1110,17 @@ export default function AdminSceneEditor() {
           {/* Assignment eligibility summary */}
           {activeRow && (
             <div style={{ margin: '4px 8px 0', padding: '6px 8px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(40,55,42,0.3)' }}>
-              <div style={{ fontSize: 8, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 5 }}>
+              <div style={{ fontSize: 10, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 5 }}>
                 Assignment Config
               </div>
               {/* Source-of-truth note */}
-              <div style={{ fontSize: 7.5, fontFamily: UF, color: 'rgba(245,208,96,0.38)', lineHeight: 1.5, marginBottom: 6, borderBottom: '1px solid rgba(40,55,42,0.35)', paddingBottom: 5 }}>
+              <div style={{ fontSize: 9.5, fontFamily: UF, color: 'rgba(245,208,96,0.38)', lineHeight: 1.5, marginBottom: 6, borderBottom: '1px solid rgba(40,55,42,0.35)', paddingBottom: 5 }}>
                 Assignment uses table Enabled + Status fields.<br />
                 Layer JSON controls visuals only.
               </div>
               {/* Enabled toggle */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.28)' }}>Enabled</span>
+                <span style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.28)' }}>Enabled</span>
                 <button
                   onClick={async () => {
                     const next = !activeRow.enabled;
@@ -1131,7 +1131,7 @@ export default function AdminSceneEditor() {
                     }
                   }}
                   style={{
-                    padding: '2px 8px', fontSize: 8, fontFamily: UF,
+                    padding: '2px 8px', fontSize: 10, fontFamily: UF,
                     letterSpacing: '0.1em', textTransform: 'uppercase',
                     border: `1px solid ${activeRow.enabled ? 'rgba(120,200,90,0.45)' : 'rgba(180,40,40,0.35)'}`,
                     background: activeRow.enabled ? 'rgba(120,200,90,0.1)' : 'rgba(180,40,40,0.07)',
@@ -1150,7 +1150,7 @@ export default function AdminSceneEditor() {
                 ['Streak',   `${activeRow.min_streak ?? 0} – ${activeRow.max_streak ?? '∞'}`],
                 ['Published config', activeRow.published_config_json ? 'Present' : 'None — publish first'],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 8, fontFamily: UF, lineHeight: 1.8 }}>
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 10, fontFamily: UF, lineHeight: 1.8 }}>
                   <span style={{ color: 'rgba(255,255,255,0.28)' }}>{k}</span>
                   <span style={{
                     color: k === 'Status' ? (activeRow.status === 'published' ? 'rgba(120,200,90,0.75)' : activeRow.status === 'archived' ? 'rgba(200,60,60,0.7)' : 'rgba(200,175,80,0.65)')
@@ -1167,7 +1167,7 @@ export default function AdminSceneEditor() {
           {/* Published version indicator */}
           {activeRow?.published_config_json && (
             <div style={{ margin: '4px 8px 6px', padding: '4px 8px', background: 'rgba(120,190,80,0.04)', border: '1px solid rgba(120,190,80,0.15)' }}>
-              <div style={{ fontSize: 8, fontFamily: UF, color: 'rgba(130,200,90,0.55)', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(130,200,90,0.55)', lineHeight: 1.6 }}>
                 Published: {activeRow.published_at ? new Date(activeRow.published_at).toLocaleString() : 'yes'}<br />
                 Draft edits are separate from published config until you Publish.
               </div>
@@ -1200,7 +1200,7 @@ export default function AdminSceneEditor() {
               onPreviewCta={handlePreviewCta}
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.22)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             <Eye size={10} />280 × 497 · 9:16
           </div>
           <div style={{ display: 'flex', gap: 5 }}>
@@ -1226,7 +1226,7 @@ export default function AdminSceneEditor() {
             <button
               onClick={() => setActiveLayerTabId(null)}
               style={{
-                padding: '5px 10px', fontSize: 9, fontFamily: UF,
+                padding: '5px 10px', fontSize: 11, fontFamily: UF,
                 letterSpacing: '0.14em', textTransform: 'uppercase',
                 border: `1px solid ${activeLayerTabId === null ? 'rgba(245,208,96,0.4)' : 'rgba(40,55,42,0.35)'}`,
                 borderBottom: 'none',
@@ -1258,7 +1258,7 @@ export default function AdminSceneEditor() {
                     onClick={() => { setActiveLayerTabId(id); setSelectedLayerId(id); }}
                     title={tabLayer.name}
                     style={{
-                      padding: '5px 8px', fontSize: 9, fontFamily: UF,
+                      padding: '5px 8px', fontSize: 11, fontFamily: UF,
                       letterSpacing: '0.12em', textTransform: 'uppercase',
                       background: 'transparent', border: 'none', cursor: 'pointer',
                       color: isActive ? '#F5D060' : 'rgba(255,255,255,0.38)',
@@ -1325,7 +1325,7 @@ export default function AdminSceneEditor() {
         </div>
       </div>
 
-      <div style={{ fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em', textAlign: 'center' }}>
+      <div style={{ fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.18)', letterSpacing: '0.08em', textAlign: 'center' }}>
         Best at &gt;900px · Drag layers to move · Corner handles to resize · Arrow keys to nudge · Save Draft to persist
       </div>
     </div>

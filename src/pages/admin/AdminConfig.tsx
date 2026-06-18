@@ -171,7 +171,7 @@ export default function AdminConfig() {
             <div className="flex-shrink-0">{card.icon}</div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-medium text-bone group-hover:text-bone-bright">{card.title}</div>
-              <div className="text-[10px] text-bone-faint mt-0.5 leading-snug">{card.description}</div>
+              <div className="text-[12px] text-bone-faint mt-0.5 leading-snug">{card.description}</div>
             </div>
             <ChevronRight className="h-3.5 w-3.5 text-bone-faint flex-shrink-0 group-hover:text-bone-dark" />
           </button>
@@ -186,7 +186,7 @@ function SubPageWrapper({ title, onBack, children }: { title: string; onBack: ()
     <div className="space-y-4">
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors"
+        className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors"
       >
         <ArrowLeft className="h-3 w-3" />
         Config

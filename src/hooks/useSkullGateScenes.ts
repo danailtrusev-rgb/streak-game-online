@@ -167,6 +167,16 @@ export function useSkullGateScenes() {
     [request],
   );
 
+  // Delete — permanently removes an archived scene
+  const deleteScene = useCallback(
+    (id: string) =>
+      request<{ success: boolean }>(
+        '/skull-gate-scenes/delete',
+        { method: 'POST', body: JSON.stringify({ id }) },
+      ),
+    [request],
+  );
+
   return {
     loading,
     error,
@@ -178,5 +188,6 @@ export function useSkullGateScenes() {
     archiveScene,
     createScene,
     setEnabled,
+    deleteScene,
   };
 }

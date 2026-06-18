@@ -51,7 +51,7 @@ export default function AdminKPIs() {
         <button
           onClick={load}
           disabled={refreshing}
-          className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone-muted transition-colors"
+          className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone-muted transition-colors"
         >
           <RefreshCw className={`h-3 w-3 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
           Refresh
@@ -60,7 +60,7 @@ export default function AdminKPIs() {
 
       {/* Player Metrics */}
       <div>
-        <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-2">Players</div>
+        <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint mb-2">Players</div>
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: 'DAU', value: kpis.dau.toLocaleString() },
@@ -69,7 +69,7 @@ export default function AdminKPIs() {
             { label: 'Total Users', value: kpis.total_users.toLocaleString() },
           ].map(({ label, value }) => (
             <div key={label} className="border border-moss-dark/25 bg-ritual-surface/25 px-3 py-3">
-              <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
               <div className="mt-1 font-heading text-lg font-bold text-bone">{value}</div>
             </div>
           ))}
@@ -78,7 +78,7 @@ export default function AdminKPIs() {
 
       {/* Game Metrics */}
       <div>
-        <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-2">Game State</div>
+        <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint mb-2">Game State</div>
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: 'Avg Streak', value: kpis.avg_streak.toFixed(1) },
@@ -86,16 +86,16 @@ export default function AdminKPIs() {
             { label: 'Jackpot', value: formatCents(kpis.jackpot_cents), accent: true },
           ].map(({ label, value, accent }) => (
             <div key={label} className={`border px-3 py-3 ${accent ? 'border-gold-400/25 bg-gold-500/8' : 'border-moss-dark/25 bg-ritual-surface/25'}`}>
-              <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
               <div className={`mt-1 font-heading text-lg font-bold ${accent ? 'text-gold-300' : 'text-bone'}`}>{value}</div>
             </div>
           ))}
           <div className="border border-moss-dark/25 bg-ritual-surface/25 px-3 py-3">
-            <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">Survival Rate</div>
+            <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">Survival Rate</div>
             <div className="mt-1 font-heading text-lg font-bold text-bone">
               {(kpis.survival_rate_actual * 100).toFixed(1)}%
             </div>
-            <div className={`text-[9px] mt-0.5 ${Math.abs(survivalDelta) > 0.05 ? 'text-death-glow' : 'text-bone-faint'}`}>
+            <div className={`text-[11px] mt-0.5 ${Math.abs(survivalDelta) > 0.05 ? 'text-death-glow' : 'text-bone-faint'}`}>
               cfg: {(kpis.survival_rate_configured * 100).toFixed(1)}%
               {' '}({survivalDelta >= 0 ? '+' : ''}{(survivalDelta * 100).toFixed(1)}%)
             </div>
@@ -105,7 +105,7 @@ export default function AdminKPIs() {
 
       {/* Financial Metrics */}
       <div>
-        <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-2">Today's Finance</div>
+        <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint mb-2">Today's Finance</div>
         <div className="grid grid-cols-2 gap-2">
           {[
             { label: 'Topups', value: formatCents(kpis.total_topups_today) },
@@ -114,7 +114,7 @@ export default function AdminKPIs() {
             { label: 'Cashout Total', value: formatCents(kpis.cashouts_today_sum) },
           ].map(({ label, value }) => (
             <div key={label} className="border border-moss-dark/25 bg-ritual-surface/25 px-3 py-3">
-              <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
               <div className="mt-1 font-heading text-base font-bold text-bone">{value}</div>
             </div>
           ))}
@@ -126,7 +126,7 @@ export default function AdminKPIs() {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Trophy className="h-3.5 w-3.5 text-torch-ember" strokeWidth={1.5} />
-            <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">
+            <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">
               Ecosystem — Week of {ecoKpis.week_start}
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function AdminKPIs() {
               { label: 'Avg Qual Pts', value: ecoKpis.avg_qualification_points.toLocaleString() },
             ].map(({ label, value }) => (
               <div key={label} className="border border-moss-dark/25 bg-ritual-surface/25 px-3 py-3">
-                <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
+                <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">{label}</div>
                 <div className="mt-1 font-heading text-lg font-bold text-bone">{value}</div>
               </div>
             ))}
@@ -147,7 +147,7 @@ export default function AdminKPIs() {
 
           {Object.keys(ecoKpis.game_play_counts).length > 0 && (
             <div className="mt-2 border border-moss-dark/20 bg-ritual-surface/20 px-4 py-3">
-              <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint mb-2">Game Plays This Week</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint mb-2">Game Plays This Week</div>
               <div className="space-y-1.5">
                 {Object.entries(ecoKpis.game_play_counts)
                   .sort((a, b) => b[1] - a[1])
@@ -157,8 +157,8 @@ export default function AdminKPIs() {
                     return (
                       <div key={gameId}>
                         <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-[9px] text-bone-muted">{gameId.replace('daily_', '').replace('_', ' ')}</span>
-                          <span className="text-[9px] font-medium text-bone">{count}</span>
+                          <span className="text-[11px] text-bone-muted">{gameId.replace('daily_', '').replace('_', ' ')}</span>
+                          <span className="text-[11px] font-medium text-bone">{count}</span>
                         </div>
                         <div className="h-1 bg-ritual-surface/50 overflow-hidden">
                           <div

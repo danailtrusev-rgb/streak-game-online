@@ -80,13 +80,13 @@ export default function AdminFlyers() {
         </div>
         <div className="flex items-center gap-3">
           {saveMsg && (
-            <span className="flex items-center gap-1 text-[10px] text-moss-light">
+            <span className="flex items-center gap-1 text-[12px] text-moss-light">
               <Check className="h-3 w-3" strokeWidth={2} /> {saveMsg}
             </span>
           )}
           <button
             onClick={() => setShowCreate((v) => !v)}
-            className="flex items-center gap-1.5 border border-torch-orange/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-torch-ember hover:bg-torch-orange/5 transition-colors"
+            className="flex items-center gap-1.5 border border-torch-orange/30 px-3 py-1.5 text-[12px] uppercase tracking-[0.1em] text-torch-ember hover:bg-torch-orange/5 transition-colors"
           >
             <Plus className="h-3 w-3" strokeWidth={2} /> New Flyer
           </button>
@@ -99,34 +99,34 @@ export default function AdminFlyers() {
 
       {showCreate && (
         <div className="border border-torch-orange/20 bg-torch-orange/5 px-4 py-4 space-y-3">
-          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">New Flyer</div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">New Flyer</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Title</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Title</label>
               <input value={newFlyer.title} onChange={(e) => setNewFlyer((p) => ({ ...p, title: e.target.value }))} className="ritual-input w-full text-xs" />
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Subtitle</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Subtitle</label>
               <input value={newFlyer.subtitle} onChange={(e) => setNewFlyer((p) => ({ ...p, subtitle: e.target.value }))} className="ritual-input w-full text-xs" />
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Asset Type</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Asset Type</label>
               <select value={newFlyer.asset_type} onChange={(e) => setNewFlyer((p) => ({ ...p, asset_type: e.target.value as PromotionalAsset['asset_type'] }))} className="ritual-input w-full text-xs">
                 {ASSET_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Template</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Template</label>
               <select value={newFlyer.template_key} onChange={(e) => setNewFlyer((p) => ({ ...p, template_key: e.target.value }))} className="ritual-input w-full text-xs">
                 {TEMPLATES.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Image Path</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Image Path</label>
               <input value={newFlyer.image_path} onChange={(e) => setNewFlyer((p) => ({ ...p, image_path: e.target.value }))} className="ritual-input w-full text-xs" placeholder="/assets/..." />
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Sort Order</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Sort Order</label>
               <input type="number" value={newFlyer.sort_order} onChange={(e) => setNewFlyer((p) => ({ ...p, sort_order: Number(e.target.value) }))} className="ritual-input w-full text-xs" />
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function AdminFlyers() {
             <button onClick={handleCreate} disabled={saving === 'new' || !newFlyer.title} className="jungle-button px-6 py-2 text-xs">
               {saving === 'new' ? 'Creating...' : 'Create'}
             </button>
-            <button onClick={() => setShowCreate(false)} className="text-[10px] text-bone-dark hover:text-bone-muted">Cancel</button>
+            <button onClick={() => setShowCreate(false)} className="text-[12px] text-bone-dark hover:text-bone-muted">Cancel</button>
           </div>
         </div>
       )}
@@ -150,7 +150,7 @@ export default function AdminFlyers() {
             >
               <div>
                 <div className="text-xs font-medium text-bone">{flyer.title}</div>
-                <div className="text-[9px] text-bone-faint mt-0.5">{flyer.asset_type} · {flyer.template_key}</div>
+                <div className="text-[11px] text-bone-faint mt-0.5">{flyer.asset_type} · {flyer.template_key}</div>
               </div>
               {isOpen ? <ChevronUp className="h-3.5 w-3.5 text-bone-dark" /> : <ChevronDown className="h-3.5 w-3.5 text-bone-dark" />}
             </button>
@@ -159,25 +159,25 @@ export default function AdminFlyers() {
               <div className="border-t border-moss-dark/20 px-4 py-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Title</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Title</label>
                     <input value={String(ev.title ?? flyer.title)} onChange={(e) => setField(flyer.id, 'title', e.target.value)} className="ritual-input w-full text-xs" />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Subtitle</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Subtitle</label>
                     <input value={String(ev.subtitle ?? flyer.subtitle)} onChange={(e) => setField(flyer.id, 'subtitle', e.target.value)} className="ritual-input w-full text-xs" />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Template</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Template</label>
                     <select value={String(ev.template_key ?? flyer.template_key)} onChange={(e) => setField(flyer.id, 'template_key', e.target.value)} className="ritual-input w-full text-xs">
                       {TEMPLATES.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Sort Order</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Sort Order</label>
                     <input type="number" value={Number(ev.sort_order ?? flyer.sort_order)} onChange={(e) => setField(flyer.id, 'sort_order', Number(e.target.value))} className="ritual-input w-full text-xs" />
                   </div>
                   <div className="col-span-2">
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Image Path</label>
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Image Path</label>
                     <input value={String(ev.image_path ?? flyer.image_path)} onChange={(e) => setField(flyer.id, 'image_path', e.target.value)} className="ritual-input w-full text-xs" placeholder="/assets/..." />
                   </div>
                 </div>

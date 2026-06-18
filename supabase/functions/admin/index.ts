@@ -105,6 +105,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && path === "/skull-gate-scenes/duplicate")   return await handleDuplicateScene(supabase, username, await req.json());
     if (req.method === "POST" && path === "/skull-gate-scenes/archive")     return await handleArchiveScene(supabase, username, await req.json());
     if (req.method === "POST" && path === "/skull-gate-scenes/set-enabled") return await handleSetSceneEnabled(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/skull-gate-scenes/delete")      return await handleDeleteScene(supabase, username, await req.json());
 
     // ── Asset Library routes ─────────────────────────────────────────────────
     if (req.method === "GET"  && path === "/skull-gate-assets")             return await handleListAssets(supabase);
@@ -894,6 +895,38 @@ async function handleSetSceneEnabled(
     payload_json: { id, slug: data.slug, enabled },
   });
   return jsonResponse({ success: true, scene: data });
+}
+
+async function handleDeleteScene(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: { id: string },
+) {
+  const { id } = body;
+  if (!id) return errorResponse("Missing id");
+
+  // Only allow deletion of archived scenes
+  const { data: scene, error: fetchErr } = await supabase
+    .from("skull_gate_scenes")
+    .select("id, slug, status")
+    .eq("id", id)
+    .maybeSingle();
+  if (fetchErr) return errorResponse(fetchErr.message);
+  if (!scene)   return errorResponse("Scene not found", 404);
+  if (scene.status !== "archived") return errorResponse("Only archived scenes can be deleted", 400);
+
+  const { error } = await supabase
+    .from("skull_gate_scenes")
+    .delete()
+    .eq("id", id);
+  if (error) return errorResponse(error.message);
+
+  await supabase.from("admin_audit_log").insert({
+    admin_actor: actor,
+    action: "delete_skull_gate_scene",
+    payload_json: { id, slug: scene.slug },
+  });
+  return jsonResponse({ success: true });
 }
 
 // ── Asset Library handlers ────────────────────────────────────────────────────

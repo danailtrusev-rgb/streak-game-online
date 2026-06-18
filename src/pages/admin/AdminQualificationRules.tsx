@@ -68,13 +68,13 @@ export default function AdminQualificationRules() {
         </div>
         <div className="flex items-center gap-3">
           {saveMsg && (
-            <span className="flex items-center gap-1 text-[10px] text-moss-light">
+            <span className="flex items-center gap-1 text-[12px] text-moss-light">
               <Check className="h-3 w-3" strokeWidth={2} /> {saveMsg}
             </span>
           )}
           <button
             onClick={() => setShowCreate((v) => !v)}
-            className="flex items-center gap-1.5 border border-torch-orange/30 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-torch-ember hover:bg-torch-orange/5 transition-colors"
+            className="flex items-center gap-1.5 border border-torch-orange/30 px-3 py-1.5 text-[12px] uppercase tracking-[0.1em] text-torch-ember hover:bg-torch-orange/5 transition-colors"
           >
             <Plus className="h-3 w-3" strokeWidth={2} /> New Rule
           </button>
@@ -87,38 +87,38 @@ export default function AdminQualificationRules() {
 
       {showCreate && (
         <div className="border border-torch-orange/20 bg-torch-orange/5 px-4 py-4 space-y-3">
-          <div className="text-[9px] uppercase tracking-[0.2em] text-bone-faint">New Rule</div>
+          <div className="text-[11px] uppercase tracking-[0.2em] text-bone-faint">New Rule</div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Rule Name</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Rule Name</label>
               <input value={newRule.rule_name} onChange={(e) => setNewRule((p) => ({ ...p, rule_name: e.target.value }))} className="ritual-input w-full text-xs" placeholder="e.g. Saturday 50pts" />
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Target Event</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Target Event</label>
               <select value={newRule.target_event} onChange={(e) => setNewRule((p) => ({ ...p, target_event: e.target.value }))} className="ritual-input w-full text-xs">
                 <option value="saturday_main_event">Saturday</option>
                 <option value="sunday_winners_event">Sunday</option>
               </select>
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Rule Type</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Rule Type</label>
               <select value={newRule.rule_type} onChange={(e) => setNewRule((p) => ({ ...p, rule_type: e.target.value }))} className="ritual-input w-full text-xs">
                 <option value="min_points">Min Points</option>
                 <option value="min_games_played">Min Games Played</option>
               </select>
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Threshold</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Threshold</label>
               <input type="number" value={newRule.threshold_value} onChange={(e) => setNewRule((p) => ({ ...p, threshold_value: Number(e.target.value) }))} className="ritual-input w-full text-xs" />
             </div>
             <div>
-              <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Priority</label>
+              <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Priority</label>
               <input type="number" value={newRule.priority} onChange={(e) => setNewRule((p) => ({ ...p, priority: Number(e.target.value) }))} className="ritual-input w-full text-xs" />
             </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={newRule.active} onChange={(e) => setNewRule((p) => ({ ...p, active: e.target.checked }))} className="accent-torch-ember" />
-                <span className="text-[10px] text-bone-muted">Active</span>
+                <span className="text-[12px] text-bone-muted">Active</span>
               </label>
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function AdminQualificationRules() {
             <button onClick={handleCreate} disabled={saving === 'new' || !newRule.rule_name} className="jungle-button px-6 py-2 text-xs">
               {saving === 'new' ? 'Creating...' : 'Create'}
             </button>
-            <button onClick={() => setShowCreate(false)} className="text-[10px] text-bone-dark hover:text-bone-muted">
+            <button onClick={() => setShowCreate(false)} className="text-[12px] text-bone-dark hover:text-bone-muted">
               Cancel
             </button>
           </div>
@@ -140,14 +140,14 @@ export default function AdminQualificationRules() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-medium text-bone">{rule.rule_name}</div>
-                <div className="text-[9px] text-bone-faint mt-0.5">{rule.target_event} · {rule.rule_type} · pri {rule.priority}</div>
+                <div className="text-[11px] text-bone-faint mt-0.5">{rule.target_event} · {rule.rule_type} · pri {rule.priority}</div>
               </div>
               <div className={`h-2 w-2 rounded-full ${rule.active ? 'bg-moss-light' : 'bg-bone-faint'}`} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Threshold</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Threshold</label>
                 <input
                   type="number"
                   value={Number(ev.threshold_value ?? rule.threshold_value)}
@@ -156,7 +156,7 @@ export default function AdminQualificationRules() {
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Priority</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Priority</label>
                 <input
                   type="number"
                   value={Number(ev.priority ?? rule.priority)}
@@ -165,7 +165,7 @@ export default function AdminQualificationRules() {
                 />
               </div>
               <div>
-                <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Target Event</label>
+                <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">Target Event</label>
                 <select
                   value={String(ev.target_event ?? rule.target_event)}
                   onChange={(e) => setField(rule.id, 'target_event', e.target.value)}
@@ -183,7 +183,7 @@ export default function AdminQualificationRules() {
                     onChange={(e) => setField(rule.id, 'active', e.target.checked)}
                     className="accent-torch-ember"
                   />
-                  <span className="text-[10px] text-bone-muted">Active</span>
+                  <span className="text-[12px] text-bone-muted">Active</span>
                 </label>
               </div>
             </div>

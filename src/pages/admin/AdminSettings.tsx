@@ -361,11 +361,11 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
                           {meta?.label ?? setting.key}
                         </span>
                         {meta?.label && (
-                          <span className="text-[9px] font-mono text-bone-faint">{setting.key}</span>
+                          <span className="text-[11px] font-mono text-bone-faint">{setting.key}</span>
                         )}
                       </div>
                       {meta?.description && (
-                        <p className="text-[10px] text-bone-faint leading-relaxed mb-2">{meta.description}</p>
+                        <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{meta.description}</p>
                       )}
                       {isBoolean ? (
                         <div className="flex gap-2">
@@ -443,9 +443,9 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-medium text-bone">Contribution Rate</span>
-                      <span className="text-[9px] font-mono text-bone-faint">{setting.key}</span>
+                      <span className="text-[11px] font-mono text-bone-faint">{setting.key}</span>
                     </div>
-                    <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+                    <p className="text-[12px] text-bone-faint leading-relaxed mb-2">
                       Percentage of losing stakes allocated to the public jackpot (e.g. 0.10 = 10%).
                       This is not an extra charge to the player — it comes from the lost stake only.
                       Players who survive are not charged a jackpot contribution.
@@ -485,7 +485,7 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
               <div key={key} className="px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <label className="block text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">
+                    <label className="block text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-1.5">
                       {PUZZLE_LABELS[key]}
                     </label>
                     <input
@@ -518,12 +518,12 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
           <div className="space-y-2">
             {slides.map((slide) => (
               <div key={slide.id} className="border border-moss-dark/25 bg-ritual-surface/20 px-4 py-4">
-                <div className="text-[9px] uppercase tracking-[0.15em] text-bone-faint mb-3">
+                <div className="text-[11px] uppercase tracking-[0.15em] text-bone-faint mb-3">
                   {SLIDE_LABELS[slide.id] ?? slide.id}
                 </div>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.12em] text-bone-faint mb-1">Title</label>
+                    <label className="block text-[11px] uppercase tracking-[0.12em] text-bone-faint mb-1">Title</label>
                     <input
                       type="text"
                       value={slide.title}
@@ -533,7 +533,7 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.12em] text-bone-faint mb-1">Body</label>
+                    <label className="block text-[11px] uppercase tracking-[0.12em] text-bone-faint mb-1">Body</label>
                     <textarea
                       value={slide.body}
                       onChange={(e) => updateSlideField(slide.id, 'body', e.target.value)}
@@ -543,7 +543,7 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
                     />
                   </div>
                   <div>
-                    <label className="block text-[9px] uppercase tracking-[0.12em] text-bone-faint mb-1">Large Icon Image URL</label>
+                    <label className="block text-[11px] uppercase tracking-[0.12em] text-bone-faint mb-1">Large Icon Image URL</label>
                     <div className="flex gap-2 items-start">
                       <div className="flex-1">
                         <input
@@ -561,10 +561,10 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
                               className="h-10 w-10 object-contain border border-moss-dark/30 bg-ritual-bg"
                               onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }}
                             />
-                            <span className="text-[9px] text-bone-faint">Preview</span>
+                            <span className="text-[11px] text-bone-faint">Preview</span>
                           </div>
                         ) : (
-                          <p className="mt-1 text-[9px] text-bone-faint">Empty — uses default icon</p>
+                          <p className="mt-1 text-[11px] text-bone-faint">Empty — uses default icon</p>
                         )}
                       </div>
                       <SaveBtn
@@ -668,7 +668,7 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
   return (
     <section>
       <SectionHeader icon={<Key className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Integrations & Credentials" />
-      <p className="text-[10px] text-bone-faint mb-3 leading-relaxed">
+      <p className="text-[12px] text-bone-faint mb-3 leading-relaxed">
         API keys stored here are saved to the <span className="font-mono">settings</span> table and read by edge functions at runtime.
         For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in DB queries.
       </p>
@@ -681,9 +681,9 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-xs font-medium text-bone">{label}</span>
-                    <span className="text-[9px] font-mono text-bone-faint">{key}</span>
+                    <span className="text-[11px] font-mono text-bone-faint">{key}</span>
                   </div>
-                  <p className="text-[10px] text-bone-faint leading-relaxed mb-2">{description}</p>
+                  <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{description}</p>
                   <div className="flex items-center gap-2">
                     <input
                       type={secret && !isRevealed ? 'password' : 'text'}
@@ -696,7 +696,7 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
                     {secret && (
                       <button
                         onClick={() => setRevealed((p) => ({ ...p, [key]: !isRevealed }))}
-                        className="text-[9px] text-bone-dark hover:text-bone-muted border border-moss-dark/25 px-2 py-1.5 flex-shrink-0"
+                        className="text-[11px] text-bone-dark hover:text-bone-muted border border-moss-dark/25 px-2 py-1.5 flex-shrink-0"
                       >
                         {isRevealed ? 'Hide' : 'Show'}
                       </button>
@@ -757,9 +757,9 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-xs font-medium text-bone">Reminders Enabled</span>
-                <span className="text-[9px] font-mono text-bone-faint">reminders_enabled</span>
+                <span className="text-[11px] font-mono text-bone-faint">reminders_enabled</span>
               </div>
-              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+              <p className="text-[12px] text-bone-faint leading-relaxed mb-2">
                 Master switch. When off, no reminders are dispatched regardless of other settings.
               </p>
               <div className="flex gap-2">
@@ -796,9 +796,9 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-xs font-medium text-bone">Send Hour (UTC)</span>
-                <span className="text-[9px] font-mono text-bone-faint">reminder_send_hour</span>
+                <span className="text-[11px] font-mono text-bone-faint">reminder_send_hour</span>
               </div>
-              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+              <p className="text-[12px] text-bone-faint leading-relaxed mb-2">
                 Hour of day (0–23 UTC) when the daily reminder job fires. E.g. 20 = 8pm UTC.
               </p>
               <div className="flex items-center gap-2">
@@ -812,7 +812,7 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
                   className="ritual-input w-24 font-mono text-xs"
                   onKeyDown={(e) => e.key === 'Enter' && onSave('reminder_send_hour')}
                 />
-                <span className="text-[10px] text-bone-faint">
+                <span className="text-[12px] text-bone-faint">
                   {(() => {
                     const h = parseInt(editValues['reminder_send_hour'] ?? '20');
                     if (isNaN(h)) return '';
@@ -837,9 +837,9 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-xs font-medium text-bone">Active Channels</span>
-                <span className="text-[9px] font-mono text-bone-faint">reminder_channels</span>
+                <span className="text-[11px] font-mono text-bone-faint">reminder_channels</span>
               </div>
-              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+              <p className="text-[12px] text-bone-faint leading-relaxed mb-2">
                 Channels used to dispatch reminders. Only verified player preferences on these channels will receive messages.
               </p>
               <div className="flex flex-wrap gap-2 mb-1">
@@ -849,7 +849,7 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
                     <button
                       key={ch}
                       onClick={() => toggleChannel(ch)}
-                      className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] border transition-colors ${
+                      className={`px-3 py-1.5 text-[12px] uppercase tracking-[0.1em] border transition-colors ${
                         active
                           ? 'border-moss-light/50 bg-moss-dark/30 text-moss-light'
                           : 'border-moss-dark/25 text-bone-dark hover:text-bone'
@@ -877,9 +877,9 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-xs font-medium text-bone">Message Template</span>
-                <span className="text-[9px] font-mono text-bone-faint">reminder_message</span>
+                <span className="text-[11px] font-mono text-bone-faint">reminder_message</span>
               </div>
-              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+              <p className="text-[12px] text-bone-faint leading-relaxed mb-2">
                 Body text sent in the reminder. Supports <span className="font-mono">{'{username}'}</span> placeholder.
               </p>
               <textarea
@@ -889,7 +889,7 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
                 rows={3}
                 placeholder="Don't forget — today's game is still open..."
               />
-              <p className="mt-1 text-[9px] text-bone-faint/60">
+              <p className="mt-1 text-[11px] text-bone-faint/60">
                 {(editValues['reminder_message'] ?? '').length} characters
               </p>
             </div>
@@ -980,7 +980,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
       <div key={key} className="flex items-center gap-3 px-4 py-3 border-b border-torch-ember/10 last:border-0">
         <div className="flex-1 min-w-0">
           <span className="text-[11px] font-medium text-bone">{meta.label}</span>
-          <p className="text-[10px] text-bone-faint mt-0.5 leading-snug">{meta.description}</p>
+          <p className="text-[12px] text-bone-faint mt-0.5 leading-snug">{meta.description}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="relative flex items-center">
@@ -991,7 +991,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
               className="ritual-input w-24 text-xs text-right pr-6"
               onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
             />
-            <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
+            <span className="absolute right-2 text-[12px] text-bone-faint pointer-events-none">%</span>
           </div>
           <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
         </div>
@@ -1007,7 +1007,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
       <div key={key} className="flex items-center gap-3 px-4 py-3 border-b border-moss-dark/15 last:border-0">
         <div className="flex-1 min-w-0">
           <span className="text-[11px] font-medium text-bone">{meta.label}</span>
-          <p className="text-[10px] text-bone-faint mt-0.5 leading-snug">{meta.description}</p>
+          <p className="text-[12px] text-bone-faint mt-0.5 leading-snug">{meta.description}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="relative flex items-center">
@@ -1018,7 +1018,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
               className="ritual-input w-24 text-xs text-right pr-6"
               onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
             />
-            <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
+            <span className="absolute right-2 text-[12px] text-bone-faint pointer-events-none">%</span>
           </div>
           <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
         </div>
@@ -1038,11 +1038,11 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         <div className="flex items-center justify-between px-4 py-3 border-b border-torch-ember/15">
           <div>
             <span className="text-xs font-semibold text-bone">Live Economy Controls</span>
-            <p className="text-[10px] text-bone-faint mt-0.5">
+            <p className="text-[12px] text-bone-faint mt-0.5">
               These settings now affect live stake allocation, pot accrual, jackpot, and pool behavior.
             </p>
           </div>
-          <span className="text-[8px] uppercase tracking-[0.12em] px-2 py-1 border border-torch-ember/40 text-torch-ember bg-torch-ember/5 flex-shrink-0">
+          <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-1 border border-torch-ember/40 text-torch-ember bg-torch-ember/5 flex-shrink-0">
             Live
           </span>
         </div>
@@ -1052,14 +1052,14 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <span className="text-[11px] font-medium text-bone">Survival Probability</span>
-              <p className="text-[10px] text-bone-faint mt-0.5">Governs RNG roll — edit in System Config above</p>
+              <p className="text-[12px] text-bone-faint mt-0.5">Governs RNG roll — edit in System Config above</p>
             </div>
             <span className="text-sm font-mono text-bone">{(survivalFrac * 100).toFixed(1)}%</span>
           </div>
           <div className="flex items-center justify-between px-4 py-3">
             <div>
               <span className="text-[11px] font-medium text-bone">Stake Tiers</span>
-              <p className="text-[10px] text-bone-faint mt-0.5">Available wager amounts — edit in System Config above</p>
+              <p className="text-[12px] text-bone-faint mt-0.5">Available wager amounts — edit in System Config above</p>
             </div>
             <span className="text-sm font-mono text-bone">{stakeTiersRaw ? formatStakeTiers(stakeTiersRaw) : '—'}</span>
           </div>
@@ -1071,12 +1071,12 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         {/* Derived jackpot contribution rate */}
         <div className="px-4 py-3 border-t border-torch-ember/10 bg-torch-ember/3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-bone-faint">Derived jackpot contribution rate (losing stakes)</span>
+            <span className="text-[12px] text-bone-faint">Derived jackpot contribution rate (losing stakes)</span>
             <span className="text-[11px] font-mono font-semibold text-bone">
               {effJackpotContribRate.toFixed(2)}%
             </span>
           </div>
-          <p className="text-[9px] text-bone-faint/60">
+          <p className="text-[11px] text-bone-faint/60">
             = jackpot_allocation_rate ÷ fail_rate = {jackpotAllocRate}% ÷ {(failRate * 100).toFixed(1)}%
           </p>
         </div>
@@ -1084,7 +1084,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         {/* Modeled player value */}
         <div className="px-4 py-3 border-t border-torch-ember/15">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-semibold text-bone">Modeled player value (all allocations)</span>
+            <span className="text-[12px] font-semibold text-bone">Modeled player value (all allocations)</span>
             <span className="text-[12px] font-mono font-semibold text-bone">
               {modeledPlayerValue.toFixed(1)}%
             </span>
@@ -1097,8 +1097,8 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
               { label: 'Sunday',         key: 'sunday_pool_allocation_rate' },
             ].map(({ label, key }) => (
               <div key={key} className="flex flex-col">
-                <span className="text-[9px] text-bone-faint truncate">{label}</span>
-                <span className="text-[10px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
+                <span className="text-[11px] text-bone-faint truncate">{label}</span>
+                <span className="text-[12px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
               </div>
             ))}
           </div>
@@ -1110,9 +1110,9 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         <div className="flex items-center justify-between px-4 py-3 border-b border-moss-dark/20">
           <div>
             <span className="text-xs font-semibold text-bone">Cost & Margin Assumptions</span>
-            <p className="text-[10px] text-bone-faint mt-0.5">These remain planning assumptions and do not affect gameplay.</p>
+            <p className="text-[12px] text-bone-faint mt-0.5">These remain planning assumptions and do not affect gameplay.</p>
           </div>
-          <span className="text-[8px] uppercase tracking-[0.12em] px-2 py-1 border border-bone-faint/25 text-bone-faint flex-shrink-0">
+          <span className="text-[10px] uppercase tracking-[0.12em] px-2 py-1 border border-bone-faint/25 text-bone-faint flex-shrink-0">
             Planning only
           </span>
         </div>
@@ -1124,9 +1124,9 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         <div className="flex items-center justify-between px-4 py-3 border-b border-moss-dark/20">
           <div>
             <span className="text-xs font-semibold text-bone">RTP Safety Check</span>
-            <p className="text-[10px] text-bone-faint mt-0.5">Compares modeled player-directed value against the hard RTP cap.</p>
+            <p className="text-[12px] text-bone-faint mt-0.5">Compares modeled player-directed value against the hard RTP cap.</p>
           </div>
-          <span className={`text-[9px] flex-shrink-0 ${rtpOk ? 'text-moss-light' : 'text-death-glow'}`}>
+          <span className={`text-[11px] flex-shrink-0 ${rtpOk ? 'text-moss-light' : 'text-death-glow'}`}>
             {rtpOk ? 'Within cap' : 'Cap exceeded'}
           </span>
         </div>
@@ -1141,12 +1141,12 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
               { label: 'Sunday pool',                 key: 'sunday_pool_allocation_rate' },
             ].map(({ label, key }) => (
               <div key={key} className="flex justify-between items-baseline gap-4">
-                <span className="text-[10px] text-bone-faint">{label}</span>
-                <span className="text-[10px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
+                <span className="text-[12px] text-bone-faint">{label}</span>
+                <span className="text-[12px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
               </div>
             ))}
             <div className="flex justify-between items-center pt-1.5 border-t border-moss-dark/15">
-              <span className="text-[10px] font-semibold text-bone">Modeled player value total</span>
+              <span className="text-[12px] font-semibold text-bone">Modeled player value total</span>
               <span className={`text-[11px] font-mono font-semibold ${rtpOk ? 'text-moss-light' : 'text-death-glow'}`}>
                 {modeledPlayerValue.toFixed(1)}%
               </span>
@@ -1157,8 +1157,8 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
           <div className="space-y-1 pt-2 border-t border-moss-dark/15">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-medium text-bone">Blended RTP Target</span>
-                <p className="text-[9px] text-bone-faint">Planning reference — not enforced</p>
+                <span className="text-[12px] font-medium text-bone">Blended RTP Target</span>
+                <p className="text-[11px] text-bone-faint">Planning reference — not enforced</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="relative flex items-center">
@@ -1169,15 +1169,15 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
                     className="ritual-input w-20 text-xs text-right pr-6"
                     onKeyDown={(e) => e.key === 'Enter' && onSave('blended_rtp_target')}
                   />
-                  <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
+                  <span className="absolute right-2 text-[12px] text-bone-faint pointer-events-none">%</span>
                 </div>
                 <SaveBtn saving={saving === 'blended_rtp_target'} saved={savedKey === 'blended_rtp_target'} onClick={() => onSave('blended_rtp_target')} />
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <span className={`text-[10px] font-medium ${rtpOk ? 'text-bone' : 'text-death-glow'}`}>Hard RTP Cap</span>
-                <p className="text-[9px] text-bone-faint">Admin warning threshold — not enforced by RPC</p>
+                <span className={`text-[12px] font-medium ${rtpOk ? 'text-bone' : 'text-death-glow'}`}>Hard RTP Cap</span>
+                <p className="text-[11px] text-bone-faint">Admin warning threshold — not enforced by RPC</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="relative flex items-center">
@@ -1188,7 +1188,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
                     className="ritual-input w-20 text-xs text-right pr-6"
                     onKeyDown={(e) => e.key === 'Enter' && onSave('hard_rtp_cap')}
                   />
-                  <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
+                  <span className="absolute right-2 text-[12px] text-bone-faint pointer-events-none">%</span>
                 </div>
                 <SaveBtn saving={saving === 'hard_rtp_cap'} saved={savedKey === 'hard_rtp_cap'} onClick={() => onSave('hard_rtp_cap')} />
               </div>
@@ -1198,7 +1198,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
           {!rtpOk && (
             <div className="mt-3 px-3 py-2.5 border border-death-red/30 bg-death-dim/20 flex items-start gap-2">
               <AlertTriangle className="h-3.5 w-3.5 text-death-glow flex-shrink-0 mt-0.5" strokeWidth={2} />
-              <p className="text-[10px] text-death-glow leading-snug">
+              <p className="text-[12px] text-death-glow leading-snug">
                 Modeled player value ({modeledPlayerValue.toFixed(1)}%) exceeds hard RTP cap ({hardRtpCap.toFixed(1)}%).
                 Reduce allocation rates before going live.
               </p>
@@ -1207,7 +1207,7 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         </div>
 
         <div className="px-4 pb-4 border-t border-moss-dark/15">
-          <p className="text-[9px] text-bone-faint/60 leading-relaxed pt-3">
+          <p className="text-[11px] text-bone-faint/60 leading-relaxed pt-3">
             Economy v1 is live for daily_streak_value_rate, jackpot_allocation_rate, and pool rates.
             Cost and margin assumptions do not affect player balances or outcomes.
             Cashout transfers the full pot to the player wallet and resets streak.
