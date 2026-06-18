@@ -72,7 +72,7 @@ export default function TorchFireEffect({
   ensureTorchStyles();
 
   const particles = useMemo(() => {
-    const rand = seededRand(0xf1re ^ particleCount);
+    const rand = seededRand(0xf1f0 ^ particleCount);
     return Array.from({ length: particleCount }, (_, i) => ({
       id:       i,
       left:     20 + rand() * 60,       // % across the flame width
