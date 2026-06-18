@@ -36,3 +36,23 @@ export const TRANSLATIONS_CACHE_KEY = (lang: string) => `translations_cache_${la
 export const TRANSLATIONS_CACHE_TS_KEY = (lang: string) => `translations_cache_ts_${lang}`;
 /** Re-fetch translations if cache is older than this many ms (1 hour) */
 export const CACHE_TTL_MS = 60 * 60 * 1000;
+
+/**
+ * Static English strings used as fallback before the DB fetch completes.
+ * Prevents raw keys like "common.loading" appearing during initial render.
+ */
+export const STATIC_FALLBACKS: Record<string, string> = {
+  'common.loading':     'Loading…',
+  'common.please_wait': 'Please wait…',
+  'common.error':       'Something went wrong.',
+  'common.retry':       'Try again',
+  'common.back':        'Back',
+  'common.cancel':      'Cancel',
+  'common.save':        'Save',
+  'common.close':       'Close',
+  'common.continue':    'Continue',
+  'common.confirm':     'Confirm',
+  'common.done':        'Done',
+  'common.next':        'Next',
+  'common.skip':        'Skip',
+};

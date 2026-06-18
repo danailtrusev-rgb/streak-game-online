@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import {
   interpolate, detectBrowserLanguage,
   LANG_STORAGE_KEY, TRANSLATIONS_CACHE_KEY, TRANSLATIONS_CACHE_TS_KEY, CACHE_TTL_MS,
+  STATIC_FALLBACKS,
   type Language, type TranslationMap,
 } from '../lib/i18n';
 
@@ -20,7 +21,7 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue>({
   language: 'en',
   setLanguage: async () => {},
-  t: (key) => key,
+  t: (key) => STATIC_FALLBACKS[key] ?? key,
   languages: [],
   loading: true,
 });
@@ -110,7 +111,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [loadTranslations]);
 
   const t = useCallback((key: string, vars?: Record<string, string | number>): string => {
-    const raw = translations[key] ?? fallback[key] ?? key;
+    const raw = translations[key] ?? fallback[key] ?? STATIC_FALLBACKS[key] ?? key;
     return interpolate(raw, vars);
   }, [translations, fallback]);
 
