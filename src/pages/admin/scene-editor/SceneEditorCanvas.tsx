@@ -139,6 +139,7 @@ export default function SceneEditorCanvas({
   }, [sceneConfig.layers, onUpdateLayer, toPct]);
 
   const onPointerUp = useCallback(() => {
+    if (!dragState.current?.active) return;
     dragState.current = null;
     if (containerRef.current) containerRef.current.style.cursor = '';
     document.body.style.userSelect = '';
@@ -146,11 +147,13 @@ export default function SceneEditorCanvas({
 
   // Attach/detach global pointer listeners
   useEffect(() => {
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup',   onPointerUp);
+    window.addEventListener('pointermove',   onPointerMove);
+    window.addEventListener('pointerup',     onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
     return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup',   onPointerUp);
+      window.removeEventListener('pointermove',   onPointerMove);
+      window.removeEventListener('pointerup',     onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
   }, [onPointerMove, onPointerUp]);
 
@@ -196,7 +199,6 @@ export default function SceneEditorCanvas({
   ) => {
     if (canvasMode !== 'editor' || layer.locked) return;
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
     const [px, py] = toPct(e.clientX, e.clientY);
     dragState.current = {
       active: true, type: 'move', layerId: layer.id,
@@ -216,7 +218,6 @@ export default function SceneEditorCanvas({
     if (canvasMode !== 'editor' || layer.locked) return;
     e.stopPropagation();
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
     const [px, py] = toPct(e.clientX, e.clientY);
     dragState.current = {
       active: true, type: handle, layerId: layer.id,

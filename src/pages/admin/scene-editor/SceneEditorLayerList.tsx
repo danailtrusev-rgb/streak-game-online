@@ -1,9 +1,10 @@
 // Scene Editor — Layer List panel
 // Shows all layers sorted by zIndex with visibility/lock controls and reorder actions.
 
+import { useState, useRef, useCallback } from 'react';
 import {
-  ChevronUp, ChevronDown, Copy, Trash2, Plus,
-  Eye, EyeOff, Lock, Unlock, Image, Type, Zap, Square, Layers,
+  ChevronUp, ChevronDown, Copy, Trash2, Plus, Pencil,
+  Eye, EyeOff, Lock, Unlock, Image, Type, Zap, Square, Layers, GripVertical,
 } from 'lucide-react';
 import type { SceneLayer, LayerType } from '../../../lib/types';
 
@@ -39,10 +40,12 @@ interface Props {
   layers:          SceneLayer[];
   selectedId:      string | null;
   onSelect:        (id: string) => void;
+  onOpenSettings:  (id: string) => void;
   onToggleVisible: (id: string) => void;
   onToggleLocked:  (id: string) => void;
   onMoveUp:        (id: string) => void;
   onMoveDown:      (id: string) => void;
+  onReorder:       (draggedId: string, targetId: string) => void;
   onDuplicate:     (id: string) => void;
   onDelete:        (id: string) => void;
   onAddLayer:      (type: LayerType) => void;
@@ -50,10 +53,39 @@ interface Props {
 
 export default function SceneEditorLayerList({
   layers, selectedId,
-  onSelect, onToggleVisible, onToggleLocked,
-  onMoveUp, onMoveDown, onDuplicate, onDelete, onAddLayer,
+  onSelect, onOpenSettings, onToggleVisible, onToggleLocked,
+  onMoveUp, onMoveDown, onReorder, onDuplicate, onDelete, onAddLayer,
 }: Props) {
-  const sorted = [...layers].sort((a, b) => b.zIndex - a.zIndex); // highest z on top in list
+  // highest z on top in list
+  const sorted = [...layers].sort((a, b) => b.zIndex - a.zIndex);
+
+  // Drag-to-reorder state
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const draggingId = useRef<string | null>(null);
+
+  const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
+    draggingId.current = id;
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (id !== draggingId.current) setDragOverId(id);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const srcId = draggingId.current;
+    draggingId.current = null;
+    setDragOverId(null);
+    if (srcId && srcId !== targetId) onReorder(srcId, targetId);
+  }, [onReorder]);
+
+  const handleDragEnd = useCallback(() => {
+    draggingId.current = null;
+    setDragOverId(null);
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
@@ -75,22 +107,40 @@ export default function SceneEditorLayerList({
       <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {sorted.map((layer) => {
           const isSelected = layer.id === selectedId;
+          const isDragOver = layer.id === dragOverId;
           return (
             <div
               key={layer.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, layer.id)}
+              onDragOver={(e) => handleDragOver(e, layer.id)}
+              onDrop={(e) => handleDrop(e, layer.id)}
+              onDragEnd={handleDragEnd}
               onClick={() => onSelect(layer.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '5px 8px',
-                background: isSelected
+                background: isDragOver
+                  ? 'rgba(245,208,96,0.12)'
+                  : isSelected
                   ? 'rgba(245,208,96,0.08)'
                   : 'transparent',
                 borderLeft: `2px solid ${isSelected ? 'rgba(245,208,96,0.5)' : 'transparent'}`,
-                borderBottom: '1px solid rgba(30,40,32,0.5)',
+                borderBottom: isDragOver
+                  ? '1px solid rgba(245,208,96,0.5)'
+                  : '1px solid rgba(30,40,32,0.5)',
                 cursor: 'pointer',
-                transition: 'background 0.12s ease',
+                transition: 'background 0.1s ease',
               }}
             >
+              {/* Drag handle */}
+              <span
+                style={{ color: 'rgba(255,255,255,0.18)', flexShrink: 0, lineHeight: 0, cursor: 'grab' }}
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <GripVertical size={10} strokeWidth={1.5} />
+              </span>
+
               {/* Type icon */}
               <span style={{ color: roleColor(layer.role), flexShrink: 0, lineHeight: 0 }}>
                 {TYPE_ICONS[layer.type] ?? <Image size={10} />}
@@ -147,6 +197,22 @@ export default function SceneEditorLayerList({
               >
                 {layer.locked ? <Lock size={11} strokeWidth={1.5} /> : <Unlock size={11} strokeWidth={1.5} />}
               </button>
+
+              {/* Edit button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onOpenSettings(layer.id); }}
+                title="Edit layer settings"
+                style={{
+                  background: isSelected ? 'rgba(245,208,96,0.1)' : 'none',
+                  border: `1px solid ${isSelected ? 'rgba(245,208,96,0.25)' : 'rgba(50,70,50,0.35)'}`,
+                  padding: '2px 4px', cursor: 'pointer',
+                  color: isSelected ? 'rgba(245,208,96,0.75)' : 'rgba(255,255,255,0.3)',
+                  lineHeight: 0, flexShrink: 0,
+                  transition: 'all 0.12s ease',
+                }}
+              >
+                <Pencil size={9} strokeWidth={1.5} />
+              </button>
             </div>
           );
         })}
@@ -158,11 +224,12 @@ export default function SceneEditorLayerList({
           display: 'flex', gap: 4, padding: '6px 8px', flexShrink: 0,
           borderTop: '1px solid rgba(40,55,42,0.4)', flexWrap: 'wrap',
         }}>
-          <IconBtn onClick={() => onMoveUp(selectedId!)}   title="Move up"    icon={<ChevronUp   size={12} />} />
-          <IconBtn onClick={() => onMoveDown(selectedId!)} title="Move down"  icon={<ChevronDown size={12} />} />
-          <IconBtn onClick={() => onDuplicate(selectedId!)} title="Duplicate" icon={<Copy  size={12} />} />
+          {/* Up in visual list = higher z */}
+          <IconBtn onClick={() => onMoveUp(selectedId)}   title="Move up (higher z)"   icon={<ChevronUp   size={12} />} />
+          <IconBtn onClick={() => onMoveDown(selectedId)} title="Move down (lower z)"  icon={<ChevronDown size={12} />} />
+          <IconBtn onClick={() => onDuplicate(selectedId)} title="Duplicate" icon={<Copy  size={12} />} />
           <IconBtn
-            onClick={() => onDelete(selectedId!)}
+            onClick={() => onDelete(selectedId)}
             title="Delete layer"
             icon={<Trash2 size={12} />}
             danger
