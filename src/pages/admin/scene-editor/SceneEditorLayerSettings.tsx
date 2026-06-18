@@ -197,7 +197,7 @@ function AssetPicker({
   const filtered = assets.filter((a) => {
     if (!q) return true;
     const s = q.toLowerCase();
-    return a.label.toLowerCase().includes(s) || a.asset_path.toLowerCase().includes(s) || a.tags.some((t) => t.toLowerCase().includes(s));
+    return a.name.toLowerCase().includes(s) || a.asset_path.toLowerCase().includes(s) || a.tags.some((t) => t.toLowerCase().includes(s));
   });
 
   return (
@@ -243,7 +243,7 @@ function AssetPicker({
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', fontFamily: UF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {a.label || a.asset_path.split('/').pop()}
+                {a.name || a.asset_path.split('/').pop()}
               </div>
               <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: UF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.asset_type} · {a.asset_path}

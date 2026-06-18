@@ -355,7 +355,29 @@ export const TORCH_TRIAL_SCENE_CONFIG: SkullGateSceneConfig = {
   updatedAt:       '2026-05-18T00:00:00.000Z',
 };
 
-// ── All built-in scenes ───────────────────────────────────────────────────────
+// ── Product mechanic → scene template type mapping ────────────────────────────
+// Reference for scene authors and the Scene Editor template selector.
+// Pick/SafeBox   → choice_2 (player picks one of two hidden options)
+// Pick-3         → choice_3 (player picks one of three hidden options)
+// Path           → choice_2 (player chooses left or right path)
+// Roll / Dice    → ritual_roll (player initiates a dice/roll mechanic)
+// Wheel / Spin   → spin_reveal (spinning wheel determines outcome)
+// Ladder         → sequence_reveal or timed_tap (step-by-step progression)
+
+export const MECHANIC_TEMPLATE_MAP: Record<string, string> = {
+  pick:           'choice_2',
+  safebox:        'choice_2',
+  pick_3:         'choice_3',
+  path:           'choice_2',
+  roll:           'ritual_roll',
+  dice:           'ritual_roll',
+  wheel:          'spin_reveal',
+  spin:           'spin_reveal',
+  ladder:         'sequence_reveal',
+  timed:          'timed_tap',
+};
+
+
 // Later: this array will be supplemented by scenes fetched from the DB.
 
 export const DEFAULT_SKULL_GATE_SCENES: SkullGateSceneConfig[] = [

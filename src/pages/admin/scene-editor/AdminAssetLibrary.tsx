@@ -84,13 +84,13 @@ function Thumb({ path }: { path: string }) {
 interface FormState {
   asset_path: string;
   asset_type: AssetType;
-  label:      string;
+  name:       string;
   tags:       string;
   notes:      string;
 }
 
 function emptyForm(type: AssetType = 'object'): FormState {
-  return { asset_path: '', asset_type: type, label: '', tags: '', notes: '' };
+  return { asset_path: '', asset_type: type, name: '', tags: '', notes: '' };
 }
 
 function AssetForm({
@@ -122,8 +122,8 @@ function AssetForm({
           </select>
         </div>
         <div>
-          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 3 }}>Label</div>
-          <input value={f.label} onChange={(e) => set('label', e.target.value)} placeholder="Display name" style={inputStyle} />
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 3 }}>Name</div>
+          <input value={f.name} onChange={(e) => set('name', e.target.value)} placeholder="Display name" style={inputStyle} />
         </div>
       </div>
 
@@ -211,7 +211,7 @@ function AssetRow({
             {asset.asset_type}
           </span>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontFamily: UF, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {asset.label || asset.asset_path.split('/').pop()}
+            {asset.name || asset.asset_path.split('/').pop()}
           </span>
         </div>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.28)', fontFamily: UF, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -257,7 +257,7 @@ export default function AdminAssetLibrary() {
   const handleCreate = useCallback(async (f: FormState) => {
     setSaving(true);
     const tags = f.tags.split(',').map((t) => t.trim()).filter(Boolean);
-    await createAsset({ asset_path: f.asset_path.trim(), asset_type: f.asset_type, label: f.label.trim(), tags, notes: f.notes.trim() || undefined });
+    await createAsset({ asset_path: f.asset_path.trim(), asset_type: f.asset_type, name: f.name.trim(), tags, notes: f.notes.trim() || undefined });
     setSaving(false);
     setShowCreate(false);
   }, [createAsset]);
@@ -265,7 +265,7 @@ export default function AdminAssetLibrary() {
   const handleUpdate = useCallback(async (id: string, f: FormState) => {
     setSaving(true);
     const tags = f.tags.split(',').map((t) => t.trim()).filter(Boolean);
-    await updateAsset(id, { asset_path: f.asset_path.trim(), asset_type: f.asset_type, label: f.label.trim(), tags, notes: f.notes.trim() || undefined });
+    await updateAsset(id, { asset_path: f.asset_path.trim(), asset_type: f.asset_type, name: f.name.trim(), tags, notes: f.notes.trim() || undefined });
     setSaving(false);
     setEditingId(null);
   }, [updateAsset]);
@@ -279,7 +279,7 @@ export default function AdminAssetLibrary() {
     if (filterType !== 'all' && a.asset_type !== filterType) return false;
     if (filterSearch) {
       const q = filterSearch.toLowerCase();
-      return a.label.toLowerCase().includes(q)
+      return a.name.toLowerCase().includes(q)
         || a.asset_path.toLowerCase().includes(q)
         || a.tags.some((t) => t.toLowerCase().includes(q));
     }
@@ -315,7 +315,7 @@ export default function AdminAssetLibrary() {
         <input
           value={filterSearch}
           onChange={(e) => setFilterSearch(e.target.value)}
-          placeholder="Search label, path, tag…"
+          placeholder="Search name, path, tag…"
           style={{ ...inputStyle, flex: 1 }}
         />
         <select value={filterType} onChange={(e) => setFilterType(e.target.value as AssetType | 'all')} style={{ ...selectStyle, width: 130 }}>
@@ -365,7 +365,7 @@ export default function AdminAssetLibrary() {
                     initial={{
                       asset_path: asset.asset_path,
                       asset_type: asset.asset_type,
-                      label:      asset.label,
+                      name:       asset.name,
                       tags:       asset.tags.join(', '),
                       notes:      asset.notes ?? '',
                     }}
@@ -381,7 +381,7 @@ export default function AdminAssetLibrary() {
                   border: '1px solid rgba(160,40,40,0.25)', borderBottom: 'none',
                   fontFamily: UF, fontSize: 11, color: 'rgba(255,255,255,0.6)',
                 }}>
-                  <span style={{ flex: 1 }}>Delete &ldquo;{asset.label || asset.asset_path.split('/').pop()}&rdquo;?</span>
+                  <span style={{ flex: 1 }}>Delete &ldquo;{asset.name || asset.asset_path.split('/').pop()}&rdquo;?</span>
                   <button onClick={() => handleDelete(asset.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px', background: 'rgba(140,30,30,0.4)', border: '1px solid rgba(160,40,40,0.5)', color: '#CC7777', cursor: 'pointer', fontFamily: UF, fontSize: 11 }}>
                     <Check size={11} /> Delete
                   </button>

@@ -827,7 +827,7 @@ async function handleListAssets(supabase: ReturnType<typeof createClient>) {
     .from("skull_gate_assets")
     .select("*")
     .order("asset_type")
-    .order("label");
+    .order("name");
   if (error) return errorResponse(error.message);
   return jsonResponse({ assets: data ?? [] });
 }
@@ -835,15 +835,18 @@ async function handleListAssets(supabase: ReturnType<typeof createClient>) {
 async function handleCreateAsset(
   supabase: ReturnType<typeof createClient>,
   actor: string,
-  body: { asset_path: string; asset_type: string; label: string; tags?: string[]; notes?: string },
+  body: { asset_path: string; asset_type: string; name: string; tags?: string[]; notes?: string },
 ) {
-  const { asset_path, asset_type, label, tags, notes } = body;
+  const { asset_path, asset_type, name, tags, notes } = body;
   if (!asset_path) return errorResponse("Missing asset_path");
   if (!asset_type) return errorResponse("Missing asset_type");
 
+  const resolvedName = name || asset_path.split("/").pop() || "";
+  const slug = resolvedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `asset-${Date.now()}`;
+
   const { data, error } = await supabase
     .from("skull_gate_assets")
-    .insert({ asset_path, asset_type, label: label || asset_path.split("/").pop() || "", tags: tags ?? [], notes: notes ?? null })
+    .insert({ asset_path, asset_type, name: resolvedName, slug, tags: tags ?? [], notes: notes ?? "" })
     .select("*")
     .maybeSingle();
   if (error) return errorResponse(error.message);
@@ -859,7 +862,7 @@ async function handleCreateAsset(
 async function handleUpdateAsset(
   supabase: ReturnType<typeof createClient>,
   actor: string,
-  body: { id: string; asset_path?: string; asset_type?: string; label?: string; tags?: string[]; notes?: string },
+  body: { id: string; asset_path?: string; asset_type?: string; name?: string; tags?: string[]; notes?: string },
 ) {
   const { id, ...rest } = body;
   if (!id) return errorResponse("Missing id");
@@ -867,7 +870,7 @@ async function handleUpdateAsset(
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (rest.asset_path !== undefined) updates.asset_path = rest.asset_path;
   if (rest.asset_type !== undefined) updates.asset_type = rest.asset_type;
-  if (rest.label      !== undefined) updates.label      = rest.label;
+  if (rest.name       !== undefined) updates.name       = rest.name;
   if (rest.tags       !== undefined) updates.tags       = rest.tags;
   if (rest.notes      !== undefined) updates.notes      = rest.notes;
 

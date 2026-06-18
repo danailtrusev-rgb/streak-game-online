@@ -46,9 +46,10 @@ export const ASSET_PATH_SUGGESTIONS: Partial<Record<AssetType, string>> = {
 
 export interface SkullGateAsset {
   id:         string;
+  slug:       string;
+  name:       string;
   asset_path: string;
   asset_type: AssetType;
-  label:      string;
   tags:       string[];
   notes:      string | null;
   created_at: string;
@@ -103,7 +104,7 @@ export function useSkullGateAssets() {
   const createAsset = useCallback(async (body: {
     asset_path: string;
     asset_type: AssetType;
-    label: string;
+    name: string;
     tags?: string[];
     notes?: string;
   }): Promise<SkullGateAsset | null> => {
@@ -112,7 +113,7 @@ export function useSkullGateAssets() {
       { method: 'POST', body: JSON.stringify(body) },
     );
     if (data?.asset) {
-      setAssets((prev) => [...prev, data.asset].sort((a, b) => a.label.localeCompare(b.label)));
+      setAssets((prev) => [...prev, data.asset].sort((a, b) => a.name.localeCompare(b.name)));
       return data.asset;
     }
     return null;
