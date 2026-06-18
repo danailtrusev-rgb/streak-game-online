@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import {
   Settings, Bell, TrendingUp, Puzzle, BookOpen, Globe, HelpCircle,
-  ChevronRight, ArrowLeft, Key,
+  ChevronRight, ArrowLeft, Key, Trophy, Image, FileText,
 } from 'lucide-react';
 import AdminSettings, { type SettingsSection } from './AdminSettings';
 import AdminTranslations from './AdminTranslations';
 import AdminFAQ from './AdminFAQ';
+import AdminQualificationRules from './AdminQualificationRules';
+import AdminFlyers from './AdminFlyers';
+import AdminAuditLog from './AdminAuditLog';
 
 type SubPage =
   | null
@@ -16,7 +19,10 @@ type SubPage =
   | 'puzzle'
   | 'onboarding'
   | 'translations'
-  | 'faq';
+  | 'faq'
+  | 'qualification'
+  | 'flyers'
+  | 'audit';
 
 interface ConfigCard {
   key: SubPage;
@@ -63,6 +69,18 @@ const CARDS: ConfigCard[] = [
     description: 'Edit titles, body text, and images for the onboarding modal.',
   },
   {
+    key: 'qualification',
+    icon: <Trophy className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />,
+    title: 'Qualification Rules',
+    description: 'Define and manage weekly qualification criteria and tiers.',
+  },
+  {
+    key: 'flyers',
+    icon: <Image className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />,
+    title: 'Flyers',
+    description: 'Upload and manage promotional flyers shown to players.',
+  },
+  {
     key: 'translations',
     icon: <Globe className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />,
     title: 'Translations',
@@ -73,6 +91,12 @@ const CARDS: ConfigCard[] = [
     icon: <HelpCircle className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />,
     title: 'FAQ',
     description: 'Add, edit, and reorder FAQ items shown to players.',
+  },
+  {
+    key: 'audit',
+    icon: <FileText className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />,
+    title: 'Audit Log',
+    description: 'Review admin actions and configuration change history.',
   },
 ];
 
@@ -95,6 +119,30 @@ export default function AdminConfig() {
     return (
       <SubPageWrapper title="FAQ" onBack={back}>
         <AdminFAQ />
+      </SubPageWrapper>
+    );
+  }
+
+  if (subPage === 'qualification') {
+    return (
+      <SubPageWrapper title="Qualification Rules" onBack={back}>
+        <AdminQualificationRules />
+      </SubPageWrapper>
+    );
+  }
+
+  if (subPage === 'flyers') {
+    return (
+      <SubPageWrapper title="Flyers" onBack={back}>
+        <AdminFlyers />
+      </SubPageWrapper>
+    );
+  }
+
+  if (subPage === 'audit') {
+    return (
+      <SubPageWrapper title="Audit Log" onBack={back}>
+        <AdminAuditLog />
       </SubPageWrapper>
     );
   }

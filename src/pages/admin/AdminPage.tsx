@@ -1,29 +1,23 @@
 import { useState, useEffect } from 'react';
 import {
-  Shield, BarChart3, Users, Settings, FileText, LogOut, Lock,
-  Gamepad2, Trophy, CalendarDays, Image, Crown,
+  Shield, BarChart3, Users, Settings, LogOut, Lock,
+  Gamepad2, CalendarDays, Crown,
 } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import AdminKPIs from './AdminKPIs';
 import AdminUsers from './AdminUsers';
 import AdminConfig from './AdminConfig';
-import AdminAuditLog from './AdminAuditLog';
 import AdminGames from './AdminGames';
-import AdminQualificationRules from './AdminQualificationRules';
 import AdminWeekendEvents from './AdminWeekendEvents';
-import AdminFlyers from './AdminFlyers';
 import AdminWinners from './AdminWinners';
 
 const tabs = [
-  { key: 'kpis',          label: 'KPIs',       icon: BarChart3 },
-  { key: 'users',         label: 'Players',    icon: Users },
-  { key: 'games',         label: 'Games',      icon: Gamepad2 },
-  { key: 'qualification', label: 'Qual Rules', icon: Trophy },
-  { key: 'events',        label: 'Events',     icon: CalendarDays },
-  { key: 'flyers',        label: 'Flyers',     icon: Image },
-  { key: 'winners',       label: 'Winners',    icon: Crown },
-  { key: 'settings',      label: 'Config',     icon: Settings },
-  { key: 'audit',         label: 'Audit',      icon: FileText },
+  { key: 'kpis',     label: 'KPIs',    icon: BarChart3 },
+  { key: 'users',    label: 'Players', icon: Users },
+  { key: 'games',    label: 'Games',   icon: Gamepad2 },
+  { key: 'events',   label: 'Events',  icon: CalendarDays },
+  { key: 'winners',  label: 'Winners', icon: Crown },
+  { key: 'settings', label: 'Config',  icon: Settings },
 ];
 
 export default function AdminPage() {
@@ -177,12 +171,9 @@ export default function AdminPage() {
       {activeTab === 'kpis' && <AdminKPIs />}
       {activeTab === 'users' && <AdminUsers />}
       {activeTab === 'games' && <AdminGames />}
-      {activeTab === 'qualification' && <AdminQualificationRules />}
       {activeTab === 'events' && <AdminWeekendEvents />}
-      {activeTab === 'flyers' && <AdminFlyers />}
       {activeTab === 'winners' && <AdminWinners />}
       {activeTab === 'settings' && <AdminConfig />}
-      {activeTab === 'audit' && <AdminAuditLog />}
     </div>
   );
 }
