@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Info } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -19,6 +19,98 @@ interface OnboardingSlide {
 const PUZZLE_KEYS    = ['daily_puzzle_question', 'daily_puzzle_answer', 'daily_puzzle_hint'];
 const JACKPOT_KEYS   = ['jackpot_contribution_rate'];
 const ONBOARDING_KEY = 'onboarding_slides';
+
+// Economy & Financial Model key groups
+const ECONOMY_LIVE_KEYS: string[] = [];  // survival_probability and stake_tiers are in System Config — shown here as read-only refs
+const ECONOMY_ALLOCATION_KEYS = [
+  'daily_streak_value_rate',
+  'jackpot_allocation_rate',
+  'saturday_pool_allocation_rate',
+  'sunday_pool_allocation_rate',
+  'hard_rtp_cap',
+] as const;
+const ECONOMY_PLANNING_KEYS = [
+  'blended_rtp_target',
+  'payment_processing_rate',
+  'fraud_risk_buffer_rate',
+  'affiliate_promo_budget_rate',
+  'target_gross_margin_rate',
+] as const;
+const ALL_ECONOMY_KEYS = [...ECONOMY_ALLOCATION_KEYS, ...ECONOMY_PLANNING_KEYS];
+
+// Allocation model fields that sum to the 100% budget
+const ALLOCATION_SUM_KEYS = [
+  'daily_streak_value_rate',
+  'jackpot_allocation_rate',
+  'saturday_pool_allocation_rate',
+  'sunday_pool_allocation_rate',
+  'payment_processing_rate',
+  'fraud_risk_buffer_rate',
+  'affiliate_promo_budget_rate',
+  'target_gross_margin_rate',
+];
+
+interface EconomySettingMeta {
+  label: string;
+  description: string;
+  unit: '%';
+  defaultValue: number;
+  isLive: boolean;
+  group: 'allocation' | 'planning';
+}
+
+const ECONOMY_META: Record<string, EconomySettingMeta> = {
+  hard_rtp_cap: {
+    label: 'Hard RTP Cap',
+    description: 'Maximum allowed Return-to-Player percentage. Not yet enforced by the RPC — currently a planning cap only.',
+    unit: '%', defaultValue: 55, isLive: false, group: 'allocation',
+  },
+  daily_streak_value_rate: {
+    label: 'Daily / Streak Player Value Rate',
+    description: 'Portion of revenue allocated to daily streak player value. Planning model — not yet wired to live allocation logic.',
+    unit: '%', defaultValue: 35, isLive: false, group: 'allocation',
+  },
+  jackpot_allocation_rate: {
+    label: 'Jackpot Allocation Rate',
+    description: 'Target portion of revenue routed to the public jackpot pool. Separate from jackpot_contribution_rate (the live per-losing-stake rate). Planning model only.',
+    unit: '%', defaultValue: 6, isLive: false, group: 'allocation',
+  },
+  saturday_pool_allocation_rate: {
+    label: 'Saturday Pool Allocation Rate',
+    description: 'Target allocation for the Saturday Showdown prize pool. Saturday pools are not yet implemented — this is a planning assumption.',
+    unit: '%', defaultValue: 3, isLive: false, group: 'allocation',
+  },
+  sunday_pool_allocation_rate: {
+    label: 'Sunday Pool Allocation Rate',
+    description: 'Target allocation for the Sunday Crown prize pool. Sunday pools are not yet implemented — this is a planning assumption.',
+    unit: '%', defaultValue: 4, isLive: false, group: 'allocation',
+  },
+  blended_rtp_target: {
+    label: 'Blended RTP Target',
+    description: 'Target blended Return-to-Player across all game modes. Used for planning and margin calculations only.',
+    unit: '%', defaultValue: 48, isLive: false, group: 'planning',
+  },
+  payment_processing_rate: {
+    label: 'Payment Processing Rate',
+    description: 'Worst-case assumption for payment processing costs. Used for margin model only.',
+    unit: '%', defaultValue: 9, isLive: false, group: 'planning',
+  },
+  fraud_risk_buffer_rate: {
+    label: 'Fraud / Risk Buffer Rate',
+    description: 'Reserved buffer for fraud and risk management costs. Planning assumption only.',
+    unit: '%', defaultValue: 4, isLive: false, group: 'planning',
+  },
+  affiliate_promo_budget_rate: {
+    label: 'Affiliate / Promo Budget Rate',
+    description: 'Budget allocation for affiliate and promotional activity. Planning assumption only.',
+    unit: '%', defaultValue: 10, isLive: false, group: 'planning',
+  },
+  target_gross_margin_rate: {
+    label: 'Target Gross Margin Rate',
+    description: 'Target gross margin after all allocations and cost assumptions. Planning model only.',
+    unit: '%', defaultValue: 29, isLive: false, group: 'planning',
+  },
+};
 
 // Human-readable metadata for known system config keys
 const SETTING_META: Record<string, { label: string; description: string; type: 'number' | 'boolean' | 'json' | 'text'; min?: number; max?: number; step?: string }> = {
@@ -215,8 +307,10 @@ export default function AdminSettings() {
 
   const puzzleSettings  = settings.filter((s) => PUZZLE_KEYS.includes(s.key));
   const jackpotSettings = settings.filter((s) => JACKPOT_KEYS.includes(s.key));
+  const economySettings = settings.filter((s) => ALL_ECONOMY_KEYS.includes(s.key as typeof ALL_ECONOMY_KEYS[number]));
   const otherSettings   = settings.filter(
     (s) => !PUZZLE_KEYS.includes(s.key) && !JACKPOT_KEYS.includes(s.key) && s.key !== ONBOARDING_KEY
+      && !ALL_ECONOMY_KEYS.includes(s.key as typeof ALL_ECONOMY_KEYS[number])
   );
 
   return (
@@ -450,6 +544,16 @@ export default function AdminSettings() {
           </div>
         </section>
       )}
+
+      {/* ── Economy & Financial Model ─────────────────────────────────────── */}
+      <EconomySection
+        settings={economySettings}
+        editValues={editValues}
+        setEditValues={setEditValues}
+        saving={saving}
+        savedKey={savedKey}
+        onSave={handleSave}
+      />
     </div>
   );
 }
@@ -461,5 +565,191 @@ function SectionHeader({ icon, title }: { icon: React.ReactNode; title: string }
       {icon}
       <h2 className="text-sm font-semibold tracking-[0.1em] uppercase text-bone">{title}</h2>
     </div>
+  );
+}
+
+// ── Economy Section ────────────────────────────────────────────────────────────
+
+interface EconomySectionProps {
+  settings: SettingRow[];
+  editValues: Record<string, string>;
+  setEditValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  saving: string | null;
+  savedKey: string | null;
+  onSave: (key: string) => Promise<void>;
+}
+
+function EconomySection({ settings, editValues, setEditValues, saving, savedKey, onSave }: EconomySectionProps) {
+  const getValue = (key: string): number => {
+    const raw = editValues[key];
+    if (raw !== undefined) return parseFloat(raw) || 0;
+    const setting = settings.find((s) => s.key === key);
+    if (setting) return typeof setting.value_json === 'number' ? setting.value_json : parseFloat(String(setting.value_json)) || 0;
+    return ECONOMY_META[key]?.defaultValue ?? 0;
+  };
+
+  // Compute allocation budget total (the 8 fields that should sum to 100)
+  const allocationTotal = ALLOCATION_SUM_KEYS.reduce((sum, k) => sum + getValue(k), 0);
+  const allocationOk = Math.abs(allocationTotal - 100) < 0.01;
+
+  // Separate groups
+  const allocationKeys = ECONOMY_ALLOCATION_KEYS.filter((k) => k !== 'hard_rtp_cap');
+  const planningKeys   = ECONOMY_PLANNING_KEYS;
+
+  const renderRow = (key: string) => {
+    const meta = ECONOMY_META[key];
+    if (!meta) return null;
+    const rawVal = editValues[key] ?? String(getValue(key));
+    return (
+      <div key={key} className="px-4 py-3">
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <span className="text-xs font-medium text-bone">{meta.label}</span>
+              <span className="text-[9px] font-mono text-bone-faint">{key}</span>
+              {meta.isLive ? (
+                <span className="text-[8px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-torch-ember/40 text-torch-ember bg-torch-ember/5">
+                  Live
+                </span>
+              ) : (
+                <span className="text-[8px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-bone-faint/20 text-bone-faint">
+                  Planning only
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-bone-faint leading-relaxed mb-2">{meta.description}</p>
+            <div className="flex items-center gap-2">
+              <div className="relative flex items-center">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={rawVal}
+                  onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
+                  className="ritual-input w-28 text-xs text-right pr-6"
+                  onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
+                />
+                <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
+              </div>
+            </div>
+          </div>
+          <div className="pt-6 flex-shrink-0">
+            <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <section>
+      <SectionHeader
+        icon={<TrendingUp className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />}
+        title="Economy & Financial Model"
+      />
+
+      {/* Live gameplay references (read-only pointers) */}
+      <div className="mb-3 border border-moss-dark/20 bg-ritual-surface/10 px-4 py-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Info className="h-3 w-3 text-torch-ember/60" />
+          <span className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Live Gameplay Controls (edit in System Config / Jackpot above)</span>
+        </div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+          {[
+            { label: 'Survival Probability', key: 'survival_probability' },
+            { label: 'Jackpot Contribution Rate', key: 'jackpot_contribution_rate' },
+            { label: 'Stake Tiers', key: 'stake_tiers' },
+          ].map(({ label, key }) => {
+            const raw = editValues[key];
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span className="text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-torch-ember/40 text-torch-ember bg-torch-ember/5 flex-shrink-0 text-[8px]">Live</span>
+                <span className="text-[10px] text-bone-muted">{label}</span>
+                {raw && (
+                  <span className="text-[10px] font-mono text-bone-faint ml-auto">
+                    {typeof raw === 'string' && raw.startsWith('[') ? 'array' : raw}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Group 2 — Allocation model */}
+      <div className="mb-1">
+        <div className="px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] text-bone-faint border-b border-moss-dark/15">
+          Group 2 — Allocation Model
+        </div>
+        <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
+          {renderRow('hard_rtp_cap')}
+          {allocationKeys.map(renderRow)}
+        </div>
+      </div>
+
+      {/* Group 3 — Planning assumptions */}
+      <div className="mb-4">
+        <div className="px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] text-bone-faint border-b border-moss-dark/15">
+          Group 3 — Planning Assumptions
+        </div>
+        <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
+          {planningKeys.map(renderRow)}
+        </div>
+      </div>
+
+      {/* Allocation model summary panel */}
+      <div className={`border px-4 py-4 ${allocationOk ? 'border-moss-dark/30 bg-moss-dark/10' : 'border-torch-ember/25 bg-torch-ember/5'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          {allocationOk
+            ? <Check className="h-3.5 w-3.5 text-moss-light" strokeWidth={2.5} />
+            : <AlertTriangle className="h-3.5 w-3.5 text-torch-ember" strokeWidth={2} />
+          }
+          <span className={`text-xs font-semibold tracking-[0.08em] uppercase ${allocationOk ? 'text-moss-light' : 'text-torch-ember'}`}>
+            {allocationOk ? 'Allocation model totals 100%' : `Allocation model totals ${allocationTotal.toFixed(1)}% — expected 100%`}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-1 mb-3">
+          {[
+            { key: 'daily_streak_value_rate',       label: 'Daily / Streak' },
+            { key: 'jackpot_allocation_rate',        label: 'Jackpot' },
+            { key: 'saturday_pool_allocation_rate',  label: 'Saturday Pool' },
+            { key: 'sunday_pool_allocation_rate',    label: 'Sunday Pool' },
+            { key: 'payment_processing_rate',        label: 'Processing' },
+            { key: 'fraud_risk_buffer_rate',         label: 'Fraud / Risk' },
+            { key: 'affiliate_promo_budget_rate',    label: 'Affiliate / Promo' },
+            { key: 'target_gross_margin_rate',       label: 'Target Margin' },
+          ].map(({ key, label }) => (
+            <div key={key} className="flex justify-between items-center">
+              <span className="text-[10px] text-bone-faint">{label}</span>
+              <span className="text-[10px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex justify-between items-center pt-2 border-t border-moss-dark/15 mb-3">
+          <span className="text-[10px] font-semibold text-bone">Total</span>
+          <span className={`text-[10px] font-mono font-semibold ${allocationOk ? 'text-moss-light' : 'text-torch-ember'}`}>
+            {allocationTotal.toFixed(1)}%
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-moss-dark/15">
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-bone-faint">Blended RTP Target</span>
+            <span className="text-[10px] font-mono text-bone">{getValue('blended_rtp_target').toFixed(1)}%</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[10px] text-bone-faint">Hard RTP Cap</span>
+            <span className="text-[10px] font-mono text-bone">{getValue('hard_rtp_cap').toFixed(1)}%</span>
+          </div>
+        </div>
+
+        <p className="text-[9px] text-bone-faint/60 mt-3 leading-relaxed">
+          This is a planning model. Allocation rates do not affect live gameplay until connected to live allocation logic.
+        </p>
+      </div>
+    </section>
   );
 }
