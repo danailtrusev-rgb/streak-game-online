@@ -747,9 +747,76 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         </div>
 
         <p className="text-[9px] text-bone-faint/60 mt-3 leading-relaxed">
-          This is a planning model. Allocation rates do not affect live gameplay until connected to live allocation logic.
+          This is the Economy v1 planning model. These allocation rates describe the target distribution of total player
+          stakes across gameplay value, jackpot funding, weekend pools, operating costs, promo budget, and gross margin.
+          Most allocation rates are planning-only and do not affect live gameplay yet. Current live gameplay is controlled
+          separately by <span className="font-mono">survival_probability</span>, <span className="font-mono">stake_tiers</span>,
+          and <span className="font-mono">jackpot_contribution_rate</span>. Note: <span className="font-mono">jackpot_allocation_rate</span> is
+          the target jackpot share of total stakes. <span className="font-mono">jackpot_contribution_rate</span> is the live
+          percentage taken from losing stakes only. These are related, but not the same formula.
         </p>
       </div>
+
+      {/* Live Jackpot Estimate panel */}
+      <LiveJackpotEstimate getValue={getValue} />
     </section>
+  );
+}
+
+// ── Live Jackpot Estimate ──────────────────────────────────────────────────────
+
+function LiveJackpotEstimate({ getValue }: { getValue: (key: string) => number }) {
+  // survival_probability is stored as a decimal (0.0–1.0), e.g. 0.5 = 50%
+  const survivalRaw        = getValue('survival_probability');
+  const survivalFrac       = survivalRaw > 1 ? survivalRaw / 100 : survivalRaw;
+  const failRate           = 1 - survivalFrac;
+
+  // jackpot_contribution_rate is stored as a decimal (0.0–1.0), e.g. 0.10 = 10%
+  const jackpotContribRaw  = getValue('jackpot_contribution_rate');
+  const jackpotContribFrac = jackpotContribRaw > 1 ? jackpotContribRaw / 100 : jackpotContribRaw;
+
+  const estLiveJackpotShare = failRate * jackpotContribFrac * 100;  // expressed as %
+  const targetJackpotShare  = getValue('jackpot_allocation_rate');   // stored as %, e.g. 6
+  const difference          = estLiveJackpotShare - targetJackpotShare;
+  const inRange             = Math.abs(difference) <= 0.25;
+
+  return (
+    <div className={`mt-3 border px-4 py-4 ${inRange ? 'border-moss-dark/30 bg-moss-dark/10' : 'border-torch-ember/30 bg-torch-ember/5'}`}>
+      <div className="flex items-center gap-2 mb-3">
+        {inRange
+          ? <Check className="h-3.5 w-3.5 text-moss-light" strokeWidth={2.5} />
+          : <AlertTriangle className="h-3.5 w-3.5 text-torch-ember" strokeWidth={2} />
+        }
+        <span className={`text-xs font-semibold tracking-[0.08em] uppercase ${inRange ? 'text-moss-light' : 'text-torch-ember'}`}>
+          {inRange ? 'Live Jackpot Estimate — On Target' : 'Live Jackpot Estimate — Planning Mismatch'}
+        </span>
+        <span className="text-[9px] text-bone-faint ml-auto">Read-only</span>
+      </div>
+
+      <div className="space-y-1.5 mb-3">
+        {([
+          { label: 'Fail rate (1 − survival_probability)',                           val: `${(failRate * 100).toFixed(1)}%`,           highlight: false },
+          { label: 'Live jackpot rate from losing stakes (jackpot_contribution_rate)', val: `${(jackpotContribFrac * 100).toFixed(1)}%`, highlight: false },
+          { label: 'Estimated live jackpot share of total stakes',                   val: `${estLiveJackpotShare.toFixed(2)}%`,         highlight: true  },
+          { label: 'Target jackpot allocation (jackpot_allocation_rate)',             val: `${targetJackpotShare.toFixed(1)}%`,          highlight: true  },
+        ] as const).map(({ label, val, highlight }) => (
+          <div key={label} className="flex justify-between items-baseline gap-4">
+            <span className="text-[10px] text-bone-faint">{label}</span>
+            <span className={`text-[10px] font-mono flex-shrink-0 ${highlight ? 'text-bone' : 'text-bone-faint'}`}>{val}</span>
+          </div>
+        ))}
+        <div className="flex justify-between items-center pt-1.5 border-t border-moss-dark/15">
+          <span className="text-[10px] font-semibold text-bone">Difference</span>
+          <span className={`text-[10px] font-mono font-semibold ${inRange ? 'text-moss-light' : 'text-torch-ember'}`}>
+            {difference >= 0 ? '+' : ''}{difference.toFixed(2)}%
+          </span>
+        </div>
+      </div>
+
+      <p className="text-[9px] text-bone-faint/55 leading-relaxed">
+        Estimated live jackpot share = fail rate × jackpot_contribution_rate. This is an approximation based on current
+        settings assuming a uniform stake mix. Actual share varies by tier distribution.
+      </p>
+    </div>
   );
 }
