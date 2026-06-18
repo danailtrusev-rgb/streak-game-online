@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Info } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -580,6 +580,34 @@ interface EconomySectionProps {
   onSave: (key: string) => Promise<void>;
 }
 
+// Short helper text shown under each planning field (replaces long paragraphs)
+const ECONOMY_HELPER: Record<string, string> = {
+  hard_rtp_cap:                 'Planning cap only — not yet enforced by the RPC.',
+  daily_streak_value_rate:      'Target share allocated to daily streak player value.',
+  jackpot_allocation_rate:      'Target share routed to the jackpot pool. See note below.',
+  saturday_pool_allocation_rate:'Target allocation for the Saturday Showdown prize pool (not yet live).',
+  sunday_pool_allocation_rate:  'Target allocation for the Sunday Crown prize pool (not yet live).',
+  blended_rtp_target:           'Target blended RTP across all game modes.',
+  payment_processing_rate:      'Worst-case payment processing cost assumption.',
+  fraud_risk_buffer_rate:       'Reserved buffer for fraud and risk costs.',
+  affiliate_promo_budget_rate:  'Budget for affiliate and promotional activity.',
+  target_gross_margin_rate:     'Target gross margin after all allocations and costs.',
+};
+
+function formatStakeTiers(raw: string): string {
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return raw;
+    return arr.map((t: { stake_cents?: number }) => {
+      const cents = t.stake_cents ?? 0;
+      const euros = cents / 100;
+      return `€${euros % 1 === 0 ? euros.toFixed(0) : euros.toFixed(2)}`;
+    }).join(' / ');
+  } catch {
+    return raw;
+  }
+}
+
 function EconomySection({ settings, editValues, setEditValues, saving, savedKey, onSave }: EconomySectionProps) {
   const getValue = (key: string): number => {
     const raw = editValues[key];
@@ -589,59 +617,56 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
     return ECONOMY_META[key]?.defaultValue ?? 0;
   };
 
-  // Compute allocation budget total (the 8 fields that should sum to 100)
   const allocationTotal = ALLOCATION_SUM_KEYS.reduce((sum, k) => sum + getValue(k), 0);
-  const allocationOk = Math.abs(allocationTotal - 100) < 0.01;
+  const allocationOk    = Math.abs(allocationTotal - 100) < 0.01;
 
-  // Separate groups
-  const allocationKeys = ECONOMY_ALLOCATION_KEYS.filter((k) => k !== 'hard_rtp_cap');
-  const planningKeys   = ECONOMY_PLANNING_KEYS;
+  // survival_probability: decimal (0.5 = 50%)
+  const survivalRaw        = getValue('survival_probability');
+  const survivalFrac       = survivalRaw > 1 ? survivalRaw / 100 : survivalRaw;
+  const failRate           = 1 - survivalFrac;
+  // jackpot_contribution_rate: decimal (0.10 = 10%)
+  const jackpotContribRaw  = getValue('jackpot_contribution_rate');
+  const jackpotContribFrac = jackpotContribRaw > 1 ? jackpotContribRaw / 100 : jackpotContribRaw;
+  const estLiveJackpotShare = failRate * jackpotContribFrac * 100;
+  const targetJackpotShare  = getValue('jackpot_allocation_rate');
+  const difference          = estLiveJackpotShare - targetJackpotShare;
+  const jackpotInRange      = Math.abs(difference) <= 0.25;
 
-  const renderRow = (key: string) => {
+  const renderPlanningField = (key: string) => {
     const meta = ECONOMY_META[key];
     if (!meta) return null;
     const rawVal = editValues[key] ?? String(getValue(key));
     return (
-      <div key={key} className="px-4 py-3">
-        <div className="flex items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              <span className="text-xs font-medium text-bone">{meta.label}</span>
-              <span className="text-[9px] font-mono text-bone-faint">{key}</span>
-              {meta.isLive ? (
-                <span className="text-[8px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-torch-ember/40 text-torch-ember bg-torch-ember/5">
-                  Live
-                </span>
-              ) : (
-                <span className="text-[8px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-bone-faint/20 text-bone-faint">
-                  Planning only
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] text-bone-faint leading-relaxed mb-2">{meta.description}</p>
-            <div className="flex items-center gap-2">
-              <div className="relative flex items-center">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={rawVal}
-                  onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
-                  className="ritual-input w-28 text-xs text-right pr-6"
-                  onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
-                />
-                <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
-              </div>
-            </div>
+      <div key={key} className="flex items-center gap-3 px-4 py-3 border-b border-moss-dark/15 last:border-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-medium text-bone">{meta.label}</span>
           </div>
-          <div className="pt-6 flex-shrink-0">
-            <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
+          {ECONOMY_HELPER[key] && (
+            <p className="text-[10px] text-bone-faint leading-snug">{ECONOMY_HELPER[key]}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="relative flex items-center">
+            <input
+              type="number"
+              step="0.1"
+              min="0"
+              max="100"
+              value={rawVal}
+              onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
+              className="ritual-input w-24 text-xs text-right pr-6"
+              onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
+            />
+            <span className="absolute right-2 text-[10px] text-bone-faint pointer-events-none">%</span>
           </div>
+          <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
         </div>
       </div>
     );
   };
+
+  const stakeTiersRaw = editValues['stake_tiers'] ?? '';
 
   return (
     <section>
@@ -650,174 +675,200 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
         title="Economy & Financial Model"
       />
 
-      {/* Live gameplay references (read-only pointers) */}
-      <div className="mb-3 border border-moss-dark/20 bg-ritual-surface/10 px-4 py-3">
-        <div className="flex items-center gap-1.5 mb-2">
-          <Info className="h-3 w-3 text-torch-ember/60" />
-          <span className="text-[9px] uppercase tracking-[0.15em] text-bone-faint">Live Gameplay Controls (edit in System Config / Jackpot above)</span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-          {[
-            { label: 'Survival Probability', key: 'survival_probability' },
-            { label: 'Jackpot Contribution Rate', key: 'jackpot_contribution_rate' },
-            { label: 'Stake Tiers', key: 'stake_tiers' },
-          ].map(({ label, key }) => {
-            const raw = editValues[key];
-            return (
-              <div key={key} className="flex items-center gap-2">
-                <span className="text-[9px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-torch-ember/40 text-torch-ember bg-torch-ember/5 flex-shrink-0 text-[8px]">Live</span>
-                <span className="text-[10px] text-bone-muted">{label}</span>
-                {raw && (
-                  <span className="text-[10px] font-mono text-bone-faint ml-auto">
-                    {typeof raw === 'string' && raw.startsWith('[') ? 'array' : raw}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Group 2 — Allocation model */}
-      <div className="mb-1">
-        <div className="px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] text-bone-faint border-b border-moss-dark/15">
-          Group 2 — Allocation Model
-        </div>
-        <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
-          {renderRow('hard_rtp_cap')}
-          {allocationKeys.map(renderRow)}
-        </div>
-      </div>
-
-      {/* Group 3 — Planning assumptions */}
-      <div className="mb-4">
-        <div className="px-4 py-1.5 text-[9px] uppercase tracking-[0.15em] text-bone-faint border-b border-moss-dark/15">
-          Group 3 — Planning Assumptions
-        </div>
-        <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
-          {planningKeys.map(renderRow)}
-        </div>
-      </div>
-
-      {/* Allocation model summary panel */}
-      <div className={`border px-4 py-4 ${allocationOk ? 'border-moss-dark/30 bg-moss-dark/10' : 'border-torch-ember/25 bg-torch-ember/5'}`}>
-        <div className="flex items-center gap-2 mb-3">
-          {allocationOk
-            ? <Check className="h-3.5 w-3.5 text-moss-light" strokeWidth={2.5} />
-            : <AlertTriangle className="h-3.5 w-3.5 text-torch-ember" strokeWidth={2} />
-          }
-          <span className={`text-xs font-semibold tracking-[0.08em] uppercase ${allocationOk ? 'text-moss-light' : 'text-torch-ember'}`}>
-            {allocationOk ? 'Allocation model totals 100%' : `Allocation model totals ${allocationTotal.toFixed(1)}% — expected 100%`}
+      {/* ── Card 1: Live Gameplay Controls ─────────────────────────────────── */}
+      <div className="mb-4 border border-torch-ember/20 bg-ritual-surface/15">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-torch-ember/15">
+          <div>
+            <span className="text-xs font-semibold text-bone">Live Gameplay Controls</span>
+            <p className="text-[10px] text-bone-faint mt-0.5">These settings currently affect live gameplay.</p>
+          </div>
+          <span className="text-[8px] uppercase tracking-[0.12em] px-2 py-1 border border-torch-ember/40 text-torch-ember bg-torch-ember/5">
+            Live
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-1 mb-3">
-          {[
-            { key: 'daily_streak_value_rate',       label: 'Daily / Streak' },
-            { key: 'jackpot_allocation_rate',        label: 'Jackpot' },
-            { key: 'saturday_pool_allocation_rate',  label: 'Saturday Pool' },
-            { key: 'sunday_pool_allocation_rate',    label: 'Sunday Pool' },
-            { key: 'payment_processing_rate',        label: 'Processing' },
-            { key: 'fraud_risk_buffer_rate',         label: 'Fraud / Risk' },
-            { key: 'affiliate_promo_budget_rate',    label: 'Affiliate / Promo' },
-            { key: 'target_gross_margin_rate',       label: 'Target Margin' },
-          ].map(({ key, label }) => (
-            <div key={key} className="flex justify-between items-center">
-              <span className="text-[10px] text-bone-faint">{label}</span>
-              <span className="text-[10px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
+        <div className="divide-y divide-torch-ember/10">
+          {/* Survival Probability */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <span className="text-[11px] font-medium text-bone">Survival Probability</span>
+              <p className="text-[10px] text-bone-faint mt-0.5">Chance a player survives the daily gate</p>
             </div>
-          ))}
+            <span className="text-sm font-mono text-bone">{(survivalFrac * 100).toFixed(1)}%</span>
+          </div>
+
+          {/* Jackpot Contribution Rate */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <span className="text-[11px] font-medium text-bone">Jackpot Contribution Rate</span>
+              <p className="text-[10px] text-bone-faint mt-0.5">Taken from losing stakes only — not an extra charge</p>
+            </div>
+            <span className="text-sm font-mono text-bone">{(jackpotContribFrac * 100).toFixed(1)}%</span>
+          </div>
+
+          {/* Stake Tiers */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <span className="text-[11px] font-medium text-bone">Stake Tiers</span>
+              <p className="text-[10px] text-bone-faint mt-0.5">Available wager amounts per play</p>
+            </div>
+            <span className="text-sm font-mono text-bone">
+              {stakeTiersRaw ? formatStakeTiers(stakeTiersRaw) : '—'}
+            </span>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center pt-2 border-t border-moss-dark/15 mb-3">
-          <span className="text-[10px] font-semibold text-bone">Total</span>
-          <span className={`text-[10px] font-mono font-semibold ${allocationOk ? 'text-moss-light' : 'text-torch-ember'}`}>
-            {allocationTotal.toFixed(1)}%
+        <div className="px-4 py-2.5 border-t border-torch-ember/15 bg-torch-ember/3">
+          <p className="text-[9px] text-bone-faint/70">
+            Changing these values affects player outcomes, wallet behavior, or jackpot funding. Edit in System Config / Jackpot above.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Card 2: Economy v1 Planning Model ──────────────────────────────── */}
+      <div className="mb-4 border border-moss-dark/25 bg-ritual-surface/15">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-moss-dark/20">
+          <div>
+            <span className="text-xs font-semibold text-bone">Economy v1 Planning Model</span>
+            <p className="text-[10px] text-bone-faint mt-0.5">Target allocation of total player stakes. Planning-only until connected to live logic.</p>
+          </div>
+          <span className="text-[8px] uppercase tracking-[0.12em] px-2 py-1 border border-bone-faint/25 text-bone-faint">
+            Planning only
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-moss-dark/15">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-bone-faint">Blended RTP Target</span>
-            <span className="text-[10px] font-mono text-bone">{getValue('blended_rtp_target').toFixed(1)}%</span>
+        {/* Allocation fields */}
+        <div>
+          {(['daily_streak_value_rate', 'jackpot_allocation_rate', 'saturday_pool_allocation_rate', 'sunday_pool_allocation_rate'] as const).map(renderPlanningField)}
+          {(['payment_processing_rate', 'fraud_risk_buffer_rate', 'affiliate_promo_budget_rate', 'target_gross_margin_rate'] as const).map(renderPlanningField)}
+        </div>
+
+        {/* Allocation total summary */}
+        <div className={`mx-4 mb-4 px-4 py-3 border ${allocationOk ? 'border-moss-dark/30 bg-moss-dark/10' : 'border-torch-ember/25 bg-torch-ember/5'}`}>
+          <div className="flex items-center gap-1.5 mb-2.5">
+            {allocationOk
+              ? <Check className="h-3 w-3 text-moss-light" strokeWidth={2.5} />
+              : <AlertTriangle className="h-3 w-3 text-torch-ember" strokeWidth={2} />
+            }
+            <span className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${allocationOk ? 'text-moss-light' : 'text-torch-ember'}`}>
+              {allocationOk ? 'Totals 100%' : `Totals ${allocationTotal.toFixed(1)}% — expected 100%`}
+            </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] text-bone-faint">Hard RTP Cap</span>
-            <span className="text-[10px] font-mono text-bone">{getValue('hard_rtp_cap').toFixed(1)}%</span>
+          <div className="grid grid-cols-4 gap-x-4 gap-y-1 mb-2">
+            {[
+              { key: 'daily_streak_value_rate',      label: 'Daily / Streak' },
+              { key: 'jackpot_allocation_rate',       label: 'Jackpot Target' },
+              { key: 'saturday_pool_allocation_rate', label: 'Saturday Pool' },
+              { key: 'sunday_pool_allocation_rate',   label: 'Sunday Pool' },
+              { key: 'payment_processing_rate',       label: 'Processing' },
+              { key: 'fraud_risk_buffer_rate',        label: 'Fraud / Risk' },
+              { key: 'affiliate_promo_budget_rate',   label: 'Affiliate / Promo' },
+              { key: 'target_gross_margin_rate',      label: 'Target Margin' },
+            ].map(({ key, label }) => (
+              <div key={key} className="flex flex-col">
+                <span className="text-[9px] text-bone-faint truncate">{label}</span>
+                <span className="text-[10px] font-mono text-bone">{getValue(key).toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-center pt-2 border-t border-moss-dark/15">
+            <span className="text-[10px] font-semibold text-bone">Total</span>
+            <span className={`text-[10px] font-mono font-semibold ${allocationOk ? 'text-moss-light' : 'text-torch-ember'}`}>
+              {allocationTotal.toFixed(1)}%
+            </span>
           </div>
         </div>
 
-        <p className="text-[9px] text-bone-faint/60 mt-3 leading-relaxed">
-          This is the Economy v1 planning model. These allocation rates describe the target distribution of total player
-          stakes across gameplay value, jackpot funding, weekend pools, operating costs, promo budget, and gross margin.
-          Most allocation rates are planning-only and do not affect live gameplay yet. Current live gameplay is controlled
-          separately by <span className="font-mono">survival_probability</span>, <span className="font-mono">stake_tiers</span>,
-          and <span className="font-mono">jackpot_contribution_rate</span>. Note: <span className="font-mono">jackpot_allocation_rate</span> is
-          the target jackpot share of total stakes. <span className="font-mono">jackpot_contribution_rate</span> is the live
-          percentage taken from losing stakes only. These are related, but not the same formula.
-        </p>
+        <div className="px-4 pb-3">
+          <p className="text-[9px] text-bone-faint/60 leading-relaxed">
+            Jackpot Target is a share of total stakes. Jackpot Contribution Rate is taken only from losing stakes. They are related, but not the same setting.
+          </p>
+        </div>
       </div>
 
-      {/* Live Jackpot Estimate panel */}
-      <LiveJackpotEstimate getValue={getValue} />
+      {/* ── Card 3: RTP & Live Mismatch Checks ─────────────────────────────── */}
+      <div className={`border ${jackpotInRange ? 'border-moss-dark/25 bg-ritual-surface/15' : 'border-torch-ember/25 bg-torch-ember/5'}`}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-moss-dark/20">
+          <div>
+            <span className="text-xs font-semibold text-bone">RTP & Live Mismatch Checks</span>
+            <p className="text-[10px] text-bone-faint mt-0.5">Read-only checks comparing planning targets with current live settings.</p>
+          </div>
+          <span className="text-[9px] text-bone-faint/60">Read-only</span>
+        </div>
+
+        {/* RTP figures */}
+        <div className="divide-y divide-moss-dark/15">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <span className="text-[11px] font-medium text-bone">Blended RTP Target</span>
+              <p className="text-[10px] text-bone-faint mt-0.5">{ECONOMY_HELPER['blended_rtp_target']}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm font-mono text-bone">{getValue('blended_rtp_target').toFixed(1)}%</span>
+              <SaveBtn saving={saving === 'blended_rtp_target'} saved={savedKey === 'blended_rtp_target'} onClick={() => onSave('blended_rtp_target')} />
+            </div>
+          </div>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <span className="text-[11px] font-medium text-bone">Hard RTP Cap</span>
+              <p className="text-[10px] text-bone-faint mt-0.5">{ECONOMY_HELPER['hard_rtp_cap']}</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm font-mono text-bone">{getValue('hard_rtp_cap').toFixed(1)}%</span>
+              <SaveBtn saving={saving === 'hard_rtp_cap'} saved={savedKey === 'hard_rtp_cap'} onClick={() => onSave('hard_rtp_cap')} />
+            </div>
+          </div>
+        </div>
+
+        {/* Live jackpot estimate */}
+        <div className={`mx-4 mb-4 mt-1 border px-4 py-3 ${jackpotInRange ? 'border-moss-dark/30 bg-moss-dark/10' : 'border-torch-ember/30 bg-torch-ember/8'}`}>
+          <div className="flex items-center gap-2 mb-3">
+            {jackpotInRange
+              ? <Check className="h-3.5 w-3.5 text-moss-light" strokeWidth={2.5} />
+              : <AlertTriangle className="h-3.5 w-3.5 text-torch-ember" strokeWidth={2} />
+            }
+            <span className={`text-[10px] font-semibold uppercase tracking-[0.08em] ${jackpotInRange ? 'text-moss-light' : 'text-torch-ember'}`}>
+              {jackpotInRange ? 'Live Jackpot Estimate — On Target' : 'Live Jackpot Estimate — Planning Mismatch'}
+            </span>
+          </div>
+
+          <div className="space-y-1.5 mb-2.5">
+            <div className="flex justify-between items-baseline gap-4">
+              <span className="text-[10px] text-bone-faint">Fail rate (1 − survival_probability)</span>
+              <span className="text-[10px] font-mono text-bone-faint">{(failRate * 100).toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between items-baseline gap-4">
+              <span className="text-[10px] text-bone-faint">Live jackpot rate from losing stakes (jackpot_contribution_rate)</span>
+              <span className="text-[10px] font-mono text-bone-faint">{(jackpotContribFrac * 100).toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between items-baseline gap-4">
+              <span className="text-[10px] text-bone">Estimated live jackpot share of total stakes</span>
+              <span className="text-[10px] font-mono text-bone">{estLiveJackpotShare.toFixed(2)}%</span>
+            </div>
+            <div className="flex justify-between items-baseline gap-4">
+              <span className="text-[10px] text-bone">Target jackpot allocation (jackpot_allocation_rate)</span>
+              <span className="text-[10px] font-mono text-bone">{targetJackpotShare.toFixed(1)}%</span>
+            </div>
+            <div className="flex justify-between items-center pt-1.5 border-t border-moss-dark/15">
+              <span className="text-[10px] font-semibold text-bone">Difference</span>
+              <span className={`text-[10px] font-mono font-semibold ${jackpotInRange ? 'text-moss-light' : 'text-torch-ember'}`}>
+                {difference >= 0 ? '+' : ''}{difference.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[9px] text-bone-faint/55 leading-relaxed">
+            Estimated jackpot share = fail rate × jackpot_contribution_rate. This compares the live losing-stake jackpot formula against the planning target.
+          </p>
+        </div>
+
+        {/* Bottom note */}
+        <div className="px-4 pb-4">
+          <p className="text-[9px] text-bone-faint/60 leading-relaxed">
+            Economy v1 is currently a planning model. Live gameplay is still controlled by survival_probability, stake_tiers, and jackpot_contribution_rate. Planning allocation rates do not affect player balances, outcomes, or pool funding until explicitly connected to live logic.
+          </p>
+        </div>
+      </div>
     </section>
-  );
-}
-
-// ── Live Jackpot Estimate ──────────────────────────────────────────────────────
-
-function LiveJackpotEstimate({ getValue }: { getValue: (key: string) => number }) {
-  // survival_probability is stored as a decimal (0.0–1.0), e.g. 0.5 = 50%
-  const survivalRaw        = getValue('survival_probability');
-  const survivalFrac       = survivalRaw > 1 ? survivalRaw / 100 : survivalRaw;
-  const failRate           = 1 - survivalFrac;
-
-  // jackpot_contribution_rate is stored as a decimal (0.0–1.0), e.g. 0.10 = 10%
-  const jackpotContribRaw  = getValue('jackpot_contribution_rate');
-  const jackpotContribFrac = jackpotContribRaw > 1 ? jackpotContribRaw / 100 : jackpotContribRaw;
-
-  const estLiveJackpotShare = failRate * jackpotContribFrac * 100;  // expressed as %
-  const targetJackpotShare  = getValue('jackpot_allocation_rate');   // stored as %, e.g. 6
-  const difference          = estLiveJackpotShare - targetJackpotShare;
-  const inRange             = Math.abs(difference) <= 0.25;
-
-  return (
-    <div className={`mt-3 border px-4 py-4 ${inRange ? 'border-moss-dark/30 bg-moss-dark/10' : 'border-torch-ember/30 bg-torch-ember/5'}`}>
-      <div className="flex items-center gap-2 mb-3">
-        {inRange
-          ? <Check className="h-3.5 w-3.5 text-moss-light" strokeWidth={2.5} />
-          : <AlertTriangle className="h-3.5 w-3.5 text-torch-ember" strokeWidth={2} />
-        }
-        <span className={`text-xs font-semibold tracking-[0.08em] uppercase ${inRange ? 'text-moss-light' : 'text-torch-ember'}`}>
-          {inRange ? 'Live Jackpot Estimate — On Target' : 'Live Jackpot Estimate — Planning Mismatch'}
-        </span>
-        <span className="text-[9px] text-bone-faint ml-auto">Read-only</span>
-      </div>
-
-      <div className="space-y-1.5 mb-3">
-        {([
-          { label: 'Fail rate (1 − survival_probability)',                           val: `${(failRate * 100).toFixed(1)}%`,           highlight: false },
-          { label: 'Live jackpot rate from losing stakes (jackpot_contribution_rate)', val: `${(jackpotContribFrac * 100).toFixed(1)}%`, highlight: false },
-          { label: 'Estimated live jackpot share of total stakes',                   val: `${estLiveJackpotShare.toFixed(2)}%`,         highlight: true  },
-          { label: 'Target jackpot allocation (jackpot_allocation_rate)',             val: `${targetJackpotShare.toFixed(1)}%`,          highlight: true  },
-        ] as const).map(({ label, val, highlight }) => (
-          <div key={label} className="flex justify-between items-baseline gap-4">
-            <span className="text-[10px] text-bone-faint">{label}</span>
-            <span className={`text-[10px] font-mono flex-shrink-0 ${highlight ? 'text-bone' : 'text-bone-faint'}`}>{val}</span>
-          </div>
-        ))}
-        <div className="flex justify-between items-center pt-1.5 border-t border-moss-dark/15">
-          <span className="text-[10px] font-semibold text-bone">Difference</span>
-          <span className={`text-[10px] font-mono font-semibold ${inRange ? 'text-moss-light' : 'text-torch-ember'}`}>
-            {difference >= 0 ? '+' : ''}{difference.toFixed(2)}%
-          </span>
-        </div>
-      </div>
-
-      <p className="text-[9px] text-bone-faint/55 leading-relaxed">
-        Estimated live jackpot share = fail rate × jackpot_contribution_rate. This is an approximation based on current
-        settings assuming a uniform stake mix. Actual share varies by tier distribution.
-      </p>
-    </div>
   );
 }
