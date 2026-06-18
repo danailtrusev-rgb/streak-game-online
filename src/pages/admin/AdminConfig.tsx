@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import {
   Settings, Bell, TrendingUp, Puzzle, BookOpen, Globe, HelpCircle,
-  Coins, ChevronRight, ArrowLeft, Key,
+  ChevronRight, ArrowLeft, Key,
 } from 'lucide-react';
-import AdminSettings from './AdminSettings';
+import AdminSettings, { type SettingsSection } from './AdminSettings';
 import AdminTranslations from './AdminTranslations';
 import AdminFAQ from './AdminFAQ';
 
@@ -77,7 +77,6 @@ const CARDS: ConfigCard[] = [
 ];
 
 // Subset of sections passed to AdminSettings to show only one section at a time
-type SettingsSection = 'system' | 'economy' | 'reminders' | 'integrations' | 'puzzle' | 'onboarding';
 
 export default function AdminConfig() {
   const [subPage, setSubPage] = useState<SubPage>(null);
@@ -107,7 +106,6 @@ export default function AdminConfig() {
       </SubPageWrapper>
     );
   }
-
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">

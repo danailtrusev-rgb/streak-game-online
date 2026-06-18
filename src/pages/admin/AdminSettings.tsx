@@ -25,6 +25,11 @@ const ONBOARDING_KEY = 'onboarding_slides';
 const REMINDER_KEYS = ['reminders_enabled', 'reminder_send_hour', 'reminder_channels', 'reminder_message'];
 const REMINDER_CHANNELS = ['email', 'sms', 'whatsapp', 'telegram', 'discord'] as const;
 
+const INTEGRATION_KEYS = [
+  'ghl_api_key', 'twilio_account_sid', 'twilio_auth_token', 'twilio_from_number',
+  'sendgrid_api_key', 'reminder_from_email',
+];
+
 // Economy v1 — now-live allocation settings (affect pot, jackpot, and pool behavior per play)
 const ECONOMY_LIVE_ALLOC_KEYS = [
   'daily_streak_value_rate',
@@ -205,6 +210,11 @@ function toJsonValue(raw: string, originalValue: unknown): unknown {
     if (raw === 'true') return true;
     if (raw === 'false') return false;
   }
+  // If no original value exists (new key), and raw looks like a plain string
+  // (not a JSON value), treat it as a string
+  if (originalValue === undefined || originalValue === null) {
+    try { return JSON.parse(raw); } catch { return raw; }
+  }
   try { return JSON.parse(raw); } catch { return raw; }
 }
 
@@ -262,6 +272,13 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
     try {
       const raw = editValues[key] ?? '';
       // Validate known constraints
+      if (key === 'reminder_send_hour') {
+        const v = parseInt(raw, 10);
+        if (isNaN(v) || v < 0 || v > 23) {
+          alert('Send hour must be between 0 and 23');
+          return;
+        }
+      }
       if (key === 'survival_probability' || key === 'daily_gate_survival_probability') {
         const v = parseFloat(raw);
         if (isNaN(v) || v < 0 || v > 0.6) {
@@ -315,6 +332,7 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
     (s) => !PUZZLE_KEYS.includes(s.key) && !JACKPOT_KEYS.includes(s.key) && s.key !== ONBOARDING_KEY
       && !(ALL_ECONOMY_KEYS as readonly string[]).includes(s.key)
       && !REMINDER_KEYS.includes(s.key)
+      && !INTEGRATION_KEYS.includes(s.key)
   );
 
   const show = (s: SettingsSection) => section === 'all' || section === s;
