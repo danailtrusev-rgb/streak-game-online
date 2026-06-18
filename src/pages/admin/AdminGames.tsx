@@ -81,11 +81,30 @@ export default function AdminGames() {
   return (
     <div className="space-y-3">
 
+      {/* Gate Scene tools — top of page */}
+      <div className="border border-moss-dark/20 bg-ritual-surface/10 px-3 py-3">
+        <div className="text-[9px] uppercase tracking-[0.18em] text-bone-faint mb-2.5">Gate Scenes</div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTool('scene_editor')}
+            className="flex items-center gap-2 border border-torch-ember/30 bg-torch-ember/5 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-torch-ember/80 hover:text-torch-ember hover:border-torch-ember/50 transition-colors"
+          >
+            <PenLine className="h-3.5 w-3.5" strokeWidth={1.5} /> Gate Scene Editor
+          </button>
+          <button
+            onClick={() => setTool('gate_preview')}
+            className="flex items-center gap-2 border border-moss-dark/25 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone hover:border-moss-dark/40 transition-colors"
+          >
+            <Layers className="h-3.5 w-3.5" strokeWidth={1.5} /> Gate Preview
+          </button>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2">
           <Gamepad2 className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />
-          <h2 className="text-sm font-semibold tracking-[0.1em] uppercase text-bone">Games</h2>
+          <h2 className="text-sm font-semibold tracking-[0.1em] uppercase text-bone">Game Catalog</h2>
           <span className="text-[10px] text-bone-dark">{games.length}</span>
         </div>
         {saveMsg && (
@@ -213,25 +232,6 @@ export default function AdminGames() {
           </div>
         );
       })}
-
-      {/* Tools row */}
-      <div className="pt-2 border-t border-moss-dark/15">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-bone-faint mb-2">Scene Tools</div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTool('gate_preview')}
-            className="flex items-center gap-2 border border-moss-dark/25 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone hover:border-moss-dark/40 transition-colors"
-          >
-            <Layers className="h-3.5 w-3.5" strokeWidth={1.5} /> Gate Preview
-          </button>
-          <button
-            onClick={() => setTool('scene_editor')}
-            className="flex items-center gap-2 border border-moss-dark/25 px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-bone-dark hover:text-bone hover:border-moss-dark/40 transition-colors"
-          >
-            <PenLine className="h-3.5 w-3.5" strokeWidth={1.5} /> Scene Editor
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

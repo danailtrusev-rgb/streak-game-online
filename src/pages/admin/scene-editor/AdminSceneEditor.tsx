@@ -14,7 +14,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   PenLine, Eye, Copy, Download, RotateCcw, ChevronDown, ChevronRight,
   Code, CheckCircle, Save, Globe, RefreshCw, Archive, AlertCircle,
-  Loader, Plus,
+  Loader, Plus, Search, X as XIcon,
 } from 'lucide-react';
 import type { SkullGateSceneConfig, SceneLayer, LayerType } from '../../../lib/types';
 import { DEFAULT_SKULL_GATE_SCENES } from '../../../lib/skullGateScenes';
@@ -214,6 +214,18 @@ export default function AdminSceneEditor() {
 
   // Active scene selection
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
+
+  // Search / filter for scene list
+  const [sceneSearch,  setSceneSearch]  = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'published' | 'draft' | 'archived'>('all');
+
+  // New gate scene create form
+  const [showCreateForm,  setShowCreateForm]  = useState(false);
+  const [createTitle,     setCreateTitle]     = useState('');
+  const [createSlug,      setCreateSlug]      = useState('');
+  const [createTemplate,  setCreateTemplate]  = useState<'choice_2' | 'choice_3' | 'ritual_roll'>('choice_2');
+  const [createError,     setCreateError]     = useState<string | null>(null);
+  const [creating,        setCreating]        = useState(false);
 
   // Working draft: local edits on top of the row's draft_config_json
   const [draft,      setDraft]      = useState<SkullGateSceneConfig | null>(null);
@@ -531,6 +543,41 @@ export default function AdminSceneEditor() {
     if (refreshed) setRows(refreshed);
   }, [activeRow, sceneApi]);
 
+  const handleCreateScene = useCallback(async () => {
+    if (!createTitle.trim() || !createSlug.trim()) {
+      setCreateError('Title and slug are required');
+      return;
+    }
+    if (!/^[a-z0-9_-]+$/.test(createSlug)) {
+      setCreateError('Slug must be lowercase letters, numbers, hyphens, or underscores');
+      return;
+    }
+    setCreating(true);
+    setCreateError(null);
+    const initialConfig: SkullGateSceneConfig = {
+      id:           createSlug,
+      slug:         createSlug,
+      title:        createTitle.trim(),
+      templateType: createTemplate,
+      layers:       [],
+    };
+    const result = await sceneApi.createScene(createSlug, createTitle.trim(), initialConfig);
+    setCreating(false);
+    if (!result) {
+      setCreateError(sceneApi.error || 'Failed to create scene');
+      return;
+    }
+    setShowCreateForm(false);
+    setCreateTitle('');
+    setCreateSlug('');
+    setCreateTemplate('choice_2');
+    const refreshed = await sceneApi.listScenes();
+    if (refreshed) {
+      setRows(refreshed);
+      setActiveRowId(result.id);
+    }
+  }, [createTitle, createSlug, createTemplate, sceneApi]);
+
   // ── Preview ──────────────────────────────────────────────────────────────────
 
   const handlePreviewChoice = useCallback((id: string) => { setPreviewChoice(id); setPreviewPhase('selected'); }, []);
@@ -615,7 +662,7 @@ export default function AdminSceneEditor() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <PenLine size={15} style={{ color: 'rgba(255,154,48,0.7)', flexShrink: 0 }} strokeWidth={1.5} />
           <span style={{ fontFamily: FF, fontSize: 13, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.72)' }}>
-            Scene Editor
+            Gate Scene Editor
           </span>
           {/* DB status */}
           <span style={{
@@ -784,7 +831,7 @@ export default function AdminSceneEditor() {
                   color: leftTab === t ? 'rgba(245,208,96,0.8)' : 'rgba(255,255,255,0.3)',
                 }}
               >
-                {t === 'scenes' ? `Scenes (${rows.length || 1})` : `Assets (${assetApi.assets.length})`}
+                {t === 'scenes' ? `Gate Scenes (${rows.length || 1})` : `Assets (${assetApi.assets.length})`}
               </button>
             ))}
           </div>
@@ -799,25 +846,179 @@ export default function AdminSceneEditor() {
           {/* Scene list */}
           {leftTab === 'scenes' && (
           <div style={{ borderBottom: '1px solid rgba(30,42,32,0.6)' }}>
-            <div>
-              {rows.length > 0
-                ? rows.map((row) => (
-                    <SceneListItem
-                      key={row.id}
-                      row={row}
-                      active={row.id === activeRowId}
-                      onClick={() => {
-                        if (isDirty && !window.confirm('Discard unsaved changes?')) return;
-                        setActiveRowId(row.id);
-                      }}
-                    />
-                  ))
-                : (
-                  <div style={{ padding: '6px 10px', fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.3)' }}>
-                    Using local fallback
-                  </div>
-                )
-              }
+            {/* Toolbar: New button */}
+            <div style={{ padding: '6px 8px', borderBottom: '1px solid rgba(30,42,32,0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button
+                onClick={() => { setShowCreateForm((v) => !v); setCreateError(null); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '3px 8px', fontSize: 9, fontFamily: UF,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  border: '1px solid rgba(245,208,96,0.35)',
+                  background: showCreateForm ? 'rgba(245,208,96,0.1)' : 'rgba(245,208,96,0.04)',
+                  color: 'rgba(245,208,96,0.75)', cursor: 'pointer',
+                }}
+              >
+                <Plus size={10} /> New Gate Scene
+              </button>
+            </div>
+
+            {/* Inline create form */}
+            {showCreateForm && (
+              <div style={{ padding: '8px 10px', borderBottom: '1px solid rgba(30,42,32,0.5)', background: 'rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input
+                  placeholder="Title"
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(40,55,42,0.5)',
+                    color: 'rgba(255,255,255,0.7)', fontFamily: UF, fontSize: 10,
+                    padding: '4px 7px', outline: 'none',
+                  }}
+                />
+                <input
+                  placeholder="slug (lowercase-hyphen)"
+                  value={createSlug}
+                  onChange={(e) => setCreateSlug(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '-'))}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(40,55,42,0.5)',
+                    color: 'rgba(255,255,255,0.55)', fontFamily: UF, fontSize: 10,
+                    padding: '4px 7px', outline: 'none',
+                  }}
+                />
+                <select
+                  value={createTemplate}
+                  onChange={(e) => setCreateTemplate(e.target.value as typeof createTemplate)}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(40,55,42,0.5)',
+                    color: 'rgba(255,255,255,0.55)', fontFamily: UF, fontSize: 10,
+                    padding: '4px 7px', outline: 'none',
+                  }}
+                >
+                  <option value="choice_2">choice_2</option>
+                  <option value="choice_3">choice_3</option>
+                  <option value="ritual_roll">ritual_roll</option>
+                </select>
+                {createError && (
+                  <div style={{ fontSize: 9, fontFamily: UF, color: 'rgba(200,60,60,0.8)' }}>{createError}</div>
+                )}
+                <div style={{ display: 'flex', gap: 5 }}>
+                  <button
+                    onClick={handleCreateScene}
+                    disabled={creating}
+                    style={{
+                      flex: 1, padding: '4px 0', fontSize: 9, fontFamily: UF,
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                      border: '1px solid rgba(120,190,80,0.4)',
+                      background: 'rgba(120,190,80,0.08)',
+                      color: 'rgba(150,220,100,0.85)', cursor: creating ? 'not-allowed' : 'pointer',
+                      opacity: creating ? 0.5 : 1,
+                    }}
+                  >
+                    {creating ? 'Creating…' : 'Create'}
+                  </button>
+                  <button
+                    onClick={() => { setShowCreateForm(false); setCreateError(null); setCreateTitle(''); setCreateSlug(''); }}
+                    style={{
+                      padding: '4px 10px', fontSize: 9, fontFamily: UF,
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                      border: '1px solid rgba(40,55,42,0.4)',
+                      background: 'transparent',
+                      color: 'rgba(255,255,255,0.35)', cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Search input */}
+            <div style={{ padding: '6px 8px', borderBottom: '1px solid rgba(30,42,32,0.4)' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={9} style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)', pointerEvents: 'none' }} />
+                <input
+                  placeholder="Search scenes…"
+                  value={sceneSearch}
+                  onChange={(e) => setSceneSearch(e.target.value)}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(40,55,42,0.4)',
+                    color: 'rgba(255,255,255,0.6)', fontFamily: UF, fontSize: 9,
+                    padding: '4px 22px 4px 22px', outline: 'none',
+                  }}
+                />
+                {sceneSearch && (
+                  <button
+                    onClick={() => setSceneSearch('')}
+                    style={{
+                      position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'rgba(255,255,255,0.3)', padding: 2,
+                    }}
+                  >
+                    <XIcon size={9} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Status filter chips */}
+            <div style={{ padding: '5px 8px', display: 'flex', gap: 3, flexWrap: 'wrap', borderBottom: '1px solid rgba(30,42,32,0.4)' }}>
+              {(['all', 'published', 'draft', 'archived'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setStatusFilter(f)}
+                  style={{
+                    padding: '2px 7px', fontSize: 8, fontFamily: UF,
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                    border: `1px solid ${statusFilter === f ? 'rgba(245,208,96,0.4)' : 'rgba(40,55,42,0.3)'}`,
+                    background: statusFilter === f ? 'rgba(245,208,96,0.07)' : 'transparent',
+                    color: statusFilter === f ? 'rgba(245,208,96,0.75)' : 'rgba(255,255,255,0.3)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {/* Scrollable scene list */}
+            <div style={{ maxHeight: 280, overflowY: 'auto', scrollbarWidth: 'thin' }}>
+              {(() => {
+                const filtered = rows.filter((row) => {
+                  const matchesSearch = !sceneSearch || row.title.toLowerCase().includes(sceneSearch.toLowerCase()) || row.slug.toLowerCase().includes(sceneSearch.toLowerCase());
+                  const matchesStatus = statusFilter === 'all' || row.status === statusFilter;
+                  return matchesSearch && matchesStatus;
+                });
+                if (filtered.length === 0 && rows.length > 0) {
+                  return (
+                    <div style={{ padding: '10px', fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+                      No scenes match
+                    </div>
+                  );
+                }
+                return filtered.length > 0
+                  ? filtered.map((row) => (
+                      <SceneListItem
+                        key={row.id}
+                        row={row}
+                        active={row.id === activeRowId}
+                        onClick={() => {
+                          if (isDirty && !window.confirm('Discard unsaved changes?')) return;
+                          setActiveRowId(row.id);
+                        }}
+                      />
+                    ))
+                  : (
+                    <div style={{ padding: '6px 10px', fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.3)' }}>
+                      Using local fallback
+                    </div>
+                  );
+              })()}
             </div>
           </div>
           )}
@@ -825,7 +1026,7 @@ export default function AdminSceneEditor() {
           {/* Scene settings — only when scenes tab active */}
           {leftTab === 'scenes' && (
           <CollapsibleSection
-            title={`Scene — ${scene.title}`}
+            title={`Gate Scene — ${scene.title}`}
             open={sceneSettingsOpen}
             onToggle={() => setSceneSettingsOpen((v) => !v)}
           >
