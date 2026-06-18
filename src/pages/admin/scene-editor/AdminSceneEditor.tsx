@@ -912,17 +912,47 @@ export default function AdminSceneEditor() {
               <div style={{ fontSize: 8, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.25)', marginBottom: 5 }}>
                 Assignment Config
               </div>
+              {/* Source-of-truth note */}
+              <div style={{ fontSize: 7.5, fontFamily: UF, color: 'rgba(245,208,96,0.38)', lineHeight: 1.5, marginBottom: 6, borderBottom: '1px solid rgba(40,55,42,0.35)', paddingBottom: 5 }}>
+                Assignment uses table Enabled + Status fields.<br />
+                Layer JSON controls visuals only.
+              </div>
+              {/* Enabled toggle */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.28)' }}>Enabled</span>
+                <button
+                  onClick={async () => {
+                    const next = !activeRow.enabled;
+                    const result = await sceneApi.setEnabled(activeRow.id, next);
+                    if (result?.success) {
+                      const refreshed = await sceneApi.listScenes();
+                      if (refreshed) setRows(refreshed);
+                    }
+                  }}
+                  style={{
+                    padding: '2px 8px', fontSize: 8, fontFamily: UF,
+                    letterSpacing: '0.1em', textTransform: 'uppercase',
+                    border: `1px solid ${activeRow.enabled ? 'rgba(120,200,90,0.45)' : 'rgba(180,40,40,0.35)'}`,
+                    background: activeRow.enabled ? 'rgba(120,200,90,0.1)' : 'rgba(180,40,40,0.07)',
+                    color: activeRow.enabled ? 'rgba(140,220,100,0.85)' : 'rgba(200,80,80,0.75)',
+                    cursor: 'pointer', transition: 'all 0.15s ease',
+                  }}
+                >
+                  {activeRow.enabled ? 'On — click to disable' : 'Off — click to enable'}
+                </button>
+              </div>
               {[
-                ['Enabled', activeRow.enabled ? 'Yes — live assignment on' : 'No — disabled'],
-                ['Weight',  String(activeRow.weight ?? 1)],
+                ['Status',   activeRow.status],
+                ['Template', activeRow.template_type],
+                ['Weight',   String(activeRow.weight ?? 1)],
                 ['Cooldown', `${activeRow.cooldown_days ?? 0}d`],
-                ['Streak', `${activeRow.min_streak ?? 0} – ${activeRow.max_streak ?? '∞'}`],
+                ['Streak',   `${activeRow.min_streak ?? 0} – ${activeRow.max_streak ?? '∞'}`],
                 ['Published config', activeRow.published_config_json ? 'Present' : 'None — publish first'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 8, fontFamily: UF, lineHeight: 1.8 }}>
                   <span style={{ color: 'rgba(255,255,255,0.28)' }}>{k}</span>
                   <span style={{
-                    color: k === 'Enabled' ? (activeRow.enabled ? 'rgba(120,200,90,0.75)' : 'rgba(255,255,255,0.35)')
+                    color: k === 'Status' ? (activeRow.status === 'published' ? 'rgba(120,200,90,0.75)' : activeRow.status === 'archived' ? 'rgba(200,60,60,0.7)' : 'rgba(200,175,80,0.65)')
                       : k === 'Published config' ? (activeRow.published_config_json ? 'rgba(120,200,90,0.75)' : 'rgba(200,175,80,0.65)')
                       : 'rgba(245,208,96,0.6)',
                   }}>

@@ -104,6 +104,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && path === "/skull-gate-scenes/revert")      return await handleRevertDraft(supabase, username, await req.json());
     if (req.method === "POST" && path === "/skull-gate-scenes/duplicate")   return await handleDuplicateScene(supabase, username, await req.json());
     if (req.method === "POST" && path === "/skull-gate-scenes/archive")     return await handleArchiveScene(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/skull-gate-scenes/set-enabled") return await handleSetSceneEnabled(supabase, username, await req.json());
 
     // ── Asset Library routes ─────────────────────────────────────────────────
     if (req.method === "GET"  && path === "/skull-gate-assets")             return await handleListAssets(supabase);
@@ -865,6 +866,32 @@ async function handleArchiveScene(
     admin_actor: actor,
     action: "archive_skull_gate_scene",
     payload_json: { id, slug: data.slug },
+  });
+  return jsonResponse({ success: true, scene: data });
+}
+
+async function handleSetSceneEnabled(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: { id: string; enabled: boolean },
+) {
+  const { id, enabled } = body;
+  if (!id) return errorResponse("Missing id");
+  if (typeof enabled !== "boolean") return errorResponse("enabled must be a boolean");
+
+  const { data, error } = await supabase
+    .from("skull_gate_scenes")
+    .update({ enabled })
+    .eq("id", id)
+    .select("id, slug, status, enabled")
+    .maybeSingle();
+  if (error) return errorResponse(error.message);
+  if (!data)  return errorResponse("Scene not found", 404);
+
+  await supabase.from("admin_audit_log").insert({
+    admin_actor: actor,
+    action: "set_skull_gate_scene_enabled",
+    payload_json: { id, slug: data.slug, enabled },
   });
   return jsonResponse({ success: true, scene: data });
 }

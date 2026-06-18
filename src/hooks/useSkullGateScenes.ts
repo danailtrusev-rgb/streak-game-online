@@ -157,6 +157,16 @@ export function useSkullGateScenes() {
     [request],
   );
 
+  // Set enabled — controls live assignment eligibility (table column, not JSON)
+  const setEnabled = useCallback(
+    (id: string, enabled: boolean) =>
+      request<{ success: boolean; scene: Partial<SkullGateSceneRow> }>(
+        '/skull-gate-scenes/set-enabled',
+        { method: 'POST', body: JSON.stringify({ id, enabled }) },
+      ),
+    [request],
+  );
+
   return {
     loading,
     error,
@@ -167,5 +177,6 @@ export function useSkullGateScenes() {
     duplicateScene,
     archiveScene,
     createScene,
+    setEnabled,
   };
 }
