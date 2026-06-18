@@ -335,7 +335,8 @@ export type SkullGateTemplateType =
   | 'reveal_tiles'
   | 'ritual_roll'
   | 'spin_reveal'
-  | 'swipe_reveal';
+  | 'swipe_reveal'
+  | 'sequence_reveal';
 
 export type LayerRole =
   | 'none'

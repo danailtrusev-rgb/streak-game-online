@@ -16,7 +16,7 @@ import {
   Code, CheckCircle, Save, Globe, RefreshCw, Archive, AlertCircle,
   Loader, Plus, Search, X as XIcon,
 } from 'lucide-react';
-import type { SkullGateSceneConfig, SceneLayer, LayerType } from '../../../lib/types';
+import type { SkullGateSceneConfig, SceneLayer, LayerType, SkullGateTemplateType } from '../../../lib/types';
 import { DEFAULT_SKULL_GATE_SCENES } from '../../../lib/skullGateScenes';
 import { useSkullGateScenes, type SkullGateSceneRow } from '../../../hooks/useSkullGateScenes';
 import { useSkullGateAssets } from '../../../hooks/useSkullGateAssets';
@@ -223,7 +223,7 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
   const [showCreateForm,  setShowCreateForm]  = useState(false);
   const [createTitle,     setCreateTitle]     = useState('');
   const [createSlug,      setCreateSlug]      = useState('');
-  const [createTemplate,  setCreateTemplate]  = useState<'choice_2' | 'choice_3' | 'ritual_roll'>('choice_2');
+  const [createTemplate,  setCreateTemplate]  = useState<SkullGateTemplateType>('choice_2');
   const [createError,     setCreateError]     = useState<string | null>(null);
   const [creating,        setCreating]        = useState(false);
 
@@ -901,6 +901,14 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
                   <option value="choice_2">choice_2</option>
                   <option value="choice_3">choice_3</option>
                   <option value="ritual_roll">ritual_roll</option>
+                  <option value="tap_reveal">tap_reveal</option>
+                  <option value="hold_reveal">hold_reveal</option>
+                  <option value="drag_to_target">drag_to_target</option>
+                  <option value="spin_reveal">spin_reveal</option>
+                  <option value="swipe_reveal">swipe_reveal</option>
+                  <option value="sequence_reveal">sequence_reveal</option>
+                  <option value="timed_tap">timed_tap</option>
+                  <option value="reveal_tiles">reveal_tiles</option>
                 </select>
                 {createError && (
                   <div style={{ fontSize: 11, fontFamily: UF, color: 'rgba(200,60,60,0.8)' }}>{createError}</div>
