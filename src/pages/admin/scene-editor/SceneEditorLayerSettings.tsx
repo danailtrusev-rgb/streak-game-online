@@ -347,9 +347,10 @@ export default function SceneEditorLayerSettings({ layer, onChange, assets = [] 
       {/* ── Visibility ── */}
       <SectionTitle>Visibility & Lock</SectionTitle>
       <Grid2>
-        <CheckField label="Visible"      value={layer.visible}  onChange={(v) => set('visible', v)} />
-        <CheckField label="Locked"       value={layer.locked}   onChange={(v) => set('locked', v)} />
-        <CheckField label="Mobile Safe"  value={layer.mobileSafeArea} onChange={(v) => set('mobileSafeArea', v)} />
+        <CheckField label="Visible"          value={layer.visible}         onChange={(v) => set('visible', v)} />
+        <CheckField label="Locked"           value={layer.locked}          onChange={(v) => set('locked', v)} />
+        <CheckField label="Mobile Safe"      value={layer.mobileSafeArea}  onChange={(v) => set('mobileSafeArea', v)} />
+        <CheckField label="Parallax / Sway"  value={layer.parallaxEnabled} onChange={(v) => set('parallaxEnabled', v)} />
       </Grid2>
 
       {/* ── Animation ── */}

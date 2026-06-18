@@ -24,7 +24,7 @@ export const USE_SCENE_BASED_SKULL_GATE = false;
  *
  * Set to true locally to test scene-based Torch Trial before going live.
  */
-export const DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW = false;
+export const DEV_FORCE_SCENE_BASED_SKULL_GATE_PREVIEW = true;
 
 export const MILESTONES = [3, 7, 14, 30] as const;
 

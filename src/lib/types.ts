@@ -463,6 +463,7 @@ export interface SceneLayer {
   doorAnimation?:    DoorAnimationConfig;
   effects?:          LayerEffectsConfig;
   mobileSafeArea?:   boolean;
+  parallaxEnabled?:  boolean;
 }
 
 export interface SkullGateSceneConfig {

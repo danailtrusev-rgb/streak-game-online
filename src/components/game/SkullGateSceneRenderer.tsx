@@ -147,6 +147,7 @@ function ProceduralEffect({
   layer, outcome, phase,
 }: { layer: SceneLayer; outcome: Outcome; phase: Phase }) {
   const isReveal = phase === 'revealing' || phase === 'done';
+  const animEnabled = layer.parallaxEnabled !== false;
 
   // Fireflies
   if (layer.role === 'particle_effect' || layer.effectPreset === 'fireflies') {
@@ -161,7 +162,7 @@ function ProceduralEffect({
 
   // Fog
   if (layer.role === 'atmosphere_effect' || layer.effectPreset === 'fog') {
-    const animCSS = animPresetToCSS(layer.animationPreset);
+    const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     return (
       <div
         aria-hidden="true"
@@ -186,7 +187,7 @@ function ProceduralEffect({
 
   // Gate glow
   if (layer.role === 'gate_glow' || layer.effectPreset === 'gate_glow') {
-    const animCSS = animPresetToCSS(layer.animationPreset);
+    const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     const glowColor = outcome === 'SURVIVE' && isReveal
       ? 'rgba(245,208,96,0.20)'
       : outcome === 'DIE' && isReveal
@@ -216,7 +217,7 @@ function ProceduralEffect({
 
   // Gate inner light
   if (layer.role === 'gate_inner_light' || layer.effectPreset === 'inner_light') {
-    const animCSS = animPresetToCSS(layer.animationPreset);
+    const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     const visible  = outcome === 'SURVIVE' && isReveal;
     const ilOp     = visible ? (layer.opacity ?? 0.65) : 0;
     return (
@@ -243,7 +244,7 @@ function ProceduralEffect({
 
   // Torch flame procedural fallback (no asset)
   if (layer.role === 'torch_flame' || layer.effectPreset === 'torch_fire') {
-    const animCSS = animPresetToCSS(layer.animationPreset);
+    const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     return (
       <div
         aria-hidden="true"
@@ -470,7 +471,9 @@ function ImageLayer({
   const doorStyle = isDoor ? getDoorStyle(layer, outcome, phase) : {};
 
   // Animation for torch flicker on image-based flames
-  const animCSS = layer.role === 'torch_flame' || layer.animationPreset === 'torch_flicker'
+  // Suppressed when parallaxEnabled is explicitly set to false
+  const animEnabled = layer.parallaxEnabled !== false;
+  const animCSS = animEnabled && (layer.role === 'torch_flame' || layer.animationPreset === 'torch_flicker')
     ? animPresetToCSS(layer.animationPreset)
     : undefined;
 

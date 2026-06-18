@@ -103,27 +103,30 @@ export default function SkullGateSceneChallenge({
   return (
     <div
       style={{
-        position:      'fixed',
-        inset:          0,
-        zIndex:         150,
-        background:    'rgba(2,5,3,0.96)',
-        opacity:        visible ? 1 : 0,
-        transition:    'opacity 0.4s ease',
-        overflow:      'hidden',
-        display:       'flex',
-        flexDirection: 'column',
-        alignItems:    'center',
+        position:       'fixed',
+        inset:           0,
+        zIndex:          150,
+        background:     'rgba(2,5,3,0.96)',
+        opacity:         visible ? 1 : 0,
+        transition:     'opacity 0.4s ease',
+        overflow:       'hidden',
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'center',
+        justifyContent: 'center',
       }}
     >
-      {/* 9:16-ish play area, max 480px wide, fills full height */}
+      {/* 9:16 play area — constrained by both width and height so it never distorts */}
       <div
         className="animate-scene-enter"
         style={{
           position:  'relative',
-          width:     '100%',
+          width:     'min(100%, calc(100vh * 9 / 16))',
           maxWidth:   480,
-          height:    '100%',
+          aspectRatio: '9 / 16',
+          alignSelf: 'center',
           overflow:  'hidden',
+          flexShrink: 0,
         }}
       >
         <SkullGateSceneRenderer

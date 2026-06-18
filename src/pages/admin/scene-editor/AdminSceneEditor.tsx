@@ -962,16 +962,19 @@ export default function AdminSceneEditor() {
             />
             {rightTab === 'layer_settings' && (
               <button
+                type="button"
                 onClick={() => setRightTab('layers')}
-                title="Close layer settings"
+                title="Back to layers"
                 style={{
-                  marginLeft: 'auto', padding: '5px 8px',
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.3)', fontSize: 14, lineHeight: 1,
-                  flexShrink: 0,
+                  marginLeft: 'auto', padding: '4px 10px',
+                  background: 'rgba(245,208,96,0.07)',
+                  border: '1px solid rgba(245,208,96,0.22)',
+                  cursor: 'pointer',
+                  color: 'rgba(245,208,96,0.65)', fontSize: 12, lineHeight: 1,
+                  flexShrink: 0, fontFamily: UF, letterSpacing: '0.1em',
                 }}
               >
-                ×
+                ← Layers
               </button>
             )}
           </div>
