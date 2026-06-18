@@ -46,6 +46,7 @@ interface Props {
   onMoveUp:        (id: string) => void;
   onMoveDown:      (id: string) => void;
   onReorder:       (draggedId: string, targetId: string) => void;
+  onUpdateZIndex:  (id: string, zIndex: number) => void;
   onDuplicate:     (id: string) => void;
   onDelete:        (id: string) => void;
   onAddLayer:      (type: LayerType) => void;
@@ -54,7 +55,7 @@ interface Props {
 export default function SceneEditorLayerList({
   layers, selectedId,
   onSelect, onOpenSettings, onToggleVisible, onToggleLocked,
-  onMoveUp, onMoveDown, onReorder, onDuplicate, onDelete, onAddLayer,
+  onMoveUp, onMoveDown, onReorder, onUpdateZIndex, onDuplicate, onDelete, onAddLayer,
 }: Props) {
   // highest z on top in list
   const sorted = [...layers].sort((a, b) => b.zIndex - a.zIndex);
@@ -62,6 +63,10 @@ export default function SceneEditorLayerList({
   // Drag-to-reorder state
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const draggingId = useRef<string | null>(null);
+
+  // Inline z-index editing
+  const [editingZId,  setEditingZId]  = useState<string | null>(null);
+  const [editingZVal, setEditingZVal] = useState<string>('');
 
   const handleDragStart = useCallback((e: React.DragEvent, id: string) => {
     draggingId.current = id;
@@ -87,6 +92,12 @@ export default function SceneEditorLayerList({
     setDragOverId(null);
   }, []);
 
+  const commitZEdit = useCallback((id: string) => {
+    const v = parseInt(editingZVal, 10);
+    if (!isNaN(v)) onUpdateZIndex(id, v);
+    setEditingZId(null);
+  }, [editingZVal, onUpdateZIndex]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {/* Header */}
@@ -108,6 +119,7 @@ export default function SceneEditorLayerList({
         {sorted.map((layer) => {
           const isSelected = layer.id === selectedId;
           const isDragOver = layer.id === dragOverId;
+          const isDragging = layer.id === draggingId.current;
           return (
             <div
               key={layer.id}
@@ -120,17 +132,16 @@ export default function SceneEditorLayerList({
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '5px 8px',
-                background: isDragOver
-                  ? 'rgba(245,208,96,0.12)'
-                  : isSelected
+                background: isSelected
                   ? 'rgba(245,208,96,0.08)'
                   : 'transparent',
                 borderLeft: `2px solid ${isSelected ? 'rgba(245,208,96,0.5)' : 'transparent'}`,
-                borderBottom: isDragOver
-                  ? '1px solid rgba(245,208,96,0.5)'
-                  : '1px solid rgba(30,40,32,0.5)',
+                // Drop indicator: amber top border when dragging over
+                borderTop: isDragOver ? '2px solid rgba(245,208,96,0.7)' : '2px solid transparent',
+                borderBottom: '1px solid rgba(30,40,32,0.5)',
                 cursor: 'pointer',
-                transition: 'background 0.1s ease',
+                opacity: isDragging ? 0.4 : 1,
+                transition: 'background 0.1s ease, border-top 0.05s ease',
               }}
             >
               {/* Drag handle */}
@@ -163,14 +174,44 @@ export default function SceneEditorLayerList({
                 </div>
               </div>
 
-              {/* z-index badge */}
-              <span style={{
-                fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.22)',
-                background: 'rgba(0,0,0,0.3)', padding: '1px 4px', borderRadius: 2,
-                flexShrink: 0,
-              }}>
-                {layer.zIndex}
-              </span>
+              {/* z-index badge — double-click to edit inline */}
+              {editingZId === layer.id ? (
+                <input
+                  type="number"
+                  value={editingZVal}
+                  autoFocus
+                  onChange={(e) => setEditingZVal(e.target.value)}
+                  onBlur={() => commitZEdit(layer.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter')  commitZEdit(layer.id);
+                    if (e.key === 'Escape') setEditingZId(null);
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    width: 36, fontSize: 8, fontFamily: UF, textAlign: 'right',
+                    background: 'rgba(245,208,96,0.12)', color: 'rgba(245,208,96,0.9)',
+                    border: '1px solid rgba(245,208,96,0.4)', padding: '1px 3px',
+                    outline: 'none', flexShrink: 0,
+                  }}
+                />
+              ) : (
+                <span
+                  title="Double-click to edit z-index"
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setEditingZId(layer.id);
+                    setEditingZVal(String(layer.zIndex));
+                  }}
+                  style={{
+                    fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.22)',
+                    background: 'rgba(0,0,0,0.3)', padding: '1px 4px', borderRadius: 2,
+                    flexShrink: 0, cursor: 'text', userSelect: 'none',
+                  }}
+                >
+                  {layer.zIndex}
+                </span>
+              )}
 
               {/* Visible toggle */}
               <button

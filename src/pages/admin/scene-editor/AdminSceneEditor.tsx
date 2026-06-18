@@ -30,7 +30,6 @@ import AdminAssetLibrary from './AdminAssetLibrary';
 
 type PreviewPhase   = 'idle' | 'selected' | 'revealing' | 'done';
 type PreviewOutcome = 'SURVIVE' | 'DIE' | null;
-type RightTab       = 'layers' | 'layer_settings';
 type CanvasMode     = 'editor' | 'preview';
 type LeftTab        = 'scenes' | 'assets';
 
@@ -228,7 +227,9 @@ export default function AdminSceneEditor() {
 
   // Layer/canvas state
   const [selectedLayerId,    setSelectedLayerId]    = useState<string | null>(null);
-  const [rightTab,           setRightTab]           = useState<RightTab>('layers');
+  // Multi-tab layer settings: ordered list of open layer IDs, null = Layers tab active
+  const [openLayerIds,       setOpenLayerIds]       = useState<string[]>([]);
+  const [activeLayerTabId,   setActiveLayerTabId]   = useState<string | null>(null);
   const [sceneSettingsOpen,  setSceneSettingsOpen]  = useState(false);
   const [previewControlsOpen, setPreviewControlsOpen] = useState(true);
 
@@ -278,6 +279,8 @@ export default function AdminSceneEditor() {
       setDraft({ ...activeRow.draft_config_json });
       setIsDirty(false);
       setSelectedLayerId(null);
+      setOpenLayerIds([]);
+      setActiveLayerTabId(null);
       setValidationErrors([]);
       setPublishErrors([]);
     } else if (!dbReady && DEFAULT_SKULL_GATE_SCENES.length > 0) {
@@ -360,18 +363,33 @@ export default function AdminSceneEditor() {
     if (!draft) return;
     updateLayers(draft.layers.filter((l) => l.id !== id));
     if (selectedLayerId === id) setSelectedLayerId(null);
+    setOpenLayerIds((prev) => {
+      const next = prev.filter((x) => x !== id);
+      setActiveLayerTabId((cur) => {
+        if (cur !== id) return cur;
+        const idx = prev.indexOf(id);
+        return next[idx] ?? next[idx - 1] ?? null;
+      });
+      return next;
+    });
   }, [draft, updateLayers, selectedLayerId]);
 
   const reorderLayer = useCallback((draggedId: string, targetId: string) => {
     if (!draft) return;
-    const dragged = draft.layers.find((l) => l.id === draggedId);
-    const target  = draft.layers.find((l) => l.id === targetId);
-    if (!dragged || !target) return;
-    // Swap zIndex values so dragged takes target's visual position
+    // Sort highest z first (matches visual list: top row = highest z)
+    const sorted = [...draft.layers].sort((a, b) => b.zIndex - a.zIndex);
+    const dragIdx = sorted.findIndex((l) => l.id === draggedId);
+    if (dragIdx === -1) return;
+    const [dragged] = sorted.splice(dragIdx, 1);
+    const targetIdx = sorted.findIndex((l) => l.id === targetId);
+    if (targetIdx === -1) return;
+    // Insert before target (target moves down one slot)
+    sorted.splice(targetIdx, 0, dragged);
+    // Reassign zIndex sequentially: position 0 (top) gets highest z
+    const n = sorted.length;
     updateLayers(draft.layers.map((l) => {
-      if (l.id === draggedId) return { ...l, zIndex: target.zIndex };
-      if (l.id === targetId)  return { ...l, zIndex: dragged.zIndex };
-      return l;
+      const idx = sorted.findIndex((s) => s.id === l.id);
+      return { ...l, zIndex: n - idx };
     }));
   }, [draft, updateLayers]);
 
@@ -380,8 +398,8 @@ export default function AdminSceneEditor() {
     const newLayer = makeNewLayer(type, draft.layers);
     updateLayers([...draft.layers, newLayer]);
     setSelectedLayerId(newLayer.id);
-    // Open settings immediately for newly added layer
-    setRightTab('layer_settings');
+    setOpenLayerIds((prev) => prev.includes(newLayer.id) ? prev : [...prev, newLayer.id]);
+    setActiveLayerTabId(newLayer.id);
   }, [draft, updateLayers]);
 
   const handleSelectLayer = useCallback((id: string | null) => {
@@ -391,7 +409,21 @@ export default function AdminSceneEditor() {
 
   const handleOpenLayerSettings = useCallback((id: string) => {
     setSelectedLayerId(id);
-    setRightTab('layer_settings');
+    setOpenLayerIds((prev) => prev.includes(id) ? prev : [...prev, id]);
+    setActiveLayerTabId(id);
+  }, []);
+
+  const closeLayerTab = useCallback((id: string) => {
+    setOpenLayerIds((prev) => {
+      const next = prev.filter((x) => x !== id);
+      setActiveLayerTabId((cur) => {
+        if (cur !== id) return cur;
+        // Closed the active tab — move to adjacent or back to Layers
+        const idx = prev.indexOf(id);
+        return next[idx] ?? next[idx - 1] ?? null;
+      });
+      return next;
+    });
   }, []);
 
   // ── DB operations ────────────────────────────────────────────────────────────
@@ -946,40 +978,84 @@ export default function AdminSceneEditor() {
           </div>
         </div>
 
-        {/* ── Right: Layer list + settings ── */}
+        {/* ── Right: Layer list + settings tabs ── */}
         <div style={{
           background: 'rgba(11,15,12,0.85)',
           border: '1px solid rgba(40,55,42,0.4)',
           display: 'flex', flexDirection: 'column',
           maxHeight: 700, minHeight: 400,
         }}>
-          <div style={{ display: 'flex', gap: 0, flexShrink: 0, borderBottom: '1px solid rgba(40,55,42,0.4)', alignItems: 'center' }}>
-            <TabBtn label="Layers" active={rightTab === 'layers'} onClick={() => setRightTab('layers')} />
-            <TabBtn
-              label={selectedLayer ? `Layer: ${selectedLayer.name.slice(0, 12)}` : 'Layer ×'}
-              active={rightTab === 'layer_settings'}
-              onClick={() => selectedLayer && setRightTab('layer_settings')}
-            />
-            {rightTab === 'layer_settings' && (
-              <button
-                type="button"
-                onClick={() => setRightTab('layers')}
-                title="Back to layers"
-                style={{
-                  marginLeft: 'auto', padding: '4px 10px',
-                  background: 'rgba(245,208,96,0.07)',
-                  border: '1px solid rgba(245,208,96,0.22)',
-                  cursor: 'pointer',
-                  color: 'rgba(245,208,96,0.65)', fontSize: 12, lineHeight: 1,
-                  flexShrink: 0, fontFamily: UF, letterSpacing: '0.1em',
-                }}
-              >
-                ← Layers
-              </button>
-            )}
+          {/* Tab bar — scrollable if many tabs open */}
+          <div style={{
+            display: 'flex', flexShrink: 0, overflowX: 'auto',
+            borderBottom: '1px solid rgba(40,55,42,0.4)',
+            scrollbarWidth: 'none',
+          }}>
+            {/* Layers tab */}
+            <button
+              onClick={() => setActiveLayerTabId(null)}
+              style={{
+                padding: '5px 10px', fontSize: 9, fontFamily: UF,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                border: `1px solid ${activeLayerTabId === null ? 'rgba(245,208,96,0.4)' : 'rgba(40,55,42,0.35)'}`,
+                borderBottom: 'none',
+                background: activeLayerTabId === null ? 'rgba(245,208,96,0.08)' : 'transparent',
+                color: activeLayerTabId === null ? '#F5D060' : 'rgba(255,255,255,0.38)',
+                cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              Layers
+            </button>
+
+            {/* Open layer tabs */}
+            {openLayerIds.map((id) => {
+              const tabLayer = scene.layers.find((l) => l.id === id);
+              if (!tabLayer) return null;
+              const isActive = activeLayerTabId === id;
+              return (
+                <div
+                  key={id}
+                  style={{
+                    display: 'flex', alignItems: 'center', flexShrink: 0,
+                    border: `1px solid ${isActive ? 'rgba(245,208,96,0.4)' : 'rgba(40,55,42,0.35)'}`,
+                    borderBottom: 'none',
+                    background: isActive ? 'rgba(245,208,96,0.08)' : 'transparent',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <button
+                    onClick={() => { setActiveLayerTabId(id); setSelectedLayerId(id); }}
+                    title={tabLayer.name}
+                    style={{
+                      padding: '5px 8px', fontSize: 9, fontFamily: UF,
+                      letterSpacing: '0.12em', textTransform: 'uppercase',
+                      background: 'transparent', border: 'none', cursor: 'pointer',
+                      color: isActive ? '#F5D060' : 'rgba(255,255,255,0.38)',
+                      whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {tabLayer.name.slice(0, 12)}
+                  </button>
+                  <button
+                    onClick={() => closeLayerTab(id)}
+                    title="Close tab"
+                    style={{
+                      padding: '3px 5px', background: 'transparent', border: 'none',
+                      cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
+                      fontSize: 12, lineHeight: 1, flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(245,208,96,0.7)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)'; }}
+                  >
+                    ×
+                  </button>
+                </div>
+              );
+            })}
           </div>
 
-          {rightTab === 'layers' && (
+          {activeLayerTabId === null && (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <SceneEditorLayerList
                 layers={scene.layers}
@@ -991,6 +1067,10 @@ export default function AdminSceneEditor() {
                 onMoveUp={moveLayerUp}
                 onMoveDown={moveLayerDown}
                 onReorder={reorderLayer}
+                onUpdateZIndex={(id, z) => {
+                  const layer = scene.layers.find((l) => l.id === id);
+                  if (layer) setLayerField({ ...layer, zIndex: z });
+                }}
                 onDuplicate={duplicateLayer}
                 onDelete={deleteLayer}
                 onAddLayer={addLayer}
@@ -998,17 +1078,19 @@ export default function AdminSceneEditor() {
             </div>
           )}
 
-          {rightTab === 'layer_settings' && selectedLayer && (
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-              <SceneEditorLayerSettings layer={selectedLayer} onChange={setLayerField} assets={assetApi.assets} />
-            </div>
-          )}
-
-          {rightTab === 'layer_settings' && !selectedLayer && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: 16 }}>
-              Click a layer on the canvas or select from the Layers tab.
-            </div>
-          )}
+          {activeLayerTabId !== null && (() => {
+            const tabLayer = scene.layers.find((l) => l.id === activeLayerTabId);
+            if (!tabLayer) return (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.25)', textAlign: 'center', padding: 16 }}>
+                Layer no longer exists. Close this tab.
+              </div>
+            );
+            return (
+              <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                <SceneEditorLayerSettings layer={tabLayer} onChange={setLayerField} assets={assetApi.assets} />
+              </div>
+            );
+          })()}
         </div>
       </div>
 
