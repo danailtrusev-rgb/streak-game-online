@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -19,6 +19,9 @@ interface OnboardingSlide {
 const PUZZLE_KEYS    = ['daily_puzzle_question', 'daily_puzzle_answer', 'daily_puzzle_hint'];
 const JACKPOT_KEYS   = ['jackpot_contribution_rate'];
 const ONBOARDING_KEY = 'onboarding_slides';
+
+const REMINDER_KEYS = ['reminders_enabled', 'reminder_send_hour', 'reminder_channels', 'reminder_message'];
+const REMINDER_CHANNELS = ['email', 'sms', 'whatsapp', 'telegram', 'discord'] as const;
 
 // Economy v1 — now-live allocation settings (affect pot, jackpot, and pool behavior per play)
 const ECONOMY_LIVE_ALLOC_KEYS = [
@@ -305,9 +308,11 @@ export default function AdminSettings() {
   const puzzleSettings  = settings.filter((s) => PUZZLE_KEYS.includes(s.key));
   const jackpotSettings = settings.filter((s) => JACKPOT_KEYS.includes(s.key));
   const economySettings = settings.filter((s) => (ALL_ECONOMY_KEYS as readonly string[]).includes(s.key));
+  const reminderSettings = settings.filter((s) => REMINDER_KEYS.includes(s.key));
   const otherSettings   = settings.filter(
     (s) => !PUZZLE_KEYS.includes(s.key) && !JACKPOT_KEYS.includes(s.key) && s.key !== ONBOARDING_KEY
       && !(ALL_ECONOMY_KEYS as readonly string[]).includes(s.key)
+      && !REMINDER_KEYS.includes(s.key)
   );
 
   return (
@@ -393,8 +398,17 @@ export default function AdminSettings() {
         </section>
       )}
 
-      {/* ── Jackpot ───────────────────────────────────────────────────────── */}
-      {jackpotSettings.length > 0 && (
+      {/* ── Reminders ────────────────────────────────────────────────────── */}
+      <RemindersSection
+        settings={reminderSettings}
+        editValues={editValues}
+        setEditValues={setEditValues}
+        saving={saving}
+        savedKey={savedKey}
+        onSave={handleSave}
+      />
+
+      {/* ── Jackpot ───────────────────────────────────────────────────────── */}      {jackpotSettings.length > 0 && (
         <section>
           <SectionHeader icon={<Coins className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Jackpot" />
           <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
@@ -552,6 +566,195 @@ export default function AdminSettings() {
         onSave={handleSave}
       />
     </div>
+  );
+}
+
+// ── Reminders Section ─────────────────────────────────────────────────────────
+
+interface RemindersSectionProps {
+  settings: SettingRow[];
+  editValues: Record<string, string>;
+  setEditValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  saving: string | null;
+  savedKey: string | null;
+  onSave: (key: string) => Promise<void>;
+}
+
+function RemindersSection({ settings, editValues, setEditValues, saving, savedKey, onSave }: RemindersSectionProps) {
+  if (settings.length === 0) return null;
+
+  const enabled = editValues['reminders_enabled'] === 'true';
+
+  const activeChannels: string[] = (() => {
+    try { return JSON.parse(editValues['reminder_channels'] ?? '[]'); } catch { return []; }
+  })();
+
+  const toggleChannel = (ch: string) => {
+    const next = activeChannels.includes(ch)
+      ? activeChannels.filter((c) => c !== ch)
+      : [...activeChannels, ch];
+    setEditValues((p) => ({ ...p, reminder_channels: JSON.stringify(next) }));
+  };
+
+  return (
+    <section>
+      <SectionHeader icon={<Bell className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Reminders" />
+      <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
+
+        {/* Master toggle */}
+        <div className="px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-medium text-bone">Reminders Enabled</span>
+                <span className="text-[9px] font-mono text-bone-faint">reminders_enabled</span>
+              </div>
+              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+                Master switch. When off, no reminders are dispatched regardless of other settings.
+              </p>
+              <div className="flex gap-2">
+                {['true', 'false'].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setEditValues((p) => ({ ...p, reminders_enabled: val }))}
+                    className={`px-4 py-1.5 text-xs border transition-colors ${
+                      editValues['reminders_enabled'] === val
+                        ? val === 'true'
+                          ? 'border-moss-light/50 bg-moss-dark/30 text-moss-light'
+                          : 'border-death-red/40 bg-death-dim/20 text-death-glow'
+                        : 'border-moss-dark/25 text-bone-dark hover:text-bone'
+                    }`}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="pt-6 flex-shrink-0">
+              <SaveBtn
+                saving={saving === 'reminders_enabled'}
+                saved={savedKey === 'reminders_enabled'}
+                onClick={() => onSave('reminders_enabled')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Send hour */}
+        <div className={`px-4 py-3 transition-opacity ${!enabled ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-medium text-bone">Send Hour (UTC)</span>
+                <span className="text-[9px] font-mono text-bone-faint">reminder_send_hour</span>
+              </div>
+              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+                Hour of day (0–23 UTC) when the daily reminder job fires. E.g. 20 = 8pm UTC.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  step="1"
+                  value={editValues['reminder_send_hour'] ?? '20'}
+                  onChange={(e) => setEditValues((p) => ({ ...p, reminder_send_hour: e.target.value }))}
+                  className="ritual-input w-24 font-mono text-xs"
+                  onKeyDown={(e) => e.key === 'Enter' && onSave('reminder_send_hour')}
+                />
+                <span className="text-[10px] text-bone-faint">
+                  {(() => {
+                    const h = parseInt(editValues['reminder_send_hour'] ?? '20');
+                    if (isNaN(h)) return '';
+                    return `${h.toString().padStart(2, '0')}:00 UTC`;
+                  })()}
+                </span>
+              </div>
+            </div>
+            <div className="pt-6 flex-shrink-0">
+              <SaveBtn
+                saving={saving === 'reminder_send_hour'}
+                saved={savedKey === 'reminder_send_hour'}
+                onClick={() => onSave('reminder_send_hour')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Channels */}
+        <div className={`px-4 py-3 transition-opacity ${!enabled ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-medium text-bone">Active Channels</span>
+                <span className="text-[9px] font-mono text-bone-faint">reminder_channels</span>
+              </div>
+              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+                Channels used to dispatch reminders. Only verified player preferences on these channels will receive messages.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-1">
+                {REMINDER_CHANNELS.map((ch) => {
+                  const active = activeChannels.includes(ch);
+                  return (
+                    <button
+                      key={ch}
+                      onClick={() => toggleChannel(ch)}
+                      className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] border transition-colors ${
+                        active
+                          ? 'border-moss-light/50 bg-moss-dark/30 text-moss-light'
+                          : 'border-moss-dark/25 text-bone-dark hover:text-bone'
+                      }`}
+                    >
+                      {ch}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="pt-6 flex-shrink-0">
+              <SaveBtn
+                saving={saving === 'reminder_channels'}
+                saved={savedKey === 'reminder_channels'}
+                onClick={() => onSave('reminder_channels')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Message template */}
+        <div className={`px-4 py-3 transition-opacity ${!enabled ? 'opacity-40 pointer-events-none' : ''}`}>
+          <div className="flex items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-medium text-bone">Message Template</span>
+                <span className="text-[9px] font-mono text-bone-faint">reminder_message</span>
+              </div>
+              <p className="text-[10px] text-bone-faint leading-relaxed mb-2">
+                Body text sent in the reminder. Supports <span className="font-mono">{'{username}'}</span> placeholder.
+              </p>
+              <textarea
+                value={editValues['reminder_message'] ?? ''}
+                onChange={(e) => setEditValues((p) => ({ ...p, reminder_message: e.target.value }))}
+                className="ritual-input w-full text-xs resize-y"
+                rows={3}
+                placeholder="Don't forget — today's game is still open..."
+              />
+              <p className="mt-1 text-[9px] text-bone-faint/60">
+                {(editValues['reminder_message'] ?? '').length} characters
+              </p>
+            </div>
+            <div className="pt-6 flex-shrink-0">
+              <SaveBtn
+                saving={saving === 'reminder_message'}
+                saved={savedKey === 'reminder_message'}
+                onClick={() => onSave('reminder_message')}
+              />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
   );
 }
 
