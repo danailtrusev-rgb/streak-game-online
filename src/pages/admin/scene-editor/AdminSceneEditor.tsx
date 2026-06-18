@@ -200,7 +200,7 @@ function SceneListItem({ row, active, onClick }: {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function AdminSceneEditor() {
+export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: string } = {}) {
   const sceneApi  = useSkullGateScenes();
   const assetApi  = useSkullGateAssets();
 
@@ -267,7 +267,7 @@ export default function AdminSceneEditor() {
       setDbReady(true);
       setDbError(null);
       // Auto-select first scene if none selected
-      setActiveRowId((prev) => prev ?? data[0].id);
+      setActiveRowId((prev) => initialSceneId ?? prev ?? data[0].id);
     } else if (data && data.length === 0) {
       // DB empty — use local fallback
       setDbReady(false);

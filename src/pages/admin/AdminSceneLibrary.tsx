@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Layers, ToggleLeft, ToggleRight, Archive, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Layers, ToggleLeft, ToggleRight, Archive, Trash2, RefreshCw, AlertTriangle, PenLine } from 'lucide-react';
 import { useSkullGateScenes, type SkullGateSceneRow } from '../../hooks/useSkullGateScenes';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -23,7 +23,7 @@ function statusBg(status: SkullGateSceneRow['status']) {
   return 'border-torch-orange/30 text-torch-ember';
 }
 
-export default function AdminSceneLibrary() {
+export default function AdminSceneLibrary({ onEdit }: { onEdit?: (sceneId: string) => void } = {}) {
   const api = useSkullGateScenes();
   const [rows,    setRows]    = useState<SkullGateSceneRow[]>([]);
   const [view,    setView]    = useState<View>('active');
@@ -146,7 +146,17 @@ export default function AdminSceneLibrary() {
                   <tr key={row.id} className="border-b border-moss-dark/15 hover:bg-ritual-surface/20 transition-colors">
                     {/* Title */}
                     <td className="px-3 py-3">
-                      <div className="text-[13px] font-medium text-bone max-w-[180px] truncate">{row.title}</div>
+                      {onEdit ? (
+                        <button
+                          onClick={() => onEdit(row.id)}
+                          className="text-[13px] font-medium text-bone hover:text-torch-ember transition-colors max-w-[180px] truncate block text-left"
+                          title="Edit scene"
+                        >
+                          {row.title}
+                        </button>
+                      ) : (
+                        <div className="text-[13px] font-medium text-bone max-w-[180px] truncate">{row.title}</div>
+                      )}
                     </td>
                     {/* Slug */}
                     <td className="px-3 py-3">
@@ -194,6 +204,17 @@ export default function AdminSceneLibrary() {
                     {/* Actions */}
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
+                        {onEdit && view === 'active' && (
+                          <button
+                            onClick={() => onEdit(row.id)}
+                            disabled={!!isActioning}
+                            className="flex items-center gap-1 text-[11px] uppercase tracking-[0.08em] text-bone-dark hover:text-torch-ember transition-colors disabled:opacity-40"
+                            title="Edit scene"
+                          >
+                            <PenLine className="h-3 w-3" strokeWidth={1.5} />
+                            Edit
+                          </button>
+                        )}
                         {view === 'active' && (
                           <button
                             onClick={() => handleArchive(row)}

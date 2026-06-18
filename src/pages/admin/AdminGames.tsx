@@ -22,6 +22,7 @@ export default function AdminGames() {
   const [saving,      setSaving]     = useState<string | null>(null);
   const [saveMsg,     setSaveMsg]    = useState<string | null>(null);
   const [tool,        setTool]       = useState<GamesTool>(null);
+  const [sceneEditorInitialId, setSceneEditorInitialId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     fetchGames().then((data) => { if (data) setGames(data); });
@@ -74,7 +75,7 @@ export default function AdminGames() {
         <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
           <ArrowLeft className="h-3 w-3" /> Games
         </button>
-        <AdminSceneEditor />
+        <AdminSceneEditor initialSceneId={sceneEditorInitialId} />
       </div>
     );
   }
@@ -85,7 +86,7 @@ export default function AdminGames() {
         <button onClick={() => setTool(null)} className="flex items-center gap-1.5 text-[12px] uppercase tracking-[0.12em] text-bone-dark hover:text-bone-muted transition-colors">
           <ArrowLeft className="h-3 w-3" /> Games
         </button>
-        <AdminSceneLibrary />
+        <AdminSceneLibrary onEdit={(id) => { setSceneEditorInitialId(id); setTool('scene_editor'); }} />
       </div>
     );
   }
