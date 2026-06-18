@@ -82,6 +82,7 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && path === "/settings/update") return await handleUpdateSetting(supabase, username, await req.json());
     if (req.method === "GET" && path === "/audit-log") return await handleAuditLog(supabase);
     if (req.method === "GET" && path === "/games") return await handleGetGames(supabase);
+    if (req.method === "POST" && path === "/games/create") return await handleCreateGame(supabase, username, await req.json());
     if (req.method === "POST" && path === "/games/update") return await handleUpdateGame(supabase, username, await req.json());
     if (req.method === "GET" && path === "/qualification-rules") return await handleGetQualRules(supabase);
     if (req.method === "POST" && path === "/qualification-rules/update") return await handleUpdateQualRule(supabase, username, await req.json());
@@ -427,6 +428,54 @@ async function handleGetGames(supabase: ReturnType<typeof createClient>) {
   const { data, error } = await supabase.from("games").select("*").order("sort_order");
   if (error) return errorResponse(error.message);
   return jsonResponse(data || []);
+}
+
+async function handleCreateGame(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: {
+    game_id: string; name: string; description?: string; category?: string;
+    launch_state?: string; sort_order?: number;
+    points_on_play?: number; points_on_win?: number; qualification_enabled?: boolean;
+  },
+) {
+  const { game_id, name, description, category, launch_state, sort_order, points_on_play, points_on_win, qualification_enabled } = body;
+  if (!game_id || !/^[a-z0-9_]+$/.test(game_id))
+    return errorResponse("game_id must be lowercase letters, numbers, and underscores only");
+  if (!name) return errorResponse("Missing name");
+
+  const { data: existing } = await supabase.from("games").select("game_id").eq("game_id", game_id).maybeSingle();
+  if (existing) return errorResponse("A game with this ID already exists");
+
+  const { error: insertError } = await supabase.from("games").insert({
+    game_id,
+    name,
+    description: description ?? "",
+    status: "coming_soon",
+    icon: "gamepad",
+    sort_order: sort_order ?? 99,
+    category: category ?? "daily",
+  });
+  if (insertError) return errorResponse(insertError.message);
+
+  await supabase.rpc("update_game_fields", {
+    p_game_id:               game_id,
+    p_launch_state:          launch_state          ?? "coming_soon",
+    p_category:              category              ?? "daily",
+    p_points_on_play:        points_on_play        ?? 0,
+    p_points_on_win:         points_on_win         ?? 0,
+    p_sort_order:            sort_order            ?? 99,
+    p_qualification_enabled: qualification_enabled ?? false,
+  });
+
+  await supabase.from("admin_audit_log").insert({
+    admin_actor: actor,
+    action: "create_game",
+    payload_json: { game_id, name, category: category ?? "daily" },
+  });
+
+  const { data } = await supabase.from("games").select("*").eq("game_id", game_id).maybeSingle();
+  return jsonResponse({ success: true, game: data });
 }
 
 async function handleUpdateGame(supabase: ReturnType<typeof createClient>, actor: string, body: { game_id: string; [key: string]: unknown }) {

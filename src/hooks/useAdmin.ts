@@ -187,6 +187,19 @@ export function useAdmin() {
 
   const fetchGames = useCallback(() => adminFetch<GameModule[]>('/games'), [adminFetch]);
 
+  const createGame = useCallback(
+    (fields: {
+      game_id: string; name: string; description?: string; category?: string;
+      launch_state?: string; sort_order?: number;
+      points_on_play?: number; points_on_win?: number; qualification_enabled?: boolean;
+    }) =>
+      adminFetch<{ success: boolean; game: GameModule }>('/games/create', {
+        method: 'POST',
+        body: JSON.stringify(fields),
+      }),
+    [adminFetch],
+  );
+
   const updateGame = useCallback(
     (gameId: string, fields: Partial<GameModule>) =>
       adminFetch('/games/update', {
@@ -294,6 +307,7 @@ export function useAdmin() {
     fetchSettings,
     fetchAuditLog,
     fetchGames,
+    createGame,
     updateGame,
     fetchQualRules,
     updateQualRule,
