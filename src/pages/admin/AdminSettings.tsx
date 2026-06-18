@@ -213,15 +213,16 @@ function SaveBtn({ saving, saved, onClick }: { saving: boolean; saved: boolean; 
     <button
       onClick={onClick}
       disabled={saving}
-      className="jungle-button-secondary flex items-center justify-center w-8 h-8 flex-shrink-0"
+      className="jungle-button-secondary flex items-center justify-center flex-shrink-0"
+      style={{ width: 41, height: 41, padding: 0 }}
       title="Save"
     >
       {saving ? (
         <LoadingSpinner size="sm" />
       ) : saved ? (
-        <Check className="h-3.5 w-3.5 text-moss-light" strokeWidth={2.5} />
+        <Check className="h-4 w-4 text-moss-light" strokeWidth={2.5} />
       ) : (
-        <Save className="h-3.5 w-3.5" />
+        <Save className="h-4 w-4 text-bone" strokeWidth={2} />
       )}
     </button>
   );
