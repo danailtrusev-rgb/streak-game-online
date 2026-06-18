@@ -1,19 +1,15 @@
-// Scene Editor Canvas — Prompt 22
+// Scene Editor Canvas
 //
 // Wraps SkullGateSceneRenderer with an editor overlay for:
 //   - Direct canvas layer selection (click)
-//   - Drag-to-move (pointer events)
+//   - Drag-to-move (pointer events, stable refs — no drag-stuck bug)
 //   - Resize handles (8-point, corner + edge)
-//   - Editor-only outlines
-//   - Keyboard nudge (handled by parent via ref)
-//
-// Only active in Editor mode. In Preview mode this component renders the renderer
-// directly with no overlay.
-//
-// Does NOT touch SkullGateSceneRenderer or live gameplay code.
+//   - Anchor/unit-aware drag & resize via bounding-box approach
+//   - Editor-only outlines + keyboard nudge
 
 import { useRef, useCallback, useEffect } from 'react';
 import type { SkullGateSceneConfig, SceneLayer } from '../../../lib/types';
+import { resolveLayerCSS, layerToBBox, bboxToLayer } from '../../../lib/layerLayout';
 import SkullGateSceneRenderer from '../../../components/game/SkullGateSceneRenderer';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -34,7 +30,7 @@ const HANDLE_CURSOR: Record<HandlePos, string> = {
   sw: 'sw-resize', s: 's-resize', se: 'se-resize',
 };
 
-// Anchor % for each handle (how far from top-left of bounding box)
+// Anchor % for each handle (0–100, relative to bounding box)
 const HANDLE_ANCHOR: Record<HandlePos, [number, number]> = {
   nw: [0, 0],   n: [50, 0],   ne: [100, 0],
   w:  [0, 50],                e:  [100, 50],
@@ -42,29 +38,18 @@ const HANDLE_ANCHOR: Record<HandlePos, [number, number]> = {
 };
 
 export interface SceneEditorCanvasProps {
-  // Scene data
   sceneConfig:      SkullGateSceneConfig;
   canvasMode:       'editor' | 'preview';
   showOutlines:     boolean;
-
-  // Layer selection
   selectedLayerId:  string | null;
   onSelectLayer:    (id: string | null) => void;
-
-  // Layer mutation (drag/resize produce updated layers)
   onUpdateLayer:    (updated: SceneLayer) => void;
-
-  // Preview-mode-only props (passed through to renderer)
   previewChoice?:   string | null;
   previewOutcome?:  Outcome;
   previewPhase?:    Phase;
   onPreviewChoice?: (id: string) => void;
   onPreviewCta?:    () => void;
 }
-
-// ── Round to N decimal places ─────────────────────────────────────────────────
-
-function r1(v: number): number { return Math.round(v * 10) / 10; }
 
 // ── Canvas component ──────────────────────────────────────────────────────────
 
@@ -84,68 +69,103 @@ export default function SceneEditorCanvas({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Drag/resize state stored in refs to avoid re-render on every mousemove
+  // ── Stable refs — updated every render, used inside stable callbacks ─────────
+  // This is the key fix for "drag stuck": callbacks no longer have layers/onUpdateLayer
+  // as dependencies, so they are never recreated mid-drag.
+  const layersRef        = useRef(sceneConfig.layers);
+  layersRef.current      = sceneConfig.layers;
+  const onUpdateLayerRef = useRef(onUpdateLayer);
+  onUpdateLayerRef.current = onUpdateLayer;
+  const selectedLayerIdRef = useRef(selectedLayerId);
+  selectedLayerIdRef.current = selectedLayerId;
+  const canvasModeRef    = useRef(canvasMode);
+  canvasModeRef.current  = canvasMode;
+
+  // ── Drag/resize state ─────────────────────────────────────────────────────────
+  type XA = 'left' | 'center' | 'right';
+  type YA = 'top'  | 'middle' | 'bottom';
+  type U  = 'pct'  | 'px';
+
   const dragState = useRef<{
     active:     boolean;
     type:       'move' | HandlePos;
     layerId:    string;
-    // layer values at drag start
-    startX:     number; startY:     number;
-    startW:     number; startH:     number;
-    // pointer position at drag start (% of canvas)
-    pctX0:      number; pctY0:      number;
+    // Pointer start position (% of canvas)
+    pctX0:      number; pctY0: number;
+    // Effective bounding box at drag start (px, relative to container)
+    effL0: number; effT0: number; effR0: number; effB0: number;
+    // Container size at drag start (px)
+    cw: number; ch: number;
+    // Layer layout settings (cached to avoid reading from ref during drag)
+    xAnchor: XA; yAnchor: YA; xUnit: U; yUnit: U;
   } | null>(null);
 
-  // Convert a DOM pointer event to canvas-relative percentages
+  // ── Convert DOM pointer event → canvas-relative % ────────────────────────────
   const toPct = useCallback((clientX: number, clientY: number): [number, number] => {
     const el = containerRef.current;
     if (!el) return [0, 0];
     const rect = el.getBoundingClientRect();
-    const px = ((clientX - rect.left) / rect.width)  * 100;
-    const py = ((clientY - rect.top)  / rect.height) * 100;
-    return [px, py];
+    return [
+      ((clientX - rect.left) / rect.width)  * 100,
+      ((clientY - rect.top)  / rect.height) * 100,
+    ];
   }, []);
 
-  // Pointer move handler (global during drag)
+  // ── Pointer move — stable (no layer deps) ─────────────────────────────────────
   const onPointerMove = useCallback((e: PointerEvent) => {
     const ds = dragState.current;
     if (!ds?.active) return;
 
-    const [px, py] = toPct(e.clientX, e.clientY);
-    const dx = px - ds.pctX0;
-    const dy = py - ds.pctY0;
-
-    const layer = sceneConfig.layers.find((l) => l.id === ds.layerId);
+    const layer = layersRef.current.find((l) => l.id === ds.layerId);
     if (!layer) return;
 
+    const [pctX, pctY] = toPct(e.clientX, e.clientY);
+    // Delta in px from drag start
+    const dxPx = (pctX - ds.pctX0) * ds.cw / 100;
+    const dyPx = (pctY - ds.pctY0) * ds.ch / 100;
+
     if (ds.type === 'move') {
-      const MIN_VISIBLE = 5; // at least 5% on-canvas
-      const newX = r1(Math.max(-(layer.width ?? 20) + MIN_VISIBLE, Math.min(100 - MIN_VISIBLE, ds.startX + dx)));
-      const newY = r1(Math.max(-(layer.height ?? 20) + MIN_VISIBLE, Math.min(100 - MIN_VISIBLE, ds.startY + dy)));
-      onUpdateLayer({ ...layer, x: newX, y: newY });
+      // Shift bounding box keeping size constant
+      const wPx = ds.effR0 - ds.effL0;
+      const hPx = ds.effB0 - ds.effT0;
+      const minVis = Math.min(ds.cw, ds.ch) * 0.05;
+      const newL = Math.max(-wPx + minVis, Math.min(ds.cw - minVis, ds.effL0 + dxPx));
+      const newT = Math.max(-hPx + minVis, Math.min(ds.ch - minVis, ds.effT0 + dyPx));
+      const { x, y } = bboxToLayer(
+        newL, newT, newL + wPx, newT + hPx,
+        ds.cw, ds.ch, ds.xAnchor, ds.yAnchor, ds.xUnit, ds.yUnit,
+      );
+      onUpdateLayerRef.current({ ...layer, x, y });
       return;
     }
 
-    // Resize — compute new x/y/w/h from handle position
+    // Resize — mutate the correct edges of the bounding box
+    const minSzW = ds.cw * 0.02;
+    const minSzH = ds.ch * 0.02;
+    let l = ds.effL0, t = ds.effT0, r = ds.effR0, b = ds.effB0;
+
     const h = ds.type as HandlePos;
-    let x = ds.startX, y = ds.startY, w = ds.startW, hh = ds.startH;
+    if (h.includes('e')) r = Math.max(l + minSzW, ds.effR0 + dxPx);
+    if (h.includes('w')) l = Math.min(r - minSzW, ds.effL0 + dxPx);
+    if (h.includes('s')) b = Math.max(t + minSzH, ds.effB0 + dyPx);
+    if (h.includes('n')) t = Math.min(b - minSzH, ds.effT0 + dyPx);
 
-    if (h.includes('e')) { w  = Math.max(2, r1(ds.startW + dx)); }
-    if (h.includes('w')) { x  = r1(ds.startX + dx); w = Math.max(2, r1(ds.startW - dx)); }
-    if (h.includes('s')) { hh = Math.max(2, r1(ds.startH + dy)); }
-    if (h.includes('n')) { y  = r1(ds.startY + dy); hh = Math.max(2, r1(ds.startH - dy)); }
+    const { x, y, width, height } = bboxToLayer(
+      l, t, r, b,
+      ds.cw, ds.ch, ds.xAnchor, ds.yAnchor, ds.xUnit, ds.yUnit,
+    );
+    onUpdateLayerRef.current({ ...layer, x, y, width, height });
+  }, [toPct]); // stable — no layer deps
 
-    onUpdateLayer({ ...layer, x, y, width: w, height: hh });
-  }, [sceneConfig.layers, onUpdateLayer, toPct]);
-
+  // ── Pointer up — stable ────────────────────────────────────────────────────────
   const onPointerUp = useCallback(() => {
     if (!dragState.current?.active) return;
     dragState.current = null;
     if (containerRef.current) containerRef.current.style.cursor = '';
     document.body.style.userSelect = '';
-  }, []);
+  }, []); // stable — no deps
 
-  // Attach/detach global pointer listeners
+  // Attach once; never re-attach mid-drag
   useEffect(() => {
     window.addEventListener('pointermove',   onPointerMove);
     window.addEventListener('pointerup',     onPointerUp);
@@ -157,20 +177,18 @@ export default function SceneEditorCanvas({
     };
   }, [onPointerMove, onPointerUp]);
 
-  // ── Keyboard nudge (arrow keys) ─────────────────────────────────────────────
+  // ── Keyboard nudge ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (canvasMode !== 'editor' || !selectedLayerId) return;
-
     const onKey = (e: KeyboardEvent) => {
+      if (canvasModeRef.current !== 'editor') return;
+      const id = selectedLayerIdRef.current;
+      if (!id) return;
+
       const dirs: Record<string, [number, number]> = {
-        ArrowLeft:  [-1, 0],
-        ArrowRight: [ 1, 0],
-        ArrowUp:    [ 0,-1],
-        ArrowDown:  [ 0, 1],
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+        ArrowUp:   [0, -1], ArrowDown:  [0, 1],
       };
       if (!dirs[e.key]) return;
-
-      // Only nudge if not typing in an input/textarea
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
@@ -178,84 +196,97 @@ export default function SceneEditorCanvas({
       const step = e.shiftKey ? 2 : 0.5;
       const [dx, dy] = dirs[e.key];
 
-      const layer = sceneConfig.layers.find((l) => l.id === selectedLayerId);
+      const layer = layersRef.current.find((l) => l.id === id);
       if (!layer || layer.locked) return;
 
-      onUpdateLayer({
+      // Nudge always works in the layer's native unit
+      const xUnit = layer.xUnit ?? 'pct';
+      const yUnit = layer.yUnit ?? 'pct';
+      const container = containerRef.current;
+      const cw = container?.getBoundingClientRect().width  ?? 280;
+      const ch = container?.getBoundingClientRect().height ?? 497;
+      // step is in %; convert to px if unit is px
+      const dxU = xUnit === 'px' ? (dx * step * cw / 100) : (dx * step);
+      const dyU = yUnit === 'px' ? (dy * step * ch / 100) : (dy * step);
+
+      const round1 = (v: number) => Math.round(v * 10) / 10;
+      onUpdateLayerRef.current({
         ...layer,
-        x: r1((layer.x ?? 0) + dx * step),
-        y: r1((layer.y ?? 0) + dy * step),
+        x: round1((layer.x ?? 0) + dxU),
+        y: round1((layer.y ?? 0) + dyU),
       });
     };
-
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [canvasMode, selectedLayerId, sceneConfig.layers, onUpdateLayer]);
+  }, []); // stable — reads from refs
 
-  // ── Start drag/resize from a layer hit zone ─────────────────────────────────
-  const startMove = useCallback((
-    e: React.PointerEvent,
-    layer: SceneLayer,
-  ) => {
+  // ── Start move ────────────────────────────────────────────────────────────────
+  const startMove = useCallback((e: React.PointerEvent, layer: SceneLayer) => {
     if (canvasMode !== 'editor' || layer.locked) return;
     e.stopPropagation();
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const cw = rect.width, ch = rect.height;
+    const bbox = layerToBBox(layer, cw, ch);
     const [px, py] = toPct(e.clientX, e.clientY);
     dragState.current = {
       active: true, type: 'move', layerId: layer.id,
-      startX: layer.x ?? 0, startY: layer.y ?? 0,
-      startW: layer.width ?? 0, startH: layer.height ?? 0,
       pctX0: px, pctY0: py,
+      effL0: bbox.l, effT0: bbox.t, effR0: bbox.r, effB0: bbox.b,
+      cw, ch,
+      xAnchor: (layer.xAnchor ?? 'left') as XA,
+      yAnchor: (layer.yAnchor ?? 'top')  as YA,
+      xUnit:   (layer.xUnit   ?? 'pct')  as U,
+      yUnit:   (layer.yUnit   ?? 'pct')  as U,
     };
     document.body.style.userSelect = 'none';
-    if (containerRef.current) containerRef.current.style.cursor = 'grabbing';
+    container.style.cursor = 'grabbing';
   }, [canvasMode, toPct]);
 
+  // ── Start resize ──────────────────────────────────────────────────────────────
   const startResize = useCallback((
-    e: React.PointerEvent,
-    layer: SceneLayer,
-    handle: HandlePos,
+    e: React.PointerEvent, layer: SceneLayer, handle: HandlePos,
   ) => {
     if (canvasMode !== 'editor' || layer.locked) return;
     e.stopPropagation();
     e.preventDefault();
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const cw = rect.width, ch = rect.height;
+    const bbox = layerToBBox(layer, cw, ch);
     const [px, py] = toPct(e.clientX, e.clientY);
     dragState.current = {
       active: true, type: handle, layerId: layer.id,
-      startX: layer.x ?? 0, startY: layer.y ?? 0,
-      startW: layer.width ?? 0, startH: layer.height ?? 0,
       pctX0: px, pctY0: py,
+      effL0: bbox.l, effT0: bbox.t, effR0: bbox.r, effB0: bbox.b,
+      cw, ch,
+      xAnchor: (layer.xAnchor ?? 'left') as XA,
+      yAnchor: (layer.yAnchor ?? 'top')  as YA,
+      xUnit:   (layer.xUnit   ?? 'pct')  as U,
+      yUnit:   (layer.yUnit   ?? 'pct')  as U,
     };
     document.body.style.userSelect = 'none';
   }, [canvasMode, toPct]);
 
-  // ── Layer click to select ─────────────────────────────────────────────────
-  const handleLayerClick = useCallback((
-    e: React.PointerEvent,
-    layer: SceneLayer,
-  ) => {
+  // ── Layer click to select (not drag) ────────────────────────────────────────
+  const handleLayerClick = useCallback((e: React.PointerEvent, layer: SceneLayer) => {
     if (canvasMode !== 'editor') return;
     e.stopPropagation();
-    // Only select if pointer hasn't moved much (not a drag)
-    const ds = dragState.current;
-    if (ds?.active) return;
+    if (dragState.current?.active) return;
     onSelectLayer(layer.id);
   }, [canvasMode, onSelectLayer]);
 
-  // Click on canvas background deselects
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     if (canvasMode !== 'editor') return;
-    if ((e.target as HTMLElement) === containerRef.current) {
-      onSelectLayer(null);
-    }
+    if ((e.target as HTMLElement) === containerRef.current) onSelectLayer(null);
   }, [canvasMode, onSelectLayer]);
 
-  // ── Sorted layers for overlay hit zones ──────────────────────────────────
-  // Sort highest zIndex last so they receive pointer events first (CSS stacking)
+  // ── Sorted layers for overlay ────────────────────────────────────────────────
   const sortedForHit = [...sceneConfig.layers]
     .filter((l) => l.visible)
     .sort((a, b) => a.zIndex - b.zIndex);
-
-  const selectedLayer = sceneConfig.layers.find((l) => l.id === selectedLayerId) ?? null;
 
   if (canvasMode === 'preview') {
     return (
@@ -272,14 +303,14 @@ export default function SceneEditorCanvas({
     );
   }
 
-  // ── Editor mode: renderer + overlay ─────────────────────────────────────
+  // ── Editor mode: renderer + overlay ──────────────────────────────────────────
   return (
     <div
       ref={containerRef}
       onClick={handleCanvasClick}
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
     >
-      {/* Scene renderer — pointer events off so overlay handles all interaction */}
+      {/* Scene renderer — pointer events off so overlay handles interaction */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         <SkullGateSceneRenderer
           sceneConfig={sceneConfig}
@@ -291,30 +322,26 @@ export default function SceneEditorCanvas({
         />
       </div>
 
-      {/* ── Editor overlay: hit zones + outlines ── */}
+      {/* Editor overlay: hit zones + outlines */}
       <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
         {sortedForHit.map((layer) => {
           const isSelected = layer.id === selectedLayerId;
           const isLocked   = !!layer.locked;
-          const x  = layer.x ?? 0;
-          const y  = layer.y ?? 0;
-          const w  = layer.width  ?? 100;
-          const h  = layer.height ?? 100;
+          const pos = resolveLayerCSS(layer);
 
           return (
             <div
               key={layer.id}
               style={{
-                position:  'absolute',
-                left:      `${x}%`,
-                top:       `${y}%`,
-                width:     `${w}%`,
-                height:    `${h}%`,
+                position:      'absolute',
+                left:           pos.left,
+                top:            pos.top,
+                width:          pos.width,
+                height:         pos.height,
                 pointerEvents: 'all',
-                cursor:    isLocked ? 'default' : isSelected ? 'grab' : 'pointer',
-                boxSizing: 'border-box',
-                // Outline: selected = solid amber, others = dashed only if showOutlines
-                outline: isSelected
+                cursor:         isLocked ? 'default' : isSelected ? 'grab' : 'pointer',
+                boxSizing:     'border-box',
+                outline:        isSelected
                   ? '2px solid rgba(245,208,96,0.85)'
                   : showOutlines
                   ? '1px dashed rgba(80,160,100,0.35)'
@@ -327,27 +354,26 @@ export default function SceneEditorCanvas({
               }}
               onPointerUp={(e) => handleLayerClick(e, layer)}
             >
-              {/* Selected layer: name label + resize handles */}
               {isSelected && (
                 <>
                   {/* Name badge */}
                   <div style={{
-                    position:     'absolute',
-                    top:          -18,
-                    left:         0,
-                    background:   'rgba(245,208,96,0.9)',
-                    color:        '#0B0F0C',
-                    fontSize:     9,
-                    fontFamily:   "'Inter', system-ui, sans-serif",
+                    position:      'absolute',
+                    top:            -18,
+                    left:           0,
+                    background:    'rgba(245,208,96,0.9)',
+                    color:         '#0B0F0C',
+                    fontSize:       9,
+                    fontFamily:    "'Inter', system-ui, sans-serif",
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
-                    padding:      '1px 5px',
-                    whiteSpace:   'nowrap',
-                    pointerEvents:'none',
-                    lineHeight:   1.6,
-                    maxWidth:     120,
-                    overflow:     'hidden',
-                    textOverflow: 'ellipsis',
+                    padding:       '1px 5px',
+                    whiteSpace:    'nowrap',
+                    pointerEvents: 'none',
+                    lineHeight:     1.6,
+                    maxWidth:       120,
+                    overflow:      'hidden',
+                    textOverflow:  'ellipsis',
                   }}>
                     {layer.name}
                   </div>
@@ -374,8 +400,7 @@ export default function SceneEditorCanvas({
                           cursor:       HANDLE_CURSOR[handle],
                           pointerEvents:'all',
                           zIndex:       200,
-                          // Suppress outline from parent on this element
-                          outline: 'none',
+                          outline:      'none',
                         }}
                       />
                     );
@@ -384,12 +409,12 @@ export default function SceneEditorCanvas({
                   {/* Lock indicator */}
                   {isLocked && (
                     <div style={{
-                      position:  'absolute',
-                      top:       '50%',
-                      left:      '50%',
-                      transform: 'translate(-50%, -50%)',
-                      fontSize:  12,
-                      color:     'rgba(255,154,48,0.7)',
+                      position:      'absolute',
+                      top:           '50%',
+                      left:          '50%',
+                      transform:     'translate(-50%, -50%)',
+                      fontSize:       12,
+                      color:         'rgba(255,154,48,0.7)',
                       pointerEvents: 'none',
                     }}>
                       &#128274;
@@ -402,7 +427,7 @@ export default function SceneEditorCanvas({
         })}
       </div>
 
-      {/* Canvas click-to-deselect catch-all (lowest z) */}
+      {/* Click-to-deselect catch-all */}
       <div
         style={{ position: 'absolute', inset: 0, zIndex: -1 }}
         onClick={() => onSelectLayer(null)}

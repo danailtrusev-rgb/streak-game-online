@@ -149,6 +149,39 @@ function Grid2({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── Alignment button group ────────────────────────────────────────────────────
+
+type BtnGroupOption<T extends string> = { value: T; label: string };
+
+function BtnGroup<T extends string>({
+  label, value, options, onChange,
+}: { label: string; value: T; options: BtnGroupOption<T>[]; onChange: (v: T) => void }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div style={{ display: 'flex', gap: 3 }}>
+        {options.map((o) => (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            style={{
+              flex: 1, padding: '4px 0', fontSize: 9, fontFamily: UF,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+              cursor: 'pointer', border: '1px solid',
+              borderColor: value === o.value ? 'rgba(245,208,96,0.55)' : 'rgba(50,70,50,0.45)',
+              background: value === o.value ? 'rgba(245,208,96,0.12)' : 'rgba(0,0,0,0.25)',
+              color: value === o.value ? 'rgba(245,208,96,0.85)' : 'rgba(255,255,255,0.38)',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Asset Picker ──────────────────────────────────────────────────────────────
 
 function AssetPicker({
@@ -333,9 +366,19 @@ export default function SceneEditorLayerSettings({ layer, onChange, assets = [] 
       {/* ── Position & Size ── */}
       <SectionTitle>Position & Size</SectionTitle>
       <Grid2>
-        <NumField label="X (%)" value={layer.x} onChange={(v) => set('x', v)} step={0.5} />
-        <NumField label="Y (%)" value={layer.y} onChange={(v) => set('y', v)} step={0.5} />
-        <NumField label="W (%)" value={layer.width} onChange={(v) => set('width', v)} step={0.5} min={0} />
+        <NumField
+          label={`X (${layer.xUnit === 'px' ? 'px' : '%'}) — ${layer.xAnchor ?? 'left'}`}
+          value={layer.x}
+          onChange={(v) => set('x', v)}
+          step={layer.xUnit === 'px' ? 1 : 0.5}
+        />
+        <NumField
+          label={`Y (${layer.yUnit === 'px' ? 'px' : '%'}) — ${layer.yAnchor ?? 'top'}`}
+          value={layer.y}
+          onChange={(v) => set('y', v)}
+          step={layer.yUnit === 'px' ? 1 : 0.5}
+        />
+        <NumField label="W (%)" value={layer.width}  onChange={(v) => set('width', v)}  step={0.5} min={0} />
         <NumField label="H (%)" value={layer.height} onChange={(v) => set('height', v)} step={0.5} min={0} />
       </Grid2>
       <Grid2>
@@ -343,6 +386,51 @@ export default function SceneEditorLayerSettings({ layer, onChange, assets = [] 
         <NumField label="Opacity" value={layer.opacity} onChange={(v) => set('opacity', Math.min(1, Math.max(0, v)))} step={0.05} min={0} max={1} />
       </Grid2>
       <NumField label="Z-Index" value={layer.zIndex} onChange={(v) => set('zIndex', Math.round(v))} step={1} />
+
+      {/* ── Alignment ── */}
+      <SectionTitle>Alignment</SectionTitle>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <BtnGroup
+          label="Horizontal anchor"
+          value={layer.xAnchor ?? 'left'}
+          options={[
+            { value: 'left',   label: 'Left' },
+            { value: 'center', label: 'Center' },
+            { value: 'right',  label: 'Right' },
+          ]}
+          onChange={(v) => set('xAnchor', v)}
+        />
+        <BtnGroup
+          label="Vertical anchor"
+          value={layer.yAnchor ?? 'top'}
+          options={[
+            { value: 'top',    label: 'Top' },
+            { value: 'middle', label: 'Middle' },
+            { value: 'bottom', label: 'Bottom' },
+          ]}
+          onChange={(v) => set('yAnchor', v)}
+        />
+        <Grid2>
+          <BtnGroup
+            label="X unit"
+            value={layer.xUnit ?? 'pct'}
+            options={[
+              { value: 'pct', label: '%' },
+              { value: 'px',  label: 'px' },
+            ]}
+            onChange={(v) => set('xUnit', v)}
+          />
+          <BtnGroup
+            label="Y unit"
+            value={layer.yUnit ?? 'pct'}
+            options={[
+              { value: 'pct', label: '%' },
+              { value: 'px',  label: 'px' },
+            ]}
+            onChange={(v) => set('yUnit', v)}
+          />
+        </Grid2>
+      </div>
 
       {/* ── Visibility ── */}
       <SectionTitle>Visibility & Lock</SectionTitle>

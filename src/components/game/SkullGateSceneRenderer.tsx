@@ -8,6 +8,7 @@
 
 import { useMemo } from 'react';
 import type { SkullGateSceneConfig, SceneLayer, AnimationPreset } from '../../lib/types';
+import { resolveLayerCSS } from '../../lib/layerLayout';
 import { BUTTONS } from '../../lib/assets';
 import ImageButton from '../ui/ImageButton';
 import AmbientFireflies from '../fx/AmbientFireflies';
@@ -163,16 +164,17 @@ function ProceduralEffect({
   // Fog
   if (layer.role === 'atmosphere_effect' || layer.effectPreset === 'fog') {
     const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
+    const pos = resolveLayerCSS({ ...layer, y: layer.y ?? 55, height: layer.height ?? 45 });
     return (
       <div
         aria-hidden="true"
         className="sgsr-anim"
         style={{
           position:   'absolute',
-          left:       `${layer.x ?? 0}%`,
-          top:        `${layer.y ?? 55}%`,
-          width:      `${layer.width ?? 100}%`,
-          height:     `${layer.height ?? 45}%`,
+          left:       pos.left,
+          top:        pos.top,
+          width:      pos.width,
+          height:     pos.height,
           opacity:    layer.opacity ?? 0.4,
           zIndex:     layer.zIndex,
           pointerEvents: 'none',
@@ -193,16 +195,17 @@ function ProceduralEffect({
       : outcome === 'DIE' && isReveal
       ? 'rgba(150,20,20,0.16)'
       : 'rgba(255,130,20,0.10)';
+    const pos = resolveLayerCSS({ ...layer, height: layer.height ?? 55 });
     return (
       <div
         aria-hidden="true"
         className="sgsr-anim"
         style={{
           position:   'absolute',
-          left:       `${layer.x ?? 0}%`,
-          top:        `${layer.y ?? 0}%`,
-          width:      `${layer.width ?? 100}%`,
-          height:     `${layer.height ?? 55}%`,
+          left:       pos.left,
+          top:        pos.top,
+          width:      pos.width,
+          height:     pos.height,
           opacity:    layer.opacity ?? 0.7,
           zIndex:     layer.zIndex,
           pointerEvents: 'none',
@@ -220,16 +223,17 @@ function ProceduralEffect({
     const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     const visible  = outcome === 'SURVIVE' && isReveal;
     const ilOp     = visible ? (layer.opacity ?? 0.65) : 0;
+    const pos = resolveLayerCSS({ ...layer, x: layer.x ?? 20, y: layer.y ?? 12, width: layer.width ?? 60, height: layer.height ?? 58 });
     return (
       <div
         aria-hidden="true"
         className="sgsr-anim"
         style={{
           position:   'absolute',
-          left:       `${layer.x ?? 20}%`,
-          top:        `${layer.y ?? 12}%`,
-          width:      `${layer.width ?? 60}%`,
-          height:     `${layer.height ?? 58}%`,
+          left:       pos.left,
+          top:        pos.top,
+          width:      pos.width,
+          height:     pos.height,
           opacity:    ilOp,
           zIndex:     layer.zIndex,
           pointerEvents: 'none',
@@ -245,16 +249,17 @@ function ProceduralEffect({
   // Torch flame procedural fallback (no asset)
   if (layer.role === 'torch_flame' || layer.effectPreset === 'torch_fire') {
     const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
+    const pos = resolveLayerCSS({ ...layer, width: layer.width ?? 10, height: layer.height ?? 15 });
     return (
       <div
         aria-hidden="true"
         className="sgsr-anim"
         style={{
           position:    'absolute',
-          left:        `${layer.x ?? 0}%`,
-          top:         `${layer.y ?? 0}%`,
-          width:       `${layer.width ?? 10}%`,
-          height:      `${layer.height ?? 15}%`,
+          left:        pos.left,
+          top:         pos.top,
+          width:       pos.width,
+          height:      pos.height,
           opacity:     layer.opacity ?? 0.75,
           zIndex:      layer.zIndex,
           pointerEvents: 'none',
@@ -290,13 +295,15 @@ function TextLayer({
       : '0 0 16px rgba(180,40,40,0.6), 0 1px 4px rgba(0,0,0,0.9)'
     : '0 0 12px rgba(255,160,60,0.35), 0 1px 4px rgba(0,0,0,0.75)';
 
+  const pos = resolveLayerCSS({ ...layer, x: layer.x ?? 10, y: layer.y ?? 74, width: layer.width ?? 80 });
+
   return (
     <div
       style={{
         position:    'absolute',
-        left:        `${layer.x ?? 10}%`,
-        top:         `${layer.y ?? 74}%`,
-        width:       `${layer.width ?? 80}%`,
+        left:        pos.left,
+        top:         pos.top,
+        width:       pos.width,
         zIndex:      layer.zIndex,
         opacity:     layer.opacity ?? 1,
         pointerEvents: 'none',
@@ -339,14 +346,15 @@ function ButtonLayer({
   if (!show) return null;
 
   const label = layer.text ?? scene.ctaText;
+  const pos = resolveLayerCSS({ ...layer, x: layer.x ?? 5, y: layer.y ?? 84, width: layer.width ?? 90 });
 
   return (
     <div
       style={{
         position:   'absolute',
-        left:       `${layer.x ?? 5}%`,
-        top:        `${layer.y ?? 84}%`,
-        width:      `${layer.width ?? 90}%`,
+        left:       pos.left,
+        top:        pos.top,
+        width:      pos.width,
         zIndex:     layer.zIndex,
         opacity:    layer.opacity ?? 1,
       }}
@@ -479,10 +487,7 @@ function ImageLayer({
 
   const containerStyle: React.CSSProperties = {
     position:   'absolute',
-    left:       `${layer.x ?? 0}%`,
-    top:        `${layer.y ?? 0}%`,
-    width:      `${layer.width ?? 100}%`,
-    height:     `${layer.height ?? 100}%`,
+    ...(() => { const p = resolveLayerCSS(layer); return { left: p.left, top: p.top, width: p.width, height: p.height }; })(),
     zIndex:     layer.zIndex,
     opacity:    layer.opacity ?? 1,
     background: 'transparent',

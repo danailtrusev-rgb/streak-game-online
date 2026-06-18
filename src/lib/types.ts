@@ -464,6 +464,10 @@ export interface SceneLayer {
   effects?:          LayerEffectsConfig;
   mobileSafeArea?:   boolean;
   parallaxEnabled?:  boolean;
+  xAnchor?:          'left' | 'center' | 'right';
+  yAnchor?:          'top'  | 'middle' | 'bottom';
+  xUnit?:            'pct'  | 'px';
+  yUnit?:            'pct'  | 'px';
 }
 
 export interface SkullGateSceneConfig {
