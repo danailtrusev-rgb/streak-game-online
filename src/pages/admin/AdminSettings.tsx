@@ -776,8 +776,8 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
   return (
     <section>
       <p className="text-[12px] text-bone-faint mb-3 leading-relaxed">
-        API keys saved here are read by edge functions at runtime.
-        For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in database queries.
+        API keys entered here are stored in the database and read by edge functions at runtime via the <span className="font-mono">get_setting</span> RPC.
+        Keys are never returned to the browser after saving.
       </p>
 
       {/* ── Marketing / CRM ─────────────────────────────────────────────── */}
