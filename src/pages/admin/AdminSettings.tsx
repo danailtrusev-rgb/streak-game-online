@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell, Info } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, AlertTriangle, Info } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -872,7 +872,6 @@ function RemindersSection({ settings, editValues, setEditValues, saving, savedKe
 
   return (
     <section>
-      <SectionHeader icon={<Bell className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Reminders" />
       <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
 
         {/* Master toggle */}
@@ -1152,11 +1151,6 @@ function EconomySection({ settings, editValues, setEditValues, saving, savedKey,
 
   return (
     <section>
-      <SectionHeader
-        icon={<TrendingUp className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />}
-        title="Economy & Financial Model"
-      />
-
       {/* ── Card 1: Live Economy Controls ──────────────────────────────────── */}
       <div className="mb-4 border border-torch-ember/25 bg-ritual-surface/15">
         <div className="flex items-center justify-between px-4 py-3 border-b border-torch-ember/15">

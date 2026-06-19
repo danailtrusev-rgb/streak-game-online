@@ -20,6 +20,7 @@
 //   - Never modifies wallet, streak, or pot
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { PlayResult } from '../../lib/types';
 import type { SkullGateSceneConfig } from '../../lib/types';
 import SkullGateSceneRenderer from './SkullGateSceneRenderer';
@@ -100,7 +101,7 @@ export default function SkullGateSceneChallenge({
   const rendererOutcome: 'SURVIVE' | 'DIE' | null =
     (phase === 'revealing' || phase === 'done') ? pendingResult.outcome : null;
 
-  return (
+  return createPortal(
     <div
       style={{
         position:       'fixed',
@@ -194,5 +195,5 @@ export default function SkullGateSceneChallenge({
         )}
       </div>
     </div>
-  );
+  , document.body);
 }

@@ -55,4 +55,7 @@ export const STATIC_FALLBACKS: Record<string, string> = {
   'common.done':        'Done',
   'common.next':        'Next',
   'common.skip':        'Skip',
+  'game.leave_confirm':      'Leave game?',
+  'game.leave_confirm_desc': 'Your progress will not be saved.',
+  'game.leave_action':       'Leave',
 };

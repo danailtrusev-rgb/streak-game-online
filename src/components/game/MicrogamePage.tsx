@@ -151,6 +151,8 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
   const isRevealing = phase === 'revealing' || loading || diceRolling;
   const isDone      = phase === 'done' && !diceRolling;
 
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
   // Back button is only shown before the player has committed to a reveal
   const showBack = !isRevealing && !isDone && phase !== 'selecting';
 
@@ -222,7 +224,7 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
         <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>
           {showBack && (
             <button
-              onClick={() => navigate('/games')}
+              onClick={() => setShowLeaveConfirm(true)}
               style={{
                 display:      'flex',
                 alignItems:   'center',
@@ -245,6 +247,75 @@ export default function MicrogamePage({ gameId }: MicrogamePageProps) {
             </button>
           )}
         </div>
+
+        {/* ── Leave confirmation overlay ── */}
+        {showLeaveConfirm && (
+          <div
+            style={{
+              position:   'fixed', inset: 0, zIndex: 300,
+              background: 'rgba(0,0,0,0.72)',
+              display:    'flex', alignItems: 'flex-end', justifyContent: 'center',
+              padding:    '0 0 max(env(safe-area-inset-bottom, 0px), 24px)',
+            }}
+            onClick={() => setShowLeaveConfirm(false)}
+          >
+            <div
+              style={{
+                width: '100%', maxWidth: 400,
+                background: 'linear-gradient(180deg, rgba(16,22,18,0.99) 0%, rgba(9,13,10,0.99) 100%)',
+                border: '1px solid rgba(255,122,0,0.2)',
+                padding: '28px 24px 24px',
+                margin: '0 16px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p style={{
+                fontFamily: "'Metal Mania', 'Cinzel', Georgia, serif",
+                fontSize: 18, letterSpacing: '0.06em', textTransform: 'uppercase',
+                color: '#E8E0D4', textAlign: 'center', margin: '0 0 8px',
+              }}>
+                {t('game.leave_confirm')}
+              </p>
+              <p style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: 13, color: 'rgba(255,255,255,0.45)',
+                textAlign: 'center', margin: '0 0 24px', lineHeight: 1.5,
+              }}>
+                {t('game.leave_confirm_desc')}
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  style={{
+                    flex: 1, padding: '13px 0',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'rgba(255,255,255,0.04)',
+                    color: 'rgba(255,255,255,0.55)',
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={() => navigate('/games')}
+                  style={{
+                    flex: 1, padding: '13px 0',
+                    border: '1px solid rgba(255,122,0,0.35)',
+                    background: 'rgba(255,122,0,0.08)',
+                    color: '#FF9A30',
+                    fontFamily: "'Inter', system-ui, sans-serif",
+                    fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t('game.leave_action')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Instruction / result text ── */}
         <div

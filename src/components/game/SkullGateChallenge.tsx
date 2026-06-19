@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import type { PlayResult } from '../../lib/types';
 import { TORCH_TRIAL, BUTTONS } from '../../lib/assets';
 import GameScene from './GameScene';
@@ -107,7 +108,7 @@ export default function SkullGateChallenge({ pendingResult, onComplete }: Props)
 
   const hasLost = isDone && !survived;
 
-  return (
+  return createPortal(
     <div
       style={{
         position:      'fixed',
@@ -227,5 +228,5 @@ export default function SkullGateChallenge({ pendingResult, onComplete }: Props)
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }
