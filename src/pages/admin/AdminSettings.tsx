@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell, Key } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell, Info } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -775,7 +775,6 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
 
   return (
     <section>
-      <SectionHeader icon={<Key className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Integrations & Credentials" />
       <p className="text-[12px] text-bone-faint mb-3 leading-relaxed">
         API keys saved here are read by edge functions at runtime.
         For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in database queries.
