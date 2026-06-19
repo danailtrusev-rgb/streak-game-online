@@ -257,7 +257,9 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
     if (data) {
       setSettings(data);
       const vals: Record<string, string> = {};
-      data.forEach((s) => { vals[s.key] = stripJsonQuotes(s.value_json); });
+      data.forEach((s) => {
+        vals[s.key] = SECRET_KEYS.has(s.key) ? '' : stripJsonQuotes(s.value_json);
+      });
       setEditValues(vals);
       const slideSetting = data.find((s) => s.key === ONBOARDING_KEY);
       if (slideSetting && Array.isArray(slideSetting.value_json)) {
@@ -269,6 +271,8 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
   useEffect(() => { load(); }, []);
 
   const handleSave = async (key: string) => {
+    const raw = editValues[key] ?? '';
+    if (SECRET_KEYS.has(key) && raw.trim() === '') return;
     setSaving(key);
     try {
       const raw = editValues[key] ?? '';
@@ -602,6 +606,7 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
           saving={saving}
           savedKey={savedKey}
           onSave={handleSave}
+          settings={settings}
         />
       )}
     </div>
@@ -616,6 +621,7 @@ interface IntegrationsSectionProps {
   saving: string | null;
   savedKey: string | null;
   onSave: (key: string) => Promise<void>;
+  settings: SettingRow[];
 }
 
 type EmailService = 'sendgrid' | 'resend' | 'php_mail' | 'none';
@@ -640,6 +646,11 @@ interface CredentialFieldDef {
   placeholder: string;
   secret: boolean;
 }
+
+const SECRET_KEYS = new Set([
+  'ghl_api_key', 'sendgrid_api_key', 'resend_api_key',
+  'twilio_account_sid', 'twilio_auth_token', 'twilio_from_number',
+]);
 
 const EMAIL_CREDENTIAL_FIELDS: Record<EmailService, CredentialFieldDef[]> = {
   sendgrid: [
@@ -704,7 +715,7 @@ function ServicePicker<T extends string>({
 }
 
 function CredentialField({
-  field, editValues, setEditValues, saving, savedKey, onSave,
+  field, editValues, setEditValues, saving, savedKey, onSave, settings,
 }: {
   field: CredentialFieldDef;
   editValues: Record<string, string>;
@@ -712,9 +723,10 @@ function CredentialField({
   saving: string | null;
   savedKey: string | null;
   onSave: (key: string) => Promise<void>;
+  settings: SettingRow[];
 }) {
-  const [revealed, setRevealed] = useState(false);
   const { key, label, description, placeholder, secret } = field;
+  const hasSaved = secret && settings.some((s) => s.key === key && stripJsonQuotes(s.value_json) !== '');
   return (
     <div className="px-4 py-3 border-t border-moss-dark/15 first:border-t-0">
       <div className="flex items-start gap-3">
@@ -722,26 +734,20 @@ function CredentialField({
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-xs font-medium text-bone">{label}</span>
             <span className="text-[11px] font-mono text-bone-faint">{key}</span>
-          </div>
-          <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{description}</p>
-          <div className="flex items-center gap-2">
-            <input
-              type={secret && !revealed ? 'password' : 'text'}
-              value={editValues[key] ?? ''}
-              onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
-              placeholder={placeholder}
-              className="ritual-input flex-1 font-mono text-xs"
-              onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
-            />
-            {secret && (
-              <button
-                onClick={() => setRevealed((r) => !r)}
-                className="text-[11px] text-bone-dark hover:text-bone-muted border border-moss-dark/25 px-2 py-1.5 flex-shrink-0"
-              >
-                {revealed ? 'Hide' : 'Show'}
-              </button>
+            {hasSaved && editValues[key] === '' && (
+              <span className="text-[10px] uppercase tracking-[0.1em] px-1.5 py-0.5 border border-moss-light/30 text-moss-light">saved</span>
             )}
           </div>
+          <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{description}</p>
+          <input
+            type={secret ? 'password' : 'text'}
+            value={editValues[key] ?? ''}
+            onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
+            placeholder={hasSaved && editValues[key] === '' ? 'Enter new value to replace...' : placeholder}
+            className="ritual-input w-full font-mono text-xs"
+            onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
+            autoComplete="new-password"
+          />
         </div>
         <div className="pt-6 flex-shrink-0">
           <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
@@ -751,7 +757,7 @@ function CredentialField({
   );
 }
 
-function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSave }: IntegrationsSectionProps) {
+function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSave, settings }: IntegrationsSectionProps) {
   const emailService = (editValues['transactional_email_service'] as EmailService) || 'none';
   const smsService   = (editValues['sms_service'] as SmsService) || 'none';
 
@@ -783,7 +789,7 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
         </div>
         <CredentialField
           field={{ key: 'ghl_api_key', label: 'GoHighLevel API Key', description: 'GHL API key for marketing campaigns and broadcast messaging. Do not use for transactional reminders.', placeholder: 'ey...', secret: true }}
-          editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave}
+          editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} settings={settings}
         />
       </div>
 
@@ -803,7 +809,7 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
           />
         </div>
         {emailFields.map((f) => (
-          <CredentialField key={f.key} field={f} editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} />
+          <CredentialField key={f.key} field={f} editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} settings={settings} />
         ))}
         {emailService === 'php_mail' && (
           <div className="px-4 py-2.5 border-t border-moss-dark/15 bg-moss-dark/5">
@@ -831,7 +837,7 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
           />
         </div>
         {smsFields.map((f) => (
-          <CredentialField key={f.key} field={f} editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} />
+          <CredentialField key={f.key} field={f} editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} settings={settings} />
         ))}
       </div>
     </section>
