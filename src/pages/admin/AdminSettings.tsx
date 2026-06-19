@@ -270,12 +270,11 @@ export default function AdminSettings({ section = 'all' }: { section?: SettingsS
 
   useEffect(() => { load(); }, []);
 
-  const handleSave = async (key: string) => {
-    const raw = editValues[key] ?? '';
+  const handleSave = async (key: string, rawOverride?: string) => {
+    const raw = rawOverride !== undefined ? rawOverride : (editValues[key] ?? '');
     if (SECRET_KEYS.has(key) && raw.trim() === '') return;
     setSaving(key);
     try {
-      const raw = editValues[key] ?? '';
       // Validate known constraints
       if (key === 'reminder_send_hour') {
         const v = parseInt(raw, 10);
@@ -620,7 +619,7 @@ interface IntegrationsSectionProps {
   setEditValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   saving: string | null;
   savedKey: string | null;
-  onSave: (key: string) => Promise<void>;
+  onSave: (key: string, rawOverride?: string) => Promise<void>;
   settings: SettingRow[];
 }
 
@@ -763,11 +762,11 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
 
   const setEmailService = (v: EmailService) => {
     setEditValues((p) => ({ ...p, transactional_email_service: v }));
-    setTimeout(() => onSave('transactional_email_service'), 0);
+    setTimeout(() => onSave('transactional_email_service', v), 0);
   };
   const setSmsService = (v: SmsService) => {
     setEditValues((p) => ({ ...p, sms_service: v }));
-    setTimeout(() => onSave('sms_service'), 0);
+    setTimeout(() => onSave('sms_service', v), 0);
   };
 
   const emailFields = EMAIL_CREDENTIAL_FIELDS[emailService] ?? [];
