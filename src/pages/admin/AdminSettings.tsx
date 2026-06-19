@@ -26,8 +26,9 @@ const REMINDER_KEYS = ['reminders_enabled', 'reminder_send_hour', 'reminder_chan
 const REMINDER_CHANNELS = ['email', 'sms', 'whatsapp', 'telegram', 'discord'] as const;
 
 const INTEGRATION_KEYS = [
-  'ghl_api_key', 'twilio_account_sid', 'twilio_auth_token', 'twilio_from_number',
-  'sendgrid_api_key', 'reminder_from_email',
+  'ghl_api_key',
+  'transactional_email_service', 'sendgrid_api_key', 'resend_api_key', 'reminder_from_email',
+  'sms_service', 'twilio_account_sid', 'twilio_auth_token', 'twilio_from_number',
 ];
 
 // Economy v1 — now-live allocation settings (affect pot, jackpot, and pool behavior per play)
@@ -617,103 +618,221 @@ interface IntegrationsSectionProps {
   onSave: (key: string) => Promise<void>;
 }
 
-const INTEGRATION_FIELDS = [
-  {
-    key: 'ghl_api_key',
-    label: 'GoHighLevel API Key',
-    description: 'Used for email and SMS reminder delivery. Stored as a settings value — deploy via edge function secrets for production.',
-    placeholder: 'ey...',
-    secret: true,
-  },
-  {
-    key: 'twilio_account_sid',
-    label: 'Twilio Account SID',
-    description: 'Twilio Account SID for direct SMS delivery (alternative to GHL).',
-    placeholder: 'AC...',
-    secret: false,
-  },
-  {
-    key: 'twilio_auth_token',
-    label: 'Twilio Auth Token',
-    description: 'Twilio Auth Token. Store sensitive values as edge function secrets in production.',
-    placeholder: '••••••••',
-    secret: true,
-  },
-  {
-    key: 'twilio_from_number',
-    label: 'Twilio From Number',
-    description: 'E.164 formatted phone number to send SMS from (e.g. +15551234567).',
-    placeholder: '+15551234567',
-    secret: false,
-  },
-  {
-    key: 'sendgrid_api_key',
-    label: 'SendGrid API Key',
-    description: 'SendGrid API key for transactional email delivery.',
-    placeholder: 'SG...',
-    secret: true,
-  },
-  {
-    key: 'reminder_from_email',
-    label: 'From Email Address',
-    description: 'Sender email address shown to players (e.g. noreply@yourdomain.com).',
-    placeholder: 'noreply@example.com',
-    secret: false,
-  },
-] as const;
+type EmailService = 'sendgrid' | 'resend' | 'php_mail' | 'none';
+type SmsService   = 'twilio'   | 'none';
+
+const EMAIL_SERVICES: { value: EmailService; label: string; description: string }[] = [
+  { value: 'sendgrid',  label: 'SendGrid',    description: 'Transactional email via SendGrid API. Recommended for production.' },
+  { value: 'resend',    label: 'Resend',       description: 'Transactional email via Resend API. Modern alternative to SendGrid.' },
+  { value: 'php_mail',  label: 'PHP mail()',   description: 'Server-side PHP mail() function. No credentials needed — useful for testing.' },
+  { value: 'none',      label: 'Disabled',     description: 'Email reminders disabled.' },
+];
+
+const SMS_SERVICES: { value: SmsService; label: string; description: string }[] = [
+  { value: 'twilio', label: 'Twilio', description: 'SMS delivery via Twilio. Requires Account SID, Auth Token, and a from-number.' },
+  { value: 'none',   label: 'Disabled', description: 'SMS reminders disabled.' },
+];
+
+interface CredentialFieldDef {
+  key: string;
+  label: string;
+  description: string;
+  placeholder: string;
+  secret: boolean;
+}
+
+const EMAIL_CREDENTIAL_FIELDS: Record<EmailService, CredentialFieldDef[]> = {
+  sendgrid: [
+    { key: 'sendgrid_api_key',   label: 'SendGrid API Key',    description: 'API key from SendGrid dashboard.',          placeholder: 'SG...',                 secret: true },
+    { key: 'reminder_from_email',label: 'From Email Address',  description: 'Sender address shown to recipients.',        placeholder: 'noreply@example.com',   secret: false },
+  ],
+  resend: [
+    { key: 'resend_api_key',     label: 'Resend API Key',      description: 'API key from Resend dashboard.',            placeholder: 're_...',                secret: true },
+    { key: 'reminder_from_email',label: 'From Email Address',  description: 'Sender address shown to recipients.',        placeholder: 'noreply@example.com',   secret: false },
+  ],
+  php_mail: [
+    { key: 'reminder_from_email',label: 'From Email Address',  description: 'Passed as the From: header in PHP mail().',  placeholder: 'noreply@example.com',   secret: false },
+  ],
+  none: [],
+};
+
+const SMS_CREDENTIAL_FIELDS: Record<SmsService, CredentialFieldDef[]> = {
+  twilio: [
+    { key: 'twilio_account_sid', label: 'Twilio Account SID', description: 'Account SID from Twilio console.',           placeholder: 'AC...',                 secret: false },
+    { key: 'twilio_auth_token',  label: 'Twilio Auth Token',  description: 'Auth token — store as edge function secret in production.', placeholder: '••••••••', secret: true },
+    { key: 'twilio_from_number', label: 'From Number',        description: 'E.164 number to send from.',                 placeholder: '+15551234567',           secret: false },
+  ],
+  none: [],
+};
+
+function ServicePicker<T extends string>({
+  label, settingKey, options, value, onChange,
+}: {
+  label: string;
+  settingKey: string;
+  options: { value: T; label: string; description: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  const selected = options.find((o) => o.value === value);
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xs font-medium text-bone">{label}</span>
+        <span className="text-[11px] font-mono text-bone-faint">{settingKey}</span>
+      </div>
+      {selected && (
+        <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{selected.description}</p>
+      )}
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            className={`px-3 py-1.5 text-[12px] border transition-colors ${
+              value === opt.value
+                ? 'border-torch-ember/50 bg-torch-ember/10 text-torch-ember'
+                : 'border-moss-dark/25 text-bone-dark hover:text-bone hover:border-moss-dark/40'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CredentialField({
+  field, editValues, setEditValues, saving, savedKey, onSave,
+}: {
+  field: CredentialFieldDef;
+  editValues: Record<string, string>;
+  setEditValues: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  saving: string | null;
+  savedKey: string | null;
+  onSave: (key: string) => Promise<void>;
+}) {
+  const [revealed, setRevealed] = useState(false);
+  const { key, label, description, placeholder, secret } = field;
+  return (
+    <div className="px-4 py-3 border-t border-moss-dark/15 first:border-t-0">
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-medium text-bone">{label}</span>
+            <span className="text-[11px] font-mono text-bone-faint">{key}</span>
+          </div>
+          <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{description}</p>
+          <div className="flex items-center gap-2">
+            <input
+              type={secret && !revealed ? 'password' : 'text'}
+              value={editValues[key] ?? ''}
+              onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
+              placeholder={placeholder}
+              className="ritual-input flex-1 font-mono text-xs"
+              onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
+            />
+            {secret && (
+              <button
+                onClick={() => setRevealed((r) => !r)}
+                className="text-[11px] text-bone-dark hover:text-bone-muted border border-moss-dark/25 px-2 py-1.5 flex-shrink-0"
+              >
+                {revealed ? 'Hide' : 'Show'}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="pt-6 flex-shrink-0">
+          <SaveBtn saving={saving === key} saved={savedKey === key} onClick={() => onSave(key)} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSave }: IntegrationsSectionProps) {
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+  const emailService = (editValues['transactional_email_service'] as EmailService) || 'none';
+  const smsService   = (editValues['sms_service'] as SmsService) || 'none';
+
+  const setEmailService = (v: EmailService) => {
+    setEditValues((p) => ({ ...p, transactional_email_service: v }));
+    setTimeout(() => onSave('transactional_email_service'), 0);
+  };
+  const setSmsService = (v: SmsService) => {
+    setEditValues((p) => ({ ...p, sms_service: v }));
+    setTimeout(() => onSave('sms_service'), 0);
+  };
+
+  const emailFields = EMAIL_CREDENTIAL_FIELDS[emailService] ?? [];
+  const smsFields   = SMS_CREDENTIAL_FIELDS[smsService] ?? [];
 
   return (
     <section>
       <SectionHeader icon={<Key className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />} title="Integrations & Credentials" />
       <p className="text-[12px] text-bone-faint mb-3 leading-relaxed">
-        API keys stored here are saved to the <span className="font-mono">settings</span> table and read by edge functions at runtime.
-        For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in DB queries.
+        API keys saved here are read by edge functions at runtime.
+        For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in database queries.
       </p>
-      <div className="border border-moss-dark/25 bg-ritual-surface/20 divide-y divide-moss-dark/15">
-        {INTEGRATION_FIELDS.map(({ key, label, description, placeholder, secret }) => {
-          const isRevealed = revealed[key] ?? false;
-          return (
-            <div key={key} className="px-4 py-3">
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-xs font-medium text-bone">{label}</span>
-                    <span className="text-[11px] font-mono text-bone-faint">{key}</span>
-                  </div>
-                  <p className="text-[12px] text-bone-faint leading-relaxed mb-2">{description}</p>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type={secret && !isRevealed ? 'password' : 'text'}
-                      value={editValues[key] ?? ''}
-                      onChange={(e) => setEditValues((p) => ({ ...p, [key]: e.target.value }))}
-                      placeholder={placeholder}
-                      className="ritual-input flex-1 font-mono text-xs"
-                      onKeyDown={(e) => e.key === 'Enter' && onSave(key)}
-                    />
-                    {secret && (
-                      <button
-                        onClick={() => setRevealed((p) => ({ ...p, [key]: !isRevealed }))}
-                        className="text-[11px] text-bone-dark hover:text-bone-muted border border-moss-dark/25 px-2 py-1.5 flex-shrink-0"
-                      >
-                        {isRevealed ? 'Hide' : 'Show'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <div className="pt-6 flex-shrink-0">
-                  <SaveBtn
-                    saving={saving === key}
-                    saved={savedKey === key}
-                    onClick={() => onSave(key)}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+
+      {/* ── Marketing / CRM ─────────────────────────────────────────────── */}
+      <div className="border border-moss-dark/25 bg-ritual-surface/20 mb-3">
+        <div className="px-4 py-2.5 border-b border-moss-dark/20">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-bone-faint font-medium">Marketing / CRM</span>
+          <p className="text-[11px] text-bone-faint/60 mt-0.5">Use GoHighLevel for campaigns, broadcast messages, and marketing automation.</p>
+        </div>
+        <CredentialField
+          field={{ key: 'ghl_api_key', label: 'GoHighLevel API Key', description: 'GHL API key for marketing campaigns and broadcast messaging. Do not use for transactional reminders.', placeholder: 'ey...', secret: true }}
+          editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave}
+        />
+      </div>
+
+      {/* ── Transactional Email ─────────────────────────────────────────── */}
+      <div className="border border-moss-dark/25 bg-ritual-surface/20 mb-3">
+        <div className="px-4 py-2.5 border-b border-moss-dark/20">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-bone-faint font-medium">Transactional Email</span>
+          <p className="text-[11px] text-bone-faint/60 mt-0.5">Used for daily reminder emails, receipts, and system notifications.</p>
+        </div>
+        <div className="px-4 py-3">
+          <ServicePicker<EmailService>
+            label="Email Service"
+            settingKey="transactional_email_service"
+            options={EMAIL_SERVICES}
+            value={emailService}
+            onChange={setEmailService}
+          />
+        </div>
+        {emailFields.map((f) => (
+          <CredentialField key={f.key} field={f} editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} />
+        ))}
+        {emailService === 'php_mail' && (
+          <div className="px-4 py-2.5 border-t border-moss-dark/15 bg-moss-dark/5">
+            <p className="text-[11px] text-bone-faint/70 leading-relaxed">
+              PHP <span className="font-mono">mail()</span> uses the server's configured sendmail/postfix. No API credentials required.
+              Not recommended for production volume — use SendGrid or Resend instead.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ── SMS ─────────────────────────────────────────────────────────── */}
+      <div className="border border-moss-dark/25 bg-ritual-surface/20">
+        <div className="px-4 py-2.5 border-b border-moss-dark/20">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-bone-faint font-medium">SMS</span>
+          <p className="text-[11px] text-bone-faint/60 mt-0.5">Direct SMS reminders to players who have opted in.</p>
+        </div>
+        <div className="px-4 py-3">
+          <ServicePicker<SmsService>
+            label="SMS Service"
+            settingKey="sms_service"
+            options={SMS_SERVICES}
+            value={smsService}
+            onChange={setSmsService}
+          />
+        </div>
+        {smsFields.map((f) => (
+          <CredentialField key={f.key} field={f} editValues={editValues} setEditValues={setEditValues} saving={saving} savedKey={savedKey} onSave={onSave} />
+        ))}
       </div>
     </section>
   );
