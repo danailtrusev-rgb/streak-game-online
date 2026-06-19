@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell, Key } from 'lucide-react';
+import { Save, Check, Settings, Puzzle, BookOpen, Coins, TrendingUp, AlertTriangle, Bell, Key, Info } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
@@ -774,6 +774,50 @@ function IntegrationsSection({ editValues, setEditValues, saving, savedKey, onSa
         API keys saved here are read by edge functions at runtime.
         For production, prefer deploying secrets via the Supabase dashboard (Edge Function Secrets) so they are never exposed in database queries.
       </p>
+
+      {/* ── Environment Mode ────────────────────────────────────────────── */}
+      <div className="border border-moss-dark/25 bg-ritual-surface/20 mb-3">
+        <div className="px-4 py-2.5 border-b border-moss-dark/20 flex items-start justify-between gap-3">
+          <div>
+            <span className="text-[11px] uppercase tracking-[0.14em] text-bone-faint font-medium">Environment Mode</span>
+            <p className="text-[11px] text-bone-faint/60 mt-0.5">Controls whether edge functions send real messages or run in safe mock mode.</p>
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.1em] px-2 py-1 border border-bone-faint/20 text-bone-faint flex-shrink-0">
+            Edge function secret
+          </span>
+        </div>
+        <div className="px-4 py-3">
+          <div className="flex items-start gap-2 mb-3 px-3 py-2.5 border border-bone-faint/15 bg-bone-faint/5">
+            <Info className="h-3.5 w-3.5 text-bone-faint flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+            <p className="text-[12px] text-bone-faint leading-relaxed">
+              <span className="font-mono">ENVIRONMENT</span> is a Supabase Edge Function Secret — it cannot be set from this UI.
+              Set it in <span className="font-medium text-bone-dark">Supabase Dashboard → Edge Functions → Manage secrets</span>.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-medium text-bone">Value to set</span>
+                <p className="text-[12px] text-bone-faint mt-0.5 leading-relaxed">
+                  Set to <span className="font-mono text-moss-light">production</span> to send real emails and SMS.
+                  Set to <span className="font-mono text-torch-ember">development</span> to skip all API calls — verification codes are returned directly in the response for manual testing.
+                </p>
+              </div>
+            </div>
+            <div className="mt-2 divide-y divide-moss-dark/15 border border-moss-dark/20">
+              {[
+                { value: 'production',   label: 'production',   note: 'Real API calls — emails and SMS are sent to users.' },
+                { value: 'development',  label: 'development',  note: 'Mock mode — codes logged server-side, returned in API response. No messages sent.' },
+              ].map(({ value, label, note }) => (
+                <div key={value} className="flex items-start gap-3 px-3 py-2.5">
+                  <span className={`font-mono text-[12px] flex-shrink-0 w-24 ${value === 'production' ? 'text-moss-light' : 'text-torch-ember'}`}>{label}</span>
+                  <span className="text-[12px] text-bone-faint">{note}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ── Marketing / CRM ─────────────────────────────────────────────── */}
       <div className="border border-moss-dark/25 bg-ritual-surface/20 mb-3">
