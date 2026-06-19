@@ -17,7 +17,7 @@ import AmbientFireflies from '../fx/AmbientFireflies';
 // Keyframe injection
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STYLE_ID = 'sgsr-keyframes-v2';
+const STYLE_ID = 'sgsr-keyframes-v3';
 const KEYFRAMES = `
 @keyframes sgsr-slow-float {
   0%,100% { transform: translateY(0px); }
@@ -66,6 +66,30 @@ const KEYFRAMES = `
   40%     { transform: translateX(3px) rotate(0.5deg); }
   60%     { transform: translateX(-2px); }
   80%     { transform: translateX(2px); }
+}
+@keyframes sgsr-tap-pulse {
+  0%   { transform: scale(1);    opacity: 0.9; }
+  30%  { transform: scale(1.06); opacity: 1; }
+  60%  { transform: scale(1.03); opacity: 0.95; }
+  100% { transform: scale(1.06); opacity: 1; }
+}
+@keyframes sgsr-tap-ring {
+  0%   { transform: scale(0.7); opacity: 0.75; }
+  60%  { transform: scale(1.5); opacity: 0.3; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes sgsr-tap-survive {
+  0%   { transform: scale(1.06); filter: brightness(1.6) drop-shadow(0 0 20px rgba(255,210,50,0.9)); }
+  40%  { transform: scale(1.18); filter: brightness(2.0) drop-shadow(0 0 30px rgba(255,230,80,1.0)); }
+  100% { transform: scale(1.06); filter: brightness(1.6) drop-shadow(0 0 20px rgba(255,210,50,0.9)); }
+}
+@keyframes sgsr-tap-crack {
+  0%,100% { transform: translateX(0) rotate(0deg); filter: brightness(0.4) saturate(0.2); }
+  15%     { transform: translateX(-5px) rotate(-1deg); }
+  30%     { transform: translateX(5px) rotate(0.8deg); }
+  45%     { transform: translateX(-4px) rotate(-0.6deg); }
+  60%     { transform: translateX(3px) rotate(0.4deg); }
+  75%     { transform: translateX(-2px); }
 }
 @keyframes sgsr-torch-flicker {
   0%,100% { filter: var(--torch-filter-base); }
@@ -439,10 +463,11 @@ interface ImageLayerProps {
   onChoiceSelect?:  (choiceId: string) => void;
   showOutlines:     boolean;
   mode:             'preview' | 'player';
+  templateType?:    string;
 }
 
 function ImageLayer({
-  layer, selectedChoiceId, outcome, phase, onChoiceSelect, showOutlines, mode,
+  layer, selectedChoiceId, outcome, phase, onChoiceSelect, showOutlines, mode, templateType,
 }: ImageLayerProps) {
   if (!layer.assetPath) return null;
 
@@ -451,6 +476,7 @@ function ImageLayer({
   const isChoice   = layer.role === 'choice_object' && layer.clickable && !!layer.choiceId;
   const isSelected = isChoice && selectedChoiceId === layer.choiceId;
   const isOther    = isChoice && selectedChoiceId !== null && selectedChoiceId !== layer.choiceId;
+  const isTapReveal = templateType === 'tap_reveal';
 
   // Image filter
   let imgFilter = '';
@@ -462,11 +488,15 @@ function ImageLayer({
     } else if (isReveal && !isSelected) {
       imgFilter = 'brightness(0.25) saturate(0.15)';
     } else if (isSelected) {
-      imgFilter = 'brightness(1.3) drop-shadow(0 0 14px rgba(255,140,20,0.8)) drop-shadow(0 0 5px rgba(255,100,0,0.5))';
+      imgFilter = isTapReveal
+        ? 'brightness(1.4) drop-shadow(0 0 18px rgba(255,200,80,0.9)) drop-shadow(0 0 6px rgba(255,120,0,0.7)) saturate(1.2)'
+        : 'brightness(1.3) drop-shadow(0 0 14px rgba(255,140,20,0.8)) drop-shadow(0 0 5px rgba(255,100,0,0.5))';
     } else if (isOther) {
       imgFilter = 'brightness(0.45) saturate(0.35)';
     } else {
-      imgFilter = 'brightness(0.92) drop-shadow(0 0 6px rgba(255,120,0,0.35))';
+      imgFilter = isTapReveal
+        ? 'brightness(1.0) drop-shadow(0 0 8px rgba(255,140,40,0.5))'
+        : 'brightness(0.92) drop-shadow(0 0 6px rgba(255,120,0,0.35))';
     }
   }
 
@@ -478,12 +508,22 @@ function ImageLayer({
   // Door transform
   const doorStyle = isDoor ? getDoorStyle(layer, outcome, phase) : {};
 
-  // Animation for torch flicker on image-based flames
-  // Suppressed when parallaxEnabled is explicitly set to false
+  // Animation — tap_reveal gets pulsing when selected, burst on reveal, crack on fail
   const animEnabled = layer.parallaxEnabled !== false;
-  const animCSS = animEnabled && (layer.role === 'torch_flame' || layer.animationPreset === 'torch_flicker')
-    ? animPresetToCSS(layer.animationPreset)
-    : undefined;
+  let animCSS: string | undefined;
+  if (isChoice && isTapReveal) {
+    if (isReveal && isSelected) {
+      animCSS = outcome === 'SURVIVE'
+        ? 'sgsr-tap-survive 0.6s ease-out 1 forwards'
+        : 'sgsr-tap-crack 0.5s ease-in-out 1 forwards';
+    } else if (isSelected && !isReveal) {
+      animCSS = 'sgsr-tap-pulse 1.8s ease-in-out infinite';
+    }
+  } else {
+    animCSS = animEnabled && (layer.role === 'torch_flame' || layer.animationPreset === 'torch_flicker')
+      ? animPresetToCSS(layer.animationPreset)
+      : undefined;
+  }
 
   const containerStyle: React.CSSProperties = {
     position:   'absolute',
@@ -526,8 +566,42 @@ function ImageLayer({
               ? outcome === 'SURVIVE'
                 ? 'radial-gradient(ellipse 85% 90% at 50% 65%, rgba(255,210,50,0.32) 0%, transparent 70%)'
                 : 'radial-gradient(ellipse 75% 80% at 50% 65%, rgba(160,20,20,0.28) 0%, transparent 65%)'
-              : 'radial-gradient(ellipse 80% 85% at 50% 65%, rgba(255,130,20,0.22) 0%, transparent 70%)',
+              : isTapReveal
+                ? 'radial-gradient(ellipse 90% 95% at 50% 55%, rgba(255,160,40,0.35) 0%, transparent 70%)'
+                : 'radial-gradient(ellipse 80% 85% at 50% 65%, rgba(255,130,20,0.22) 0%, transparent 70%)',
             transition: 'background 0.5s ease',
+          }}
+        />
+      )}
+
+      {/* Tap ring burst — tap_reveal only, fires once on selection */}
+      {isTapReveal && isChoice && isSelected && !isReveal && (
+        <div
+          aria-hidden="true"
+          style={{
+            position:     'absolute',
+            inset:        '-20%',
+            pointerEvents: 'none',
+            zIndex:        1,
+            borderRadius: '50%',
+            border:       '2px solid rgba(255,190,60,0.7)',
+            animation:    'sgsr-tap-ring 0.55s ease-out 1 forwards',
+          }}
+        />
+      )}
+
+      {/* Survive burst overlay — tap_reveal only */}
+      {isTapReveal && isChoice && isSelected && isReveal && outcome === 'SURVIVE' && (
+        <div
+          aria-hidden="true"
+          style={{
+            position:     'absolute',
+            inset:        '-30%',
+            pointerEvents: 'none',
+            zIndex:        1,
+            borderRadius: '50%',
+            background:   'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(255,230,100,0.5) 0%, rgba(255,180,40,0.2) 40%, transparent 70%)',
+            animation:    'sgsr-tap-ring 0.8s ease-out 1 forwards',
           }}
         />
       )}
@@ -668,6 +742,7 @@ export default function SkullGateSceneRenderer({
             onChoiceSelect={onChoiceSelect}
             showOutlines={showEditorOutlines}
             mode={mode}
+            templateType={sceneConfig.templateType}
           />
         );
       })}
