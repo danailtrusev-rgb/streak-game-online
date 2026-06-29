@@ -150,7 +150,7 @@ export default function ResultModal({
           className={`flex flex-col items-center text-center transition-all duration-700 ${contentTransform}`}
           style={{ width: '100%', maxWidth: 360 }}
         >
-          {survived ? <SurviveContent /> : <DieContent />}
+          {survived ? SurviveContent() : DieContent()}
         </div>
       </div>
     </div>,

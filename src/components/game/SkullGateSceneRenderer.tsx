@@ -551,7 +551,7 @@ function ImageLayer({
     <Wrapper
       className="sgsr-anim sgsr-door"
       style={containerStyle as React.CSSProperties}
-      {...(isChoice && onChoiceSelect && phase === 'idle' ? {
+      {...(isChoice && onChoiceSelect && (phase === 'idle' || phase === 'selected') ? {
         onClick:     () => onChoiceSelect(layer.choiceId!),
         'aria-label': layer.name,
       } : {})}
