@@ -3,8 +3,8 @@
 // Access via /sys/admin → "Gate Preview" tab.
 // Not visible to players. Does not affect live gameplay.
 
-import { useState, useCallback } from 'react';
-import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database } from 'lucide-react';
 import SkullGateSceneRenderer from '../../components/game/SkullGateSceneRenderer';
 import { DEFAULT_SKULL_GATE_SCENES } from '../../lib/skullGateScenes';
 import { useSkullGateScenes } from '../../hooks/useSkullGateScenes';
@@ -322,18 +322,89 @@ function AssignmentTestPanel() {
   );
 }
 
+// ── Scene source entry (DB row or static fallback) ────────────────────────────
+
+interface SceneEntry {
+  config:    SkullGateSceneConfig;
+  sourceId:  string | null;     // DB row id, null if static fallback
+  slug:      string;
+  updatedAt: string | null;     // ISO timestamp from DB, null if static
+}
+
+const PREVIEW_SCENE_KEY = 'preview_scene_slug';
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function AdminSkullGatePreview() {
-  const scenes = DEFAULT_SKULL_GATE_SCENES;
+  const sceneApi = useSkullGateScenes();
 
-  const [sceneIdx,       setSceneIdx]       = useState(0);
+  const [entries,       setEntries]       = useState<SceneEntry[]>([]);
+  const [loadingScenes, setLoadingScenes] = useState(false);
+  const [loadError,     setLoadError]     = useState<string | null>(null);
+  const [sceneIdx,      setSceneIdx]      = useState(0);
+
   const [phase,          setPhase]          = useState<Phase>('idle');
   const [outcome,        setOutcome]        = useState<Outcome>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [showOutlines,   setShowOutlines]   = useState(false);
 
-  const scene: SkullGateSceneConfig = scenes[sceneIdx] ?? scenes[0];
+  // Load scenes from DB on mount
+  const loadScenes = useCallback(async () => {
+    setLoadingScenes(true);
+    setLoadError(null);
+    const rows = await sceneApi.listScenes();
+    if (rows === null) {
+      setLoadError(sceneApi.error ?? 'Failed to load scenes');
+      // Fall back to static defaults
+      setEntries(DEFAULT_SKULL_GATE_SCENES.map((cfg) => ({
+        config: cfg, sourceId: null, slug: cfg.slug ?? cfg.id, updatedAt: null,
+      })));
+    } else if (rows.length === 0) {
+      // DB empty — use static defaults
+      setEntries(DEFAULT_SKULL_GATE_SCENES.map((cfg) => ({
+        config: cfg, sourceId: null, slug: cfg.slug ?? cfg.id, updatedAt: null,
+      })));
+    } else {
+      const mapped: SceneEntry[] = rows.map((row) => ({
+        config:    row.draft_config_json,
+        sourceId:  row.id,
+        slug:      row.slug,
+        updatedAt: row.updated_at,
+      }));
+      setEntries(mapped);
+
+      // Restore previously selected scene by slug
+      const savedSlug = localStorage.getItem(PREVIEW_SCENE_KEY);
+      if (savedSlug) {
+        const idx = mapped.findIndex((e) => e.slug === savedSlug);
+        if (idx >= 0) setSceneIdx(idx);
+      }
+    }
+    setLoadingScenes(false);
+  }, [sceneApi]);
+
+  useEffect(() => { loadScenes(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectScene = useCallback((idx: number, slug: string) => {
+    setSceneIdx(idx);
+    localStorage.setItem(PREVIEW_SCENE_KEY, slug);
+    setPhase('idle');
+    setOutcome(null);
+    setSelectedChoice(null);
+  }, []);
+
+  const entry: SceneEntry | undefined = entries[sceneIdx] ?? entries[0];
+  const scene: SkullGateSceneConfig | undefined = entry?.config;
+
+  // Derive choice ids dynamically from choice_object layers
+  const choiceIds: Array<{ id: string; name: string }> = scene
+    ? scene.layers
+        .filter((l) => l.role === 'choice_object' && l.clickable && l.choiceId)
+        .sort((a, b) => a.zIndex - b.zIndex)
+        .map((l) => ({ id: l.choiceId as string, name: l.name }))
+    : [];
+
+  const firstChoiceId = choiceIds[0]?.id ?? null;
 
   const handleChoiceSelect = useCallback((choiceId: string) => {
     setSelectedChoice(choiceId);
@@ -353,24 +424,39 @@ export default function AdminSkullGatePreview() {
   const simulateSurvive = useCallback(() => {
     setOutcome('SURVIVE');
     setPhase('revealing');
-    if (!selectedChoice) setSelectedChoice('left_torch');
-  }, [selectedChoice]);
+    if (!selectedChoice) setSelectedChoice(firstChoiceId);
+  }, [selectedChoice, firstChoiceId]);
 
   const simulateDie = useCallback(() => {
     setOutcome('DIE');
     setPhase('revealing');
-    if (!selectedChoice) setSelectedChoice('left_torch');
-  }, [selectedChoice]);
+    if (!selectedChoice) setSelectedChoice(firstChoiceId);
+  }, [selectedChoice, firstChoiceId]);
 
   const simulateDone = useCallback(() => {
     setPhase('done');
   }, []);
 
-  // Phase status color
-  const phaseColor = (p: Phase) => {
-    if (p === phase) return '#F5D060';
-    return 'rgba(255,255,255,0.3)';
-  };
+  const phaseColor = (p: Phase) => p === phase ? '#F5D060' : 'rgba(255,255,255,0.3)';
+
+  if (loadingScenes && entries.length === 0) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '40px 0', color: 'rgba(255,255,255,0.35)', fontFamily: UF, fontSize: 11 }}>
+        <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
+        Loading scenes from DB…
+      </div>
+    );
+  }
+
+  if (!scene) {
+    return (
+      <div style={{ padding: '40px 0', color: 'rgba(200,60,60,0.7)', fontFamily: UF, fontSize: 11 }}>
+        No scenes available. Check DB connection or seed a scene in the Scene Editor.
+      </div>
+    );
+  }
+
+  const isDbSource = entry.sourceId !== null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -391,19 +477,88 @@ export default function AdminSkullGatePreview() {
           </span>
         </div>
 
-        <button
-          onClick={handleReset}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '5px 10px', fontSize: 10, fontFamily: UF,
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            border: '1px solid rgba(180,30,30,0.3)', background: 'rgba(180,30,30,0.06)',
-            color: 'rgba(200,60,60,0.75)', cursor: 'pointer',
-          }}
-        >
-          <RotateCcw size={11} />
-          Reset
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            onClick={loadScenes}
+            disabled={loadingScenes}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', fontSize: 10, fontFamily: UF,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              border: '1px solid rgba(50,70,50,0.4)', background: 'transparent',
+              color: 'rgba(255,255,255,0.38)', cursor: loadingScenes ? 'not-allowed' : 'pointer',
+              opacity: loadingScenes ? 0.6 : 1,
+            }}
+          >
+            {loadingScenes ? <Loader size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={11} />}
+            {loadingScenes ? 'Loading…' : 'Reload'}
+          </button>
+          <button
+            onClick={handleReset}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', fontSize: 10, fontFamily: UF,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              border: '1px solid rgba(180,30,30,0.3)', background: 'rgba(180,30,30,0.06)',
+              color: 'rgba(200,60,60,0.75)', cursor: 'pointer',
+            }}
+          >
+            <RotateCcw size={11} />
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* ── Load error banner ── */}
+      {loadError && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '8px 12px', background: 'rgba(180,40,40,0.08)',
+          border: '1px solid rgba(180,40,40,0.3)',
+          fontSize: 10, fontFamily: UF, color: 'rgba(200,70,70,0.85)',
+        }}>
+          <AlertCircle size={13} style={{ flexShrink: 0 }} />
+          DB load failed: {loadError} — showing static fallback.
+        </div>
+      )}
+
+      {/* ── Debug info bar ── */}
+      <div style={{
+        display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center',
+        padding: '8px 12px',
+        background: 'rgba(0,0,0,0.28)',
+        border: `1px solid ${isDbSource ? 'rgba(40,55,42,0.5)' : 'rgba(180,140,0,0.25)'}`,
+        fontSize: 9, fontFamily: UF, letterSpacing: '0.12em',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Database size={10} style={{ color: isDbSource ? 'rgba(120,200,90,0.7)' : 'rgba(200,175,80,0.6)', flexShrink: 0 }} />
+          <span style={{ color: isDbSource ? 'rgba(120,200,90,0.7)' : 'rgba(200,175,80,0.6)', textTransform: 'uppercase' }}>
+            {isDbSource ? 'db (draft)' : 'static fallback'}
+          </span>
+        </div>
+        {entry.sourceId && (
+          <span style={{ color: 'rgba(255,255,255,0.22)' }}>
+            id: <span style={{ color: 'rgba(245,208,96,0.55)' }}>{entry.sourceId.slice(0, 8)}…</span>
+          </span>
+        )}
+        <span style={{ color: 'rgba(255,255,255,0.22)' }}>
+          slug: <span style={{ color: 'rgba(255,154,48,0.6)' }}>{entry.slug}</span>
+        </span>
+        <span style={{ color: 'rgba(255,255,255,0.22)' }}>
+          layers: <span style={{ color: 'rgba(255,255,255,0.45)' }}>{scene.layers.length}</span>
+        </span>
+        {entry.updatedAt && (
+          <span style={{ color: 'rgba(255,255,255,0.22)' }}>
+            updated: <span style={{ color: 'rgba(255,255,255,0.38)' }}>
+              {new Date(entry.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </span>
+        )}
+        {entries.length > 0 && (
+          <span style={{ color: 'rgba(255,255,255,0.22)' }}>
+            {entries.length} scene{entries.length !== 1 ? 's' : ''} loaded
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -478,16 +633,14 @@ export default function AdminSkullGatePreview() {
 
           <div style={{ height: 1, background: 'rgba(40,55,42,0.4)' }} />
 
-          {/* Scene selector */}
-          {scenes.length > 1 && (
-            <Row label="Scene">
-              {scenes.map((s, i) => (
-                <Chip key={s.id} active={sceneIdx === i} onClick={() => { setSceneIdx(i); handleReset(); }}>
-                  {s.title}
-                </Chip>
-              ))}
-            </Row>
-          )}
+          {/* Scene selector — always shown so admins can switch */}
+          <Row label="Scene">
+            {entries.map((e, i) => (
+              <Chip key={e.slug} active={sceneIdx === i} onClick={() => selectScene(i, e.slug)}>
+                {e.config.title}
+              </Chip>
+            ))}
+          </Row>
 
           {/* Phase */}
           <Row label="Phase">
@@ -505,15 +658,18 @@ export default function AdminSkullGatePreview() {
             <Chip active={outcome === 'DIE'} onClick={() => setOutcome('DIE')} danger>Die</Chip>
           </Row>
 
-          {/* Choice */}
+          {/* Choice — dynamic from scene layers */}
           <Row label="Selected Choice">
             <Chip active={selectedChoice === null} onClick={() => setSelectedChoice(null)}>None</Chip>
-            <Chip active={selectedChoice === 'left_torch'} onClick={() => { setSelectedChoice('left_torch'); if (phase === 'idle') setPhase('selected'); }}>
-              Left Torch
-            </Chip>
-            <Chip active={selectedChoice === 'right_torch'} onClick={() => { setSelectedChoice('right_torch'); if (phase === 'idle') setPhase('selected'); }}>
-              Right Torch
-            </Chip>
+            {choiceIds.map(({ id, name }) => (
+              <Chip
+                key={id}
+                active={selectedChoice === id}
+                onClick={() => { setSelectedChoice(id); if (phase === 'idle') setPhase('selected'); }}
+              >
+                {name}
+              </Chip>
+            ))}
           </Row>
 
           <div style={{ height: 1, background: 'rgba(40,55,42,0.3)' }} />
@@ -525,11 +681,11 @@ export default function AdminSkullGatePreview() {
               <ActionButton onClick={handleReset} label="↩ Reset to Idle" />
               <ActionButton
                 onClick={() => {
-                  if (!selectedChoice) setSelectedChoice('left_torch');
+                  if (!selectedChoice) setSelectedChoice(firstChoiceId);
                   setPhase('selected');
                   setOutcome(null);
                 }}
-                label="Select Torch"
+                label="Select Choice"
               />
               <ActionButton onClick={handleCta} label="Press CTA" />
               <ActionButton onClick={simulateSurvive} label="→ Survive" accent />
@@ -549,7 +705,7 @@ export default function AdminSkullGatePreview() {
             fontSize: 10, lineHeight: 1.75,
           }}>
             <div style={{ color: 'rgba(255,255,255,0.35)' }}>
-              scene: <span style={{ color: 'rgba(245,208,96,0.75)' }}>{scene.slug}</span>
+              scene: <span style={{ color: 'rgba(245,208,96,0.75)' }}>{entry.slug}</span>
             </div>
             <div style={{ color: 'rgba(255,255,255,0.35)' }}>
               phase:{' '}
