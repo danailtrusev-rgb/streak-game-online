@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatCents } from '../../lib/constants';
 import { useI18n } from '../../context/I18nContext';
@@ -52,8 +52,9 @@ export default function ResultModal({
 }: ResultModalProps) {
   const navigate    = useNavigate();
   const { t }       = useI18n();
-  const [phase, setPhase]           = useState<'enter' | 'visible' | 'exit'>('enter');
-  const [displayPot, setDisplayPot] = useState(0);
+  const [phase, setPhase]               = useState<'enter' | 'visible' | 'exit'>('enter');
+  const [displayPot, setDisplayPot]     = useState(0);
+  const [showStreakPath, setShowStreakPath] = useState(false);
   const survived    = result.outcome === 'SURVIVE';
   const animRef     = useRef<number>(0);
   const countdown   = useCountdown();
@@ -93,7 +94,7 @@ export default function ResultModal({
     setTimeout(onClose, 400);
   }, [onClose]);
 
-  const handleViewStreak = useCallback(() => {
+  const handleViewLeaderboard = useCallback(() => {
     handleClose();
     setTimeout(() => navigate('/leaderboard'), 420);
   }, [handleClose, navigate]);
@@ -319,31 +320,36 @@ export default function ResultModal({
           </span>
         </ImageButton>
 
-        {/* Secondary: View Streak Path */}
+        {/* Secondary: View Streak Path — toggles inline */}
         <button
-          onClick={handleViewStreak}
+          onClick={() => setShowStreakPath((v) => !v)}
           style={{
             width: '100%', padding: '11px 16px',
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: 'transparent',
+            border: `1px solid ${showStreakPath ? 'rgba(245,208,96,0.2)' : 'rgba(255,255,255,0.1)'}`,
+            background: showStreakPath ? 'rgba(245,208,96,0.04)' : 'transparent',
             fontFamily: UF, fontSize: 12, fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '0.14em',
-            color: 'rgba(255,255,255,0.45)',
+            color: showStreakPath ? 'rgba(245,208,96,0.65)' : 'rgba(255,255,255,0.45)',
             cursor: 'pointer',
-            transition: 'color 0.15s ease, border-color 0.15s ease',
-            marginBottom: onCashout && (potCents ?? 0) > 0 ? 10 : 0,
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.7)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.2)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.45)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)';
+            transition: 'color 0.15s ease, border-color 0.15s ease, background 0.15s ease',
+            marginBottom: showStreakPath ? 0 : onCashout && (potCents ?? 0) > 0 ? 10 : 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
           {t('result.view_streak_path')}
+          {showStreakPath ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </button>
+
+        {/* Inline streak path panel */}
+        {showStreakPath && (
+          <StreakPathPanel
+            streak={result.streak}
+            survived={survived}
+            milestones={MILESTONES as unknown as number[]}
+            onViewLeaderboard={handleViewLeaderboard}
+            bottomMargin={onCashout && (potCents ?? 0) > 0 ? 10 : 0}
+          />
+        )}
 
         {onCashout && (potCents ?? 0) > 0 && (
           <button
@@ -681,6 +687,274 @@ function MilestoneBar({ streak, progress, nextMil, survived }: MilestoneBarProps
               : 'rgba(255,255,255,0.2)',
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+// ── Streak Path Panel ─────────────────────────────────────────────────────────
+
+interface StreakPathPanelProps {
+  streak:             number;
+  survived:           boolean;
+  milestones:         number[];
+  onViewLeaderboard:  () => void;
+  bottomMargin:       number;
+}
+
+function StreakPathPanel({ streak, survived, milestones, onViewLeaderboard, bottomMargin }: StreakPathPanelProps) {
+  const UF = "'Inter', system-ui, sans-serif";
+  const FF = "'Metal Mania', 'Cinzel', Georgia, serif";
+
+  // Build a sequence of "checkpoints" to display — all milestones up to at least current+1
+  const allCheckpoints = milestones.filter((m) => m <= Math.max(streak + 7, milestones[milestones.length - 1]));
+
+  // Day nodes to show: days 1..max(streak, nextMilestone), capped at 30 for display
+  const nextMil = milestones.find((m) => m > streak) ?? milestones[milestones.length - 1];
+  const displayMax = Math.min(nextMil, 30);
+
+  // Build a compact node array: show every milestone + current + nearby days
+  const nodeDays = new Set<number>();
+  nodeDays.add(1);
+  for (const m of milestones) {
+    if (m <= displayMax) nodeDays.add(m);
+  }
+  // Also add current streak position
+  if (streak > 0 && streak <= displayMax) nodeDays.add(streak);
+  // Bridge gaps: if diff > 2 between consecutive nodes, add an ellipsis marker
+  const sortedNodes = Array.from(nodeDays).sort((a, b) => a - b);
+
+  return (
+    <div
+      style={{
+        width: '100%',
+        marginBottom: bottomMargin,
+        border: '1px solid rgba(245,208,96,0.14)',
+        borderTop: 'none',
+        background: 'rgba(0,0,0,0.32)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Panel header */}
+      <div style={{
+        padding: '10px 14px 8px',
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <span style={{
+          fontSize: 9, fontFamily: UF, letterSpacing: '0.2em',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
+        }}>
+          Your Streak Path
+        </span>
+        <span style={{
+          fontSize: 9, fontFamily: UF, letterSpacing: '0.14em',
+          textTransform: 'uppercase', color: survived ? 'rgba(245,208,96,0.5)' : 'rgba(180,60,60,0.6)',
+        }}>
+          Day {streak} {survived ? '· active' : '· ended'}
+        </span>
+      </div>
+
+      {/* Node track */}
+      <div style={{ padding: '14px 14px 10px', overflowX: 'auto' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 0,
+          minWidth: 'max-content',
+        }}>
+          {sortedNodes.map((day, i) => {
+            const isMilestone    = milestones.includes(day);
+            const isToday        = day === streak;
+            const isPast         = day < streak;
+            const isFuture       = day > streak;
+            const prevDay        = sortedNodes[i - 1];
+            const hasGap         = i > 0 && prevDay !== undefined && day - prevDay > 2;
+            const survivedToday  = isToday && survived;
+            const diedToday      = isToday && !survived;
+
+            const nodeColor = isPast || survivedToday
+              ? '#F5D060'
+              : diedToday
+              ? '#CC3333'
+              : 'rgba(255,255,255,0.18)';
+
+            const nodeBg = isPast || survivedToday
+              ? 'rgba(245,208,96,0.15)'
+              : diedToday
+              ? 'rgba(180,30,30,0.15)'
+              : 'rgba(0,0,0,0.35)';
+
+            const nodeSize = isMilestone ? 36 : 28;
+            const fontSize = isMilestone ? 10 : 9;
+
+            return (
+              <div key={day} style={{ display: 'flex', alignItems: 'center' }}>
+                {/* Gap ellipsis */}
+                {hasGap && (
+                  <div style={{
+                    width: 20, textAlign: 'center',
+                    fontSize: 9, color: 'rgba(255,255,255,0.15)',
+                    fontFamily: UF, letterSpacing: '0.06em',
+                    flexShrink: 0,
+                  }}>
+                    ···
+                  </div>
+                )}
+
+                {/* Connector line before node */}
+                {i > 0 && !hasGap && (
+                  <div style={{
+                    width: 12, height: 1, flexShrink: 0,
+                    background: isPast || survivedToday
+                      ? 'rgba(245,208,96,0.3)'
+                      : 'rgba(255,255,255,0.08)',
+                  }} />
+                )}
+
+                {/* Day node */}
+                <div style={{
+                  width: nodeSize, height: nodeSize, flexShrink: 0,
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  border: `1px solid ${
+                    isToday
+                      ? (survived ? 'rgba(245,208,96,0.55)' : 'rgba(180,30,30,0.55)')
+                      : isMilestone && (isPast || survivedToday)
+                      ? 'rgba(245,208,96,0.35)'
+                      : 'rgba(255,255,255,0.1)'
+                  }`,
+                  background: nodeBg,
+                  boxShadow: isToday
+                    ? (survived ? '0 0 10px rgba(245,208,96,0.18)' : '0 0 8px rgba(180,30,30,0.2)')
+                    : 'none',
+                  position: 'relative',
+                }}>
+                  {/* Milestone crown indicator */}
+                  {isMilestone && (
+                    <div style={{
+                      position: 'absolute', top: -5,
+                      fontSize: 7, color: nodeColor, lineHeight: 1,
+                    }}>
+                      ★
+                    </div>
+                  )}
+                  <span style={{
+                    fontFamily: isMilestone ? FF : UF,
+                    fontSize,
+                    color: nodeColor,
+                    lineHeight: 1,
+                    fontWeight: isToday ? 700 : 400,
+                    letterSpacing: isMilestone ? '0.04em' : 0,
+                  }}>
+                    {day}
+                  </span>
+                  {isMilestone && (
+                    <span style={{
+                      fontSize: 6, fontFamily: UF, letterSpacing: '0.08em',
+                      textTransform: 'uppercase', color: nodeColor,
+                      opacity: 0.7, lineHeight: 1, marginTop: 2,
+                    }}>
+                      MIL
+                    </span>
+                  )}
+                </div>
+
+                {/* Connector line after last node */}
+                {i === sortedNodes.length - 1 && day < displayMax && (
+                  <div style={{ width: 12, height: 1, flexShrink: 0, background: 'rgba(255,255,255,0.06)' }} />
+                )}
+                {i === sortedNodes.length - 1 && day < displayMax && (
+                  <div style={{
+                    fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: UF,
+                    paddingLeft: 4,
+                  }}>
+                    ···
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div style={{
+          display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 10,
+        }}>
+          {[
+            { color: 'rgba(245,208,96,0.6)', label: 'Completed' },
+            { color: survived ? 'rgba(245,208,96,0.9)' : 'rgba(180,60,60,0.9)', label: 'Today' },
+            { color: 'rgba(255,255,255,0.18)', label: 'Upcoming' },
+            { color: 'rgba(245,208,96,0.5)', label: '★ Milestone' },
+          ].map(({ color, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              <span style={{ fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Milestone list */}
+      <div style={{
+        padding: '8px 14px 10px',
+        borderTop: '1px solid rgba(255,255,255,0.05)',
+        display: 'flex', flexDirection: 'column', gap: 5,
+      }}>
+        {milestones.map((m) => {
+          const reached = m <= streak;
+          const isNext  = !reached && m === (milestones.find((x) => x > streak) ?? milestones[0]);
+          return (
+            <div key={m} style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              opacity: reached ? 1 : isNext ? 0.75 : 0.35,
+            }}>
+              <span style={{
+                fontSize: 9, color: reached ? 'rgba(245,208,96,0.8)' : isNext ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
+                flexShrink: 0,
+              }}>
+                {reached ? '✓' : isNext ? '›' : '○'}
+              </span>
+              <span style={{
+                fontFamily: UF, fontSize: 9, letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: reached ? 'rgba(245,208,96,0.7)' : 'rgba(255,255,255,0.3)',
+                flex: 1,
+              }}>
+                Day {m} Milestone
+              </span>
+              {isNext && (
+                <span style={{
+                  fontSize: 8, fontFamily: UF, letterSpacing: '0.08em',
+                  color: 'rgba(255,154,48,0.55)', textTransform: 'uppercase',
+                }}>
+                  {m - streak} day{m - streak !== 1 ? 's' : ''} away
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* View Full Leaderboard link */}
+      <div style={{ padding: '8px 14px 12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <button
+          onClick={onViewLeaderboard}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'transparent', border: 'none',
+            fontFamily: UF, fontSize: 10, letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.3)', cursor: 'pointer',
+            padding: 0,
+            transition: 'color 0.15s ease',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.3)'; }}
+        >
+          <ExternalLink size={10} />
+          View Full Leaderboard
+        </button>
       </div>
     </div>
   );
