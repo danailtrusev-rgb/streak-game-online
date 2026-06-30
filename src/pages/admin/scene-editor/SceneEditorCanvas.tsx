@@ -2,7 +2,7 @@
 //
 // Wraps SkullGateSceneRenderer with an editor overlay for:
 //   - Direct canvas layer selection (click)
-//   - Drag-to-move (pointer events, stable refs — no drag-stuck bug)
+//   - Drag-to-move (pointer events, hardened drag system)
 //   - Resize handles (8-point, corner + edge)
 //   - Anchor/unit-aware drag & resize via bounding-box approach
 //   - Editor-only outlines + keyboard nudge
@@ -70,8 +70,6 @@ export default function SceneEditorCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Stable refs — updated every render, used inside stable callbacks ─────────
-  // This is the key fix for "drag stuck": callbacks no longer have layers/onUpdateLayer
-  // as dependencies, so they are never recreated mid-drag.
   const layersRef        = useRef(sceneConfig.layers);
   layersRef.current      = sceneConfig.layers;
   const onUpdateLayerRef = useRef(onUpdateLayer);
@@ -87,11 +85,13 @@ export default function SceneEditorCanvas({
   type U  = 'pct'  | 'px';
 
   const dragState = useRef<{
-    active:     boolean;
-    type:       'move' | HandlePos;
-    layerId:    string;
+    active:      boolean;
+    type:        'move' | HandlePos;
+    layerId:     string;
+    pointerId:   number;
+    captureEl:   Element | null;
     // Pointer start position (% of canvas)
-    pctX0:      number; pctY0: number;
+    pctX0:       number; pctY0: number;
     // Effective bounding box at drag start (px, relative to container)
     effL0: number; effT0: number; effR0: number; effB0: number;
     // Container size at drag start (px)
@@ -111,21 +111,37 @@ export default function SceneEditorCanvas({
     ];
   }, []);
 
+  // ── Centralized drag cleanup — safe to call multiple times ───────────────────
+  const endDrag = useCallback(() => {
+    const ds = dragState.current;
+    if (!ds) return;
+    if (ds.captureEl) {
+      try { ds.captureEl.releasePointerCapture(ds.pointerId); } catch (_) { /* already released */ }
+    }
+    dragState.current = null;
+    if (containerRef.current) containerRef.current.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
   // ── Pointer move — stable (no layer deps) ─────────────────────────────────────
   const onPointerMove = useCallback((e: PointerEvent) => {
     const ds = dragState.current;
     if (!ds?.active) return;
 
+    // If button was released outside our view (missed pointerup), end immediately
+    if (e.buttons === 0) { endDrag(); return; }
+
+    // Ignore events from a different pointer (e.g. second touch)
+    if (e.pointerId !== ds.pointerId) return;
+
     const layer = layersRef.current.find((l) => l.id === ds.layerId);
     if (!layer) return;
 
     const [pctX, pctY] = toPct(e.clientX, e.clientY);
-    // Delta in px from drag start
     const dxPx = (pctX - ds.pctX0) * ds.cw / 100;
     const dyPx = (pctY - ds.pctY0) * ds.ch / 100;
 
     if (ds.type === 'move') {
-      // Shift bounding box keeping size constant
       const wPx = ds.effR0 - ds.effL0;
       const hPx = ds.effB0 - ds.effT0;
       const minVis = Math.min(ds.cw, ds.ch) * 0.05;
@@ -139,7 +155,7 @@ export default function SceneEditorCanvas({
       return;
     }
 
-    // Resize — mutate the correct edges of the bounding box
+    // Resize
     const minSzW = ds.cw * 0.02;
     const minSzH = ds.ch * 0.02;
     let l = ds.effL0, t = ds.effT0, r = ds.effR0, b = ds.effB0;
@@ -155,42 +171,41 @@ export default function SceneEditorCanvas({
       ds.cw, ds.ch, ds.xAnchor, ds.yAnchor, ds.xUnit, ds.yUnit,
     );
     onUpdateLayerRef.current({ ...layer, x, y, width, height });
-  }, [toPct]); // stable — no layer deps
+  }, [toPct, endDrag]);
 
-  // ── Pointer up — stable ────────────────────────────────────────────────────────
-  const onPointerUp = useCallback(() => {
-    if (!dragState.current?.active) return;
-    dragState.current = null;
-    if (containerRef.current) containerRef.current.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []); // stable — no deps
-
-  // Stop drag when window loses focus (e.g. Alt+Tab while dragging)
-  const onWindowBlur = useCallback(() => {
-    if (!dragState.current?.active) return;
-    dragState.current = null;
-    if (containerRef.current) containerRef.current.style.cursor = '';
-    document.body.style.userSelect = '';
-  }, []);
-
-  // Attach once; never re-attach mid-drag
+  // ── Attach global drag-ending listeners once ──────────────────────────────────
   useEffect(() => {
-    window.addEventListener('pointermove',   onPointerMove);
-    window.addEventListener('pointerup',     onPointerUp);
-    window.addEventListener('pointercancel', onPointerUp);
-    window.addEventListener('blur',          onWindowBlur);
-    return () => {
-      window.removeEventListener('pointermove',   onPointerMove);
-      window.removeEventListener('pointerup',     onPointerUp);
-      window.removeEventListener('pointercancel', onPointerUp);
-      window.removeEventListener('blur',          onWindowBlur);
+    const onVisChange = () => { if (document.hidden) endDrag(); };
+    const onKey = (e: KeyboardEvent) => {
+      // Escape cancels active drag; other keys handled by nudge handler
+      if (e.key === 'Escape' && dragState.current?.active) endDrag();
     };
-  }, [onPointerMove, onPointerUp, onWindowBlur]);
+
+    window.addEventListener('pointermove',        onPointerMove);
+    window.addEventListener('pointerup',          endDrag);
+    window.addEventListener('pointercancel',      endDrag);
+    window.addEventListener('mouseup',            endDrag); // fallback for missed pointerup
+    window.addEventListener('blur',               endDrag);
+    document.addEventListener('visibilitychange', onVisChange);
+    window.addEventListener('keydown',            onKey);
+
+    return () => {
+      window.removeEventListener('pointermove',        onPointerMove);
+      window.removeEventListener('pointerup',          endDrag);
+      window.removeEventListener('pointercancel',      endDrag);
+      window.removeEventListener('mouseup',            endDrag);
+      window.removeEventListener('blur',               endDrag);
+      document.removeEventListener('visibilitychange', onVisChange);
+      window.removeEventListener('keydown',            onKey);
+    };
+  }, [onPointerMove, endDrag]);
 
   // ── Keyboard nudge ────────────────────────────────────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (canvasModeRef.current !== 'editor') return;
+      // Don't nudge while dragging or when Escape is used to cancel
+      if (dragState.current?.active) return;
       const id = selectedLayerIdRef.current;
       if (!id) return;
 
@@ -209,13 +224,11 @@ export default function SceneEditorCanvas({
       const layer = layersRef.current.find((l) => l.id === id);
       if (!layer || layer.locked) return;
 
-      // Nudge always works in the layer's native unit
       const xUnit = layer.xUnit ?? 'pct';
       const yUnit = layer.yUnit ?? 'pct';
       const container = containerRef.current;
       const cw = container?.getBoundingClientRect().width  ?? 280;
       const ch = container?.getBoundingClientRect().height ?? 497;
-      // step is in %; convert to px if unit is px
       const dxU = xUnit === 'px' ? (dx * step * cw / 100) : (dx * step);
       const dyU = yUnit === 'px' ? (dy * step * ch / 100) : (dy * step);
 
@@ -234,15 +247,18 @@ export default function SceneEditorCanvas({
   const startMove = useCallback((e: React.PointerEvent, layer: SceneLayer) => {
     if (canvasMode !== 'editor' || layer.locked) return;
     e.stopPropagation();
-    e.preventDefault(); // prevent browser native drag hijacking pointer events
+    e.preventDefault();
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
     const cw = rect.width, ch = rect.height;
     const bbox = layerToBBox(layer, cw, ch);
     const [px, py] = toPct(e.clientX, e.clientY);
+    const captureEl = e.currentTarget as Element;
     dragState.current = {
       active: true, type: 'move', layerId: layer.id,
+      pointerId: e.pointerId,
+      captureEl,
       pctX0: px, pctY0: py,
       effL0: bbox.l, effT0: bbox.t, effR0: bbox.r, effB0: bbox.b,
       cw, ch,
@@ -253,7 +269,7 @@ export default function SceneEditorCanvas({
     };
     document.body.style.userSelect = 'none';
     container.style.cursor = 'grabbing';
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    try { captureEl.setPointerCapture(e.pointerId); } catch (_) { /* no-op */ }
   }, [canvasMode, toPct]);
 
   // ── Start resize ──────────────────────────────────────────────────────────────
@@ -269,8 +285,11 @@ export default function SceneEditorCanvas({
     const cw = rect.width, ch = rect.height;
     const bbox = layerToBBox(layer, cw, ch);
     const [px, py] = toPct(e.clientX, e.clientY);
+    const captureEl = e.currentTarget as Element;
     dragState.current = {
       active: true, type: handle, layerId: layer.id,
+      pointerId: e.pointerId,
+      captureEl,
       pctX0: px, pctY0: py,
       effL0: bbox.l, effT0: bbox.t, effR0: bbox.r, effB0: bbox.b,
       cw, ch,
@@ -280,6 +299,8 @@ export default function SceneEditorCanvas({
       yUnit:   (layer.yUnit   ?? 'pct')  as U,
     };
     document.body.style.userSelect = 'none';
+    container.style.cursor = HANDLE_CURSOR[handle];
+    try { captureEl.setPointerCapture(e.pointerId); } catch (_) { /* no-op */ }
   }, [canvasMode, toPct]);
 
   // ── Layer click to select (not drag) ────────────────────────────────────────
@@ -344,6 +365,8 @@ export default function SceneEditorCanvas({
           return (
             <div
               key={layer.id}
+              draggable={false}
+              onDragStart={(e) => e.preventDefault()}
               style={{
                 position:      'absolute',
                 left:           pos.left,
@@ -351,6 +374,7 @@ export default function SceneEditorCanvas({
                 width:          pos.width,
                 height:         pos.height,
                 pointerEvents: 'all',
+                touchAction:   'none',
                 cursor:         isLocked ? 'default' : isSelected ? 'grab' : 'pointer',
                 boxSizing:     'border-box',
                 outline:        isSelected
@@ -398,6 +422,8 @@ export default function SceneEditorCanvas({
                     return (
                       <div
                         key={handle}
+                        draggable={false}
+                        onDragStart={(e) => e.preventDefault()}
                         onPointerDown={(e) => { e.stopPropagation(); startResize(e, layer, handle); }}
                         style={{
                           position:     'absolute',
@@ -411,6 +437,7 @@ export default function SceneEditorCanvas({
                           borderRadius: isCorner ? 1 : '50%',
                           cursor:       HANDLE_CURSOR[handle],
                           pointerEvents:'all',
+                          touchAction:  'none',
                           zIndex:       200,
                           outline:      'none',
                         }}
