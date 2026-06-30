@@ -13,6 +13,8 @@ import { BUTTONS } from '../../lib/assets';
 import ImageButton from '../ui/ImageButton';
 import AmbientFireflies from '../fx/AmbientFireflies';
 import TorchFireEffect from '../fx/TorchFireEffect';
+import BloodMoonRelicEffect from '../fx/BloodMoonRelicEffect';
+import type { BloodMoonPhase } from '../fx/BloodMoonRelicEffect';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Keyframe injection
@@ -170,8 +172,8 @@ function resolveInstructionText(
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ProceduralEffect({
-  layer, outcome, phase,
-}: { layer: SceneLayer; outcome: Outcome; phase: Phase }) {
+  layer, outcome, phase, isBloodMoon,
+}: { layer: SceneLayer; outcome: Outcome; phase: Phase; isBloodMoon?: boolean }) {
   const isReveal = phase === 'revealing' || phase === 'done';
   const animEnabled = layer.parallaxEnabled !== false;
 
@@ -219,6 +221,8 @@ function ProceduralEffect({
       ? 'rgba(245,208,96,0.20)'
       : outcome === 'DIE' && isReveal
       ? 'rgba(150,20,20,0.16)'
+      : isBloodMoon
+      ? 'rgba(140,15,5,0.18)'   // blood moon idle — deep crimson
       : 'rgba(255,130,20,0.10)';
     const pos = resolveLayerCSS({ ...layer, height: layer.height ?? 55 });
     return (
@@ -356,16 +360,18 @@ function TextLayer({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function ButtonLayer({
-  layer, scene, phase, selectedChoiceId, onCta,
+  layer, scene, phase, selectedChoiceId, onCta, templateType,
 }: {
   layer:           SceneLayer;
   scene:           SkullGateSceneConfig;
   phase:           Phase;
   selectedChoiceId: string | null;
   onCta?:          () => void;
+  templateType?:   string;
 }) {
   const isReveal = phase === 'revealing' || phase === 'done';
-  // CTA is only visible when a choice is selected and we're not yet revealing
+  // For hold_reveal: button shows when the player has "touched" the relic (selectedChoiceId set)
+  // For other templates: button shows when a choice is selected
   const show = !isReveal && selectedChoiceId !== null;
 
   if (!show) return null;
@@ -722,6 +728,8 @@ export interface SkullGateSceneRendererProps {
   onChoiceSelect?:    (choiceId: string) => void;
   onCta?:             () => void;
   showEditorOutlines?: boolean;
+  /** 0–1 hold progress for hold_reveal template (used by BloodMoonRelicEffect ring) */
+  holdProgress?:      number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -737,15 +745,19 @@ export default function SkullGateSceneRenderer({
   onChoiceSelect,
   onCta,
   showEditorOutlines = false,
+  holdProgress       = 0,
 }: SkullGateSceneRendererProps) {
   ensureKeyframes();
+
+  const isHoldReveal = sceneConfig.templateType === 'hold_reveal';
+  const isBloodMoon  = isHoldReveal; // all hold_reveal scenes use blood moon color scheme
 
   const sortedLayers = useMemo(
     () => [...sceneConfig.layers].sort((a, b) => a.zIndex - b.zIndex),
     [sceneConfig.layers],
   );
 
-  // Find the selected choice layer for fire overlay positioning
+  // For hold_reveal: the single choice_object is the relic. Find it for effect positioning.
   const selectedChoiceLayer = useMemo(() => {
     if (!selectedChoiceId || revealPhase === 'idle') return null;
     return sceneConfig.layers.find(
@@ -757,6 +769,14 @@ export default function SkullGateSceneRenderer({
   const bgFilter  = resultOutcome === 'DIE' && isReveal
     ? 'brightness(0.6) saturate(0.45)'
     : undefined;
+
+  // Map renderer phase to BloodMoonPhase
+  const bloodMoonPhase: BloodMoonPhase =
+    revealPhase === 'idle'      ? (selectedChoiceId ? 'holding' : 'idle') :
+    revealPhase === 'selected'  ? 'holding' :
+    revealPhase === 'revealing' ? 'resolving' :
+    revealPhase === 'done'      ? (resultOutcome === 'SURVIVE' ? 'survived' : 'failed') :
+    'idle';
 
   return (
     <div
@@ -788,6 +808,7 @@ export default function SkullGateSceneRenderer({
               layer={layer}
               outcome={resultOutcome}
               phase={revealPhase}
+              isBloodMoon={isBloodMoon}
             />
           );
         }
@@ -813,6 +834,7 @@ export default function SkullGateSceneRenderer({
               phase={revealPhase}
               selectedChoiceId={selectedChoiceId}
               onCta={onCta}
+              templateType={sceneConfig.templateType}
             />
           );
         }
@@ -833,14 +855,39 @@ export default function SkullGateSceneRenderer({
         );
       })}
 
-      {/* Torch fire effect on selected torch */}
-      {selectedChoiceLayer && (
+      {/* Torch fire effect on selected torch (choice_2 only) */}
+      {!isHoldReveal && selectedChoiceLayer && (
         <TorchFireOverlay
           choiceLayer={selectedChoiceLayer}
           phase={revealPhase}
           outcome={resultOutcome}
         />
       )}
+
+      {/* Blood Moon Relic effect overlay (hold_reveal) */}
+      {isHoldReveal && selectedChoiceLayer && (() => {
+        const pos = resolveLayerCSS(selectedChoiceLayer);
+        return (
+          <div
+            aria-hidden="true"
+            style={{
+              position:      'absolute',
+              left:          pos.left,
+              top:           pos.top,
+              width:         pos.width,
+              height:        pos.height,
+              zIndex:        (selectedChoiceLayer.zIndex ?? 10) + 1,
+              pointerEvents: 'none',
+              overflow:      'visible',
+            }}
+          >
+            <BloodMoonRelicEffect
+              phase={bloodMoonPhase}
+              holdProgress={holdProgress}
+            />
+          </div>
+        );
+      })()}
 
       {/* Gold bloom on survive — scene-level */}
       {resultOutcome === 'SURVIVE' && isReveal && (

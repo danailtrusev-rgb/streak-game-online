@@ -14,10 +14,10 @@
 //   - Uses pendingResult.outcome ONLY for visual reveal styling
 //   - Fire-and-forgets markStarted / markCompleted for analytics
 //
-// What this component does NOT do:
-//   - Never calls play_daily_gate
-//   - Never decides survive/die
-//   - Never modifies wallet, streak, or pot
+// hold_reveal template:
+//   - Tapping the relic auto-selects it (choiceId = 'relic')
+//   - CTA press locks and begins reveal (same flow, no actual hold timer)
+//   - holdProgress 0→1 animates over REVEAL_HOLD_MS for the ring effect
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -55,10 +55,14 @@ export default function SkullGateSceneChallenge({
 }: Props) {
   const [phase,          setPhase]          = useState<ChallengePhase>('idle');
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const [holdProgress,   setHoldProgress]   = useState(0);
   const [visible,        setVisible]        = useState(false);
-  const startedRef = useRef(false);
+  const startedRef    = useRef(false);
+  const holdRafRef    = useRef<number>(0);
+  const holdStartRef  = useRef<number>(0);
 
-  const survived = pendingResult.outcome === 'SURVIVE';
+  const isHoldReveal = sceneConfig.templateType === 'hold_reveal';
+  const survived     = pendingResult.outcome === 'SURVIVE';
 
   // Fade-in entrance
   useEffect(() => {
@@ -72,30 +76,45 @@ export default function SkullGateSceneChallenge({
     onMarkStarted(assignment.assignment_id);
   }, [assignment.assignment_id, onMarkStarted]);
 
-  // Allow switching choice freely until CTA is pressed
+  // For hold_reveal: auto-select the relic when tapped
   const handleChoiceSelect = useCallback((choiceId: string) => {
     if (phase !== 'idle' && phase !== 'selected') return;
     setSelectedChoice(choiceId);
     setPhase('selected');
   }, [phase]);
 
-  // CTA pressed — lock choice and begin reveal
+  // CTA pressed — animate hold ring then begin reveal
   const handleCta = useCallback(() => {
     if (phase !== 'selected' || !selectedChoice) return;
+
     setPhase('revealing');
-    setTimeout(() => {
-      setPhase('done');
-      // Mark analytics
-      onMarkCompleted(assignment.assignment_id, pendingResult.outcome);
-      // Brief hold then hand back to HomePage
-      setTimeout(onComplete, 400);
-    }, REVEAL_HOLD_MS);
+    holdStartRef.current = performance.now();
+    setHoldProgress(0);
+
+    const animate = (now: number) => {
+      const elapsed = now - holdStartRef.current;
+      const progress = Math.min(1, elapsed / REVEAL_HOLD_MS);
+      setHoldProgress(progress);
+      if (progress < 1) {
+        holdRafRef.current = requestAnimationFrame(animate);
+      } else {
+        setPhase('done');
+        onMarkCompleted(assignment.assignment_id, pendingResult.outcome);
+        setTimeout(onComplete, 400);
+      }
+    };
+    holdRafRef.current = requestAnimationFrame(animate);
   }, [phase, selectedChoice, assignment.assignment_id, pendingResult.outcome, onMarkCompleted, onComplete]);
 
-  // Map ChallengePhase → renderer phase
+  // Cleanup RAF on unmount
+  useEffect(() => () => { if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current); }, []);
+
+  // For hold_reveal idle phase: auto-select the relic so the effect shows immediately on tap
+  // (relic is the only choice, and tapping it triggers handleChoiceSelect)
+
   const rendererPhase: 'idle' | 'selected' | 'revealing' | 'done' =
-    phase === 'idle' ? 'idle' :
-    phase === 'selected' ? 'selected' :
+    phase === 'idle'      ? 'idle'      :
+    phase === 'selected'  ? 'selected'  :
     phase === 'revealing' ? 'revealing' : 'done';
 
   const rendererOutcome: 'SURVIVE' | 'DIE' | null =
@@ -139,6 +158,7 @@ export default function SkullGateSceneChallenge({
           onChoiceSelect={handleChoiceSelect}
           onCta={handleCta}
           showEditorOutlines={false}
+          holdProgress={holdProgress}
         />
 
         {/* Idle nudge overlay — only before any choice is made */}
@@ -161,7 +181,9 @@ export default function SkullGateSceneChallenge({
               letterSpacing: '0.12em',
               textTransform: 'uppercase',
             }}>
-              {sceneConfig.instructionText ?? 'Tap to begin'}
+              {isHoldReveal
+                ? 'Touch the relic to begin'
+                : (sceneConfig.instructionText ?? 'Tap to begin')}
             </span>
           </div>
         )}
@@ -197,3 +219,4 @@ export default function SkullGateSceneChallenge({
     </div>
   , document.body);
 }
+

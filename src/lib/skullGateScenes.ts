@@ -16,6 +16,8 @@
 //     visible: false until assets are added.
 
 import { TORCH_TRIAL, BUTTONS } from './assets';
+
+const G_BMR = '/assets/games/skull-gate/blood-moon-relic';
 import type { SkullGateSceneConfig, SceneLayer } from './types';
 
 // ── Layer z-index constants ───────────────────────────────────────────────────
@@ -355,6 +357,152 @@ export const TORCH_TRIAL_SCENE_CONFIG: SkullGateSceneConfig = {
   updatedAt:       '2026-05-18T00:00:00.000Z',
 };
 
+// ── Blood Moon Relic layers ───────────────────────────────────────────────────
+
+const bloodMoonRelicLayers: SceneLayer[] = [
+  // 1. Background — full-cover JPG, locked
+  {
+    id:              'bmr_bg',
+    name:            'Background',
+    type:            'image',
+    role:            'background',
+    assetPath:       `${G_BMR}/bg/blood-moon-relic_bg.jpg`,
+    x:               0, y: 0, width: 100, height: 100,
+    opacity:         1,
+    zIndex:          1,
+    visible:         true,
+    locked:          true,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 2. Gate glow — crimson/blood-moon tint (procedural)
+  {
+    id:              'bmr_gate_glow',
+    name:            'Blood Moon Glow',
+    type:            'effect',
+    role:            'gate_glow',
+    assetPath:       '',
+    x:               0, y: 0, width: 100, height: 55,
+    opacity:         0.45,
+    zIndex:          4,
+    visible:         true,
+    animationPreset: 'pulse_glow',
+    effectPreset:    'gate_glow',
+  },
+
+  // 3. Low fog — procedural atmosphere
+  {
+    id:              'bmr_fog',
+    name:            'Low Fog',
+    type:            'effect',
+    role:            'atmosphere_effect',
+    assetPath:       '',
+    x:               0, y: 50, width: 100, height: 50,
+    opacity:         0.35,
+    zIndex:          6,
+    visible:         true,
+    animationPreset: 'fog_drift',
+    effectPreset:    'fog',
+  },
+
+  // 4. Relic foreground — 941×1006 image, bottom-aligned in 941×1672 scene
+  //    y=39.8%, height=60.2% = 1006/1672 ≈ 60.2%, starting at (1-0.602)*100 = 39.8%
+  {
+    id:              'bmr_relic_foreground',
+    name:            'Relic Foreground',
+    type:            'image',
+    role:            'choice_object',
+    assetPath:       `${G_BMR}/objects/blood-moon-relic_main.png`,
+    x:               0, y: 39.8, width: 100, height: 60.2,
+    opacity:         1,
+    zIndex:          10,
+    visible:         true,
+    clickable:       true,
+    clickAction:     'hold_reveal',
+    choiceId:        'relic',
+    effects: {
+      glow:         true,
+      selectedGlow: true,
+      brightness:   0.95,
+      pulse:        true,
+    },
+  },
+
+  // 5. Particles — fireflies/embers (procedural)
+  {
+    id:              'bmr_particles',
+    name:            'Blood Moon Particles',
+    type:            'particle',
+    role:            'particle_effect',
+    assetPath:       '',
+    x:               0, y: 0, width: 100, height: 100,
+    opacity:         0.8,
+    zIndex:          25,
+    visible:         true,
+    locked:          true,
+    animationPreset: 'firefly_random',
+    effectPreset:    'fireflies',
+  },
+
+  // 6. Intro/instruction text
+  {
+    id:              'bmr_intro',
+    name:            'Intro Text',
+    type:            'text',
+    role:            'text',
+    x:               5, y: 8, width: 90, height: 10,
+    opacity:         1,
+    zIndex:          30,
+    visible:         true,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 7. CTA button — "Hold the Relic"
+  {
+    id:              'bmr_cta',
+    name:            'CTA Button',
+    type:            'button',
+    role:            'button',
+    assetPath:       BUTTONS.confirm_default,
+    text:            'Hold the Relic',
+    x:               5, y: 84, width: 90, height: 10,
+    opacity:         1,
+    zIndex:          35,
+    visible:         true,
+    animationPreset: 'none',
+    effectPreset:    'none',
+    mobileSafeArea:  true,
+    clickAction:     'cta',
+  },
+];
+
+// ── Blood Moon Relic Scene Config ─────────────────────────────────────────────
+
+export const BLOOD_MOON_RELIC_SCENE_CONFIG: SkullGateSceneConfig = {
+  id:              'blood-moon-relic',
+  slug:            'blood-moon-relic',
+  title:           'Blood Moon Relic',
+  description:     'A relic pulses under the blood moon. Hold it until it answers.',
+  templateType:    'hold_reveal',
+  status:          'published',
+  enabled:         false,
+  weight:          50,
+  cooldownDays:    1,
+  minStreak:       0,
+  maxStreak:       null,
+  introText:       'A relic pulses under the blood moon.',
+  instructionText: 'Hold the relic until it answers.',
+  ctaText:         'Hold the Relic',
+  surviveText:     'The relic accepts your touch. Your streak survives.',
+  failText:        'The relic rejects you. Your streak falls.',
+  cashoutText:     'Collect Your Winnings',
+  layers:          bloodMoonRelicLayers,
+  createdAt:       '2026-05-25T00:00:00.000Z',
+  updatedAt:       '2026-06-30T00:00:00.000Z',
+};
+
 // ── Product mechanic → scene template type mapping ────────────────────────────
 // Reference for scene authors and the Scene Editor template selector.
 // Pick/SafeBox   → choice_2 (player picks one of two hidden options)
@@ -382,4 +530,5 @@ export const MECHANIC_TEMPLATE_MAP: Record<string, string> = {
 
 export const DEFAULT_SKULL_GATE_SCENES: SkullGateSceneConfig[] = [
   TORCH_TRIAL_SCENE_CONFIG,
+  BLOOD_MOON_RELIC_SCENE_CONFIG,
 ];
