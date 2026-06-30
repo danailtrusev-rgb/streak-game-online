@@ -2,11 +2,11 @@
 // Internal testing tool for SkullGateSceneRenderer.
 // Access via /sys/admin → "Gate Preview" tab.
 // Not visible to players. Does not affect live gameplay.
+// DB is the single source of truth — no static fallback is shown.
 
 import { useState, useCallback, useEffect } from 'react';
 import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database } from 'lucide-react';
 import SkullGateSceneRenderer from '../../components/game/SkullGateSceneRenderer';
-import { DEFAULT_SKULL_GATE_SCENES } from '../../lib/skullGateScenes';
 import { useSkullGateScenes } from '../../hooks/useSkullGateScenes';
 import { supabase } from '../../lib/supabase';
 import { USE_SCENE_BASED_SKULL_GATE } from '../../lib/constants';
@@ -354,16 +354,12 @@ export default function AdminSkullGatePreview() {
     setLoadError(null);
     const rows = await sceneApi.listScenes();
     if (rows === null) {
-      setLoadError(sceneApi.error ?? 'Failed to load scenes');
-      // Fall back to static defaults
-      setEntries(DEFAULT_SKULL_GATE_SCENES.map((cfg) => ({
-        config: cfg, sourceId: null, slug: cfg.slug ?? cfg.id, updatedAt: null,
-      })));
+      // DB error — show error state, do NOT fall back to static defaults
+      setLoadError(sceneApi.error ?? 'Failed to load scenes from database');
+      setEntries([]);
     } else if (rows.length === 0) {
-      // DB empty — use static defaults
-      setEntries(DEFAULT_SKULL_GATE_SCENES.map((cfg) => ({
-        config: cfg, sourceId: null, slug: cfg.slug ?? cfg.id, updatedAt: null,
-      })));
+      // DB empty — show empty state
+      setEntries([]);
     } else {
       const mapped: SceneEntry[] = rows.map((row) => ({
         config:    row.draft_config_json,
@@ -441,9 +437,100 @@ export default function AdminSkullGatePreview() {
 
   if (loadingScenes && entries.length === 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '40px 0', color: 'rgba(255,255,255,0.35)', fontFamily: UF, fontSize: 11 }}>
-        <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
-        Loading scenes from DB…
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '60px 20px', gap: 16,
+        background: 'rgba(11,15,12,0.7)', border: '1px solid rgba(40,55,42,0.3)',
+        minHeight: 240,
+      }}>
+        <div style={{ position: 'relative', width: 40, height: 40 }}>
+          <Loader size={40} style={{
+            color: 'rgba(245,208,96,0.2)',
+            animation: 'spin 1.4s linear infinite',
+            position: 'absolute', inset: 0,
+          }} />
+          <Database size={16} style={{
+            color: 'rgba(245,208,96,0.45)',
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, fontFamily: UF, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>
+          Loading Skull Gate scene from database…
+        </span>
+      </div>
+    );
+  }
+
+  // DB error — no fallback rendered
+  if (loadError && entries.length === 0) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        padding: '40px 20px',
+        background: 'rgba(11,15,12,0.7)', border: '1px solid rgba(180,40,40,0.25)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertCircle size={16} style={{ color: 'rgba(200,60,60,0.75)', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(200,60,60,0.75)' }}>
+            Database Load Failed
+          </span>
+        </div>
+        <div style={{ fontSize: 11, fontFamily: UF, color: 'rgba(200,80,80,0.7)', textAlign: 'center', maxWidth: 340, lineHeight: 1.6 }}>
+          {loadError}
+        </div>
+        <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.6 }}>
+          Static defaults are not shown to prevent masking DB issues.<br />
+          Check admin auth and DB connection, then reload.
+        </div>
+        <button
+          onClick={loadScenes}
+          disabled={loadingScenes}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 16px', fontSize: 11, fontFamily: UF,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            border: '1px solid rgba(245,208,96,0.35)',
+            background: 'rgba(245,208,96,0.06)',
+            color: 'rgba(245,208,96,0.8)', cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={12} />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // DB empty — no scenes exist yet
+  if (!loadingScenes && entries.length === 0 && !loadError) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        padding: '40px 20px',
+        background: 'rgba(11,15,12,0.7)', border: '1px solid rgba(40,55,42,0.3)',
+      }}>
+        <Database size={28} style={{ color: 'rgba(245,208,96,0.22)' }} />
+        <span style={{ fontSize: 12, fontFamily: UF, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>
+          No Scenes in Database
+        </span>
+        <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.22)', textAlign: 'center', lineHeight: 1.7 }}>
+          Go to Gate Scene Editor to create or seed scenes.
+        </div>
+        <button
+          onClick={loadScenes}
+          disabled={loadingScenes}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 16px', fontSize: 11, fontFamily: UF,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            border: '1px solid rgba(50,70,50,0.4)', background: 'transparent',
+            color: 'rgba(255,255,255,0.38)', cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={12} />
+          Reload
+        </button>
       </div>
     );
   }
@@ -451,12 +538,16 @@ export default function AdminSkullGatePreview() {
   if (!scene) {
     return (
       <div style={{ padding: '40px 0', color: 'rgba(200,60,60,0.7)', fontFamily: UF, fontSize: 11 }}>
-        No scenes available. Check DB connection or seed a scene in the Scene Editor.
+        No scene available. Reload or check the Scene Editor.
       </div>
     );
   }
 
   const isDbSource = entry.sourceId !== null;
+
+  // Background layer asset path for debug bar
+  const bgLayer = scene.layers.find((l) => l.role === 'background');
+  const bgPath  = bgLayer?.assetPath ?? null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -509,8 +600,8 @@ export default function AdminSkullGatePreview() {
         </div>
       </div>
 
-      {/* ── Load error banner ── */}
-      {loadError && (
+      {/* ── Load error banner (only when entries exist from previous load) ── */}
+      {loadError && entries.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '8px 12px', background: 'rgba(180,40,40,0.08)',
@@ -518,7 +609,7 @@ export default function AdminSkullGatePreview() {
           fontSize: 10, fontFamily: UF, color: 'rgba(200,70,70,0.85)',
         }}>
           <AlertCircle size={13} style={{ flexShrink: 0 }} />
-          DB load failed: {loadError} — showing static fallback.
+          DB reload failed: {loadError} — showing last loaded scenes.
         </div>
       )}
 
@@ -552,6 +643,11 @@ export default function AdminSkullGatePreview() {
             updated: <span style={{ color: 'rgba(255,255,255,0.38)' }}>
               {new Date(entry.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
+          </span>
+        )}
+        {bgPath && (
+          <span style={{ color: 'rgba(255,255,255,0.22)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            bg: <span style={{ color: 'rgba(120,200,90,0.55)' }} title={bgPath}>{bgPath.split('/').slice(-2).join('/')}</span>
           </span>
         )}
         {entries.length > 0 && (

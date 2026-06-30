@@ -1,7 +1,7 @@
 // Admin: Skull Gate Scene Editor — Prompt 21 created, Prompt 22 drag/resize, Prompt 23 DB persistence
 //
 // Loads scenes from Supabase skull_gate_scenes table via admin edge function.
-// Falls back to DEFAULT_SKULL_GATE_SCENES if DB returns nothing or fails.
+// DB is the single source of truth — no static fallback is ever used as working draft.
 //
 // Draft/Publish workflow:
 //   - All edits go to draft_config_json (local state + Save Draft)
@@ -14,7 +14,7 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   PenLine, Eye, Copy, Download, RotateCcw, ChevronDown, ChevronRight,
   Code, CheckCircle, Save, Globe, RefreshCw, Archive, AlertCircle,
-  Loader, Plus, Search, X as XIcon,
+  Loader, Plus, Search, X as XIcon, Database,
 } from 'lucide-react';
 import type { SkullGateSceneConfig, SceneLayer, LayerType, SkullGateTemplateType } from '../../../lib/types';
 import { DEFAULT_SKULL_GATE_SCENES } from '../../../lib/skullGateScenes';
@@ -211,6 +211,7 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
   const [rows,    setRows]    = useState<SkullGateSceneRow[]>([]);
   const [dbReady, setDbReady] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
+  const [dbLoading, setDbLoading] = useState(true);
 
   // Active scene selection
   const [activeRowId, setActiveRowId] = useState<string | null>(null);
@@ -261,21 +262,25 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
   // ── Load scenes from DB ──────────────────────────────────────────────────────
 
   const loadScenes = useCallback(async () => {
+    setDbLoading(true);
+    setDbError(null);
     const data = await sceneApi.listScenes();
-    if (data && data.length > 0) {
+    setDbLoading(false);
+    if (data === null) {
+      // Request failed — show error, do not load static fallback
+      setDbError(sceneApi.error || 'Failed to load scenes from database');
+      setDbReady(false);
+    } else if (data.length === 0) {
+      // DB empty — show empty state, do not load static fallback
+      setRows([]);
+      setDbReady(true);
+      setDbError(null);
+    } else {
       setRows(data);
       setDbReady(true);
       setDbError(null);
       // Auto-select first scene if none selected
       setActiveRowId((prev) => initialSceneId ?? prev ?? data[0].id);
-    } else if (data && data.length === 0) {
-      // DB empty — use local fallback
-      setDbReady(false);
-      setDbError(null);
-    } else {
-      // Request failed
-      setDbError(sceneApi.error || 'Failed to load scenes');
-      setDbReady(false);
     }
   }, [sceneApi]);
 
@@ -295,12 +300,12 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
       setActiveLayerTabId(null);
       setValidationErrors([]);
       setPublishErrors([]);
-    } else if (!dbReady && DEFAULT_SKULL_GATE_SCENES.length > 0) {
-      // Fallback to local default
-      setDraft({ ...DEFAULT_SKULL_GATE_SCENES[0], layers: DEFAULT_SKULL_GATE_SCENES[0].layers.map((l) => ({ ...l })) });
+    } else {
+      // No active row — clear draft; render will show loading/empty/error state
+      setDraft(null);
       setIsDirty(false);
     }
-  }, [activeRow, dbReady]);
+  }, [activeRow]);
 
   // Active scene is working draft (or local fallback)
   const scene = draft;
@@ -578,7 +583,29 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
     }
   }, [createTitle, createSlug, createTemplate, sceneApi]);
 
-  // ── Preview ──────────────────────────────────────────────────────────────────
+  // ── Explicit seed — only creates scenes that don't already exist ────────────
+
+  const [seeding, setSeeding] = useState(false);
+
+  const handleSeedDefaults = useCallback(async () => {
+    if (!window.confirm(
+      'Seed default scenes into the database?\n\n' +
+      'Only missing scenes will be created. ' +
+      'Existing scenes will NOT be overwritten.',
+    )) return;
+    setSeeding(true);
+    const existingSlugs = new Set(rows.map((r) => r.slug));
+    let created = 0;
+    for (const cfg of DEFAULT_SKULL_GATE_SCENES) {
+      const slug = cfg.slug ?? cfg.id;
+      if (!existingSlugs.has(slug)) {
+        await sceneApi.createScene(slug, cfg.title, cfg);
+        created++;
+      }
+    }
+    setSeeding(false);
+    if (created > 0) await loadScenes();
+  }, [rows, sceneApi, loadScenes]);
 
   const handlePreviewChoice = useCallback((id: string) => { setPreviewChoice(id); setPreviewPhase('selected'); }, []);
   const handlePreviewCta    = useCallback(() => { if (previewPhase === 'selected') setPreviewPhase('revealing'); }, [previewPhase]);
@@ -639,13 +666,135 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
+  // Loading state — DB fetch in progress, no scene yet
+  if (dbLoading && rows.length === 0) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '60px 20px', gap: 16,
+        background: 'rgba(11,15,12,0.7)', border: '1px solid rgba(40,55,42,0.3)',
+        minHeight: 240,
+      }}>
+        <div style={{ position: 'relative', width: 40, height: 40 }}>
+          <Loader size={40} style={{
+            color: 'rgba(245,208,96,0.25)',
+            animation: 'spin 1.4s linear infinite',
+            position: 'absolute', inset: 0,
+          }} />
+          <Database size={16} style={{
+            color: 'rgba(245,208,96,0.5)',
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, fontFamily: UF, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>
+          Loading Skull Gate scene from database…
+        </span>
+      </div>
+    );
+  }
+
+  // Error state — DB load failed
+  if (dbError && rows.length === 0) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        padding: '40px 20px',
+        background: 'rgba(11,15,12,0.7)', border: '1px solid rgba(180,40,40,0.25)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <AlertCircle size={16} style={{ color: 'rgba(200,60,60,0.75)', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontFamily: UF, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(200,60,60,0.75)' }}>
+            Database Load Failed
+          </span>
+        </div>
+        <div style={{ fontSize: 11, fontFamily: UF, color: 'rgba(200,80,80,0.7)', textAlign: 'center', maxWidth: 340, lineHeight: 1.6 }}>
+          {dbError}
+        </div>
+        <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.6 }}>
+          Static defaults are not shown here to prevent overwriting saved scene configs.<br />
+          Fix the DB connection, then reload.
+        </div>
+        <button
+          onClick={loadScenes}
+          disabled={sceneApi.loading}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 16px', fontSize: 11, fontFamily: UF,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            border: '1px solid rgba(245,208,96,0.35)',
+            background: 'rgba(245,208,96,0.06)',
+            color: 'rgba(245,208,96,0.8)', cursor: 'pointer',
+          }}
+        >
+          <RefreshCw size={12} />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // Empty state — DB is reachable but has no scenes
+  if (dbReady && rows.length === 0 && !scene) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        padding: '40px 20px',
+        background: 'rgba(11,15,12,0.7)', border: '1px solid rgba(40,55,42,0.3)',
+      }}>
+        <Database size={28} style={{ color: 'rgba(245,208,96,0.25)' }} />
+        <span style={{ fontSize: 12, fontFamily: UF, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
+          No Scenes Found
+        </span>
+        <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.7, maxWidth: 320 }}>
+          The skull_gate_scenes table is empty.<br />
+          Create a new scene manually or seed the default templates.
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', fontSize: 11, fontFamily: UF,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              border: '1px solid rgba(245,208,96,0.35)',
+              background: 'rgba(245,208,96,0.06)',
+              color: 'rgba(245,208,96,0.8)', cursor: 'pointer',
+            }}
+          >
+            <Plus size={12} />
+            New Scene
+          </button>
+          <button
+            onClick={handleSeedDefaults}
+            disabled={seeding}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', fontSize: 11, fontFamily: UF,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              border: '1px solid rgba(120,190,80,0.35)',
+              background: 'rgba(120,190,80,0.06)',
+              color: 'rgba(140,210,100,0.8)', cursor: seeding ? 'not-allowed' : 'pointer',
+              opacity: seeding ? 0.6 : 1,
+            }}
+          >
+            {seeding ? <Loader size={12} style={{ animation: 'spin 1s linear infinite' }} /> : <Database size={12} />}
+            {seeding ? 'Seeding…' : 'Seed Default Scenes'}
+          </button>
+        </div>
+        <div style={{ fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.18)', textAlign: 'center', lineHeight: 1.6 }}>
+          Seeding only creates missing scenes — existing scenes are never overwritten.
+        </div>
+      </div>
+    );
+  }
+
+  // No active scene (e.g. during row switch) but DB loaded — show minimal wait
   if (!scene) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, gap: 10 }}>
-        {sceneApi.loading
-          ? <><Loader size={14} style={{ color: 'rgba(245,208,96,0.6)', animation: 'spin 1s linear infinite' }} /><span style={{ fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.4)' }}>Loading scenes…</span></>
-          : <span style={{ fontSize: 11, fontFamily: UF, color: 'rgba(200,60,60,0.6)' }}>{dbError || 'No scenes found'}</span>
-        }
+        <Loader size={14} style={{ color: 'rgba(245,208,96,0.6)', animation: 'spin 1s linear infinite' }} />
+        <span style={{ fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.4)' }}>Loading scene…</span>
       </div>
     );
   }
@@ -668,10 +817,10 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
           <span style={{
             fontSize: 10, fontFamily: UF, letterSpacing: '0.12em', textTransform: 'uppercase',
             padding: '2px 6px',
-            border: `1px solid ${dbReady ? 'rgba(120,190,80,0.35)' : 'rgba(180,140,0,0.3)'}`,
-            color: dbReady ? 'rgba(130,200,90,0.65)' : 'rgba(200,175,80,0.5)',
+            border: `1px solid ${dbReady ? 'rgba(120,190,80,0.35)' : dbError ? 'rgba(180,40,40,0.35)' : 'rgba(180,140,0,0.3)'}`,
+            color: dbReady ? 'rgba(130,200,90,0.65)' : dbError ? 'rgba(200,60,60,0.6)' : 'rgba(200,175,80,0.5)',
           }}>
-            {dbReady ? 'DB' : 'Local Fallback'}
+            {dbReady ? 'DB' : dbError ? 'DB Error' : 'Loading…'}
           </span>
           {/* Row status */}
           {rowStatus && (
@@ -831,7 +980,7 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
                   color: leftTab === t ? 'rgba(245,208,96,0.8)' : 'rgba(255,255,255,0.3)',
                 }}
               >
-                {t === 'scenes' ? `Gate Scenes (${rows.length || 1})` : `Assets (${assetApi.assets.length})`}
+                {t === 'scenes' ? `Gate Scenes (${rows.length})` : `Assets (${assetApi.assets.length})`}
               </button>
             ))}
           </div>
@@ -846,8 +995,8 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
           {/* Scene list */}
           {leftTab === 'scenes' && (
           <div style={{ borderBottom: '1px solid rgba(30,42,32,0.6)' }}>
-            {/* Toolbar: New button */}
-            <div style={{ padding: '6px 8px', borderBottom: '1px solid rgba(30,42,32,0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Toolbar: New button + Seed button */}
+            <div style={{ padding: '6px 8px', borderBottom: '1px solid rgba(30,42,32,0.4)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
               <button
                 onClick={() => { setShowCreateForm((v) => !v); setCreateError(null); }}
                 style={{
@@ -859,7 +1008,24 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
                   color: 'rgba(245,208,96,0.75)', cursor: 'pointer',
                 }}
               >
-                <Plus size={10} /> New Gate Scene
+                <Plus size={10} /> New
+              </button>
+              <button
+                onClick={handleSeedDefaults}
+                disabled={seeding}
+                title="Seed Missing Default Scenes — existing scenes are never overwritten"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  padding: '3px 8px', fontSize: 11, fontFamily: UF,
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  border: '1px solid rgba(80,120,60,0.35)',
+                  background: 'rgba(80,120,60,0.05)',
+                  color: 'rgba(120,180,90,0.65)', cursor: seeding ? 'not-allowed' : 'pointer',
+                  opacity: seeding ? 0.5 : 1,
+                }}
+              >
+                {seeding ? <Loader size={10} style={{ animation: 'spin 1s linear infinite' }} /> : <Database size={10} />}
+                {seeding ? 'Seeding…' : 'Seed Missing'}
               </button>
             </div>
 
@@ -1022,8 +1188,8 @@ export default function AdminSceneEditor({ initialSceneId }: { initialSceneId?: 
                       />
                     ))
                   : (
-                    <div style={{ padding: '6px 10px', fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.3)' }}>
-                      Using local fallback
+                    <div style={{ padding: '10px', fontSize: 11, fontFamily: UF, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+                      No scenes match filter
                     </div>
                   );
               })()}
