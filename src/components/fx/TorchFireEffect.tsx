@@ -23,21 +23,21 @@ export interface TorchFireEffectProps {
 const TORCH_STYLE_ID = 'torch-fire-keyframes';
 const TORCH_KEYFRAMES = `
 @keyframes tf-flicker {
-  0%,100% { transform: scaleX(1)   scaleY(1)    skewX(0deg);  opacity:1; }
-  15%     { transform: scaleX(0.92) scaleY(1.04) skewX(-2deg); opacity:0.92; }
-  30%     { transform: scaleX(1.06) scaleY(0.97) skewX(1.5deg);opacity:0.96; }
-  50%     { transform: scaleX(0.95) scaleY(1.06) skewX(-1deg); opacity:0.94; }
-  70%     { transform: scaleX(1.04) scaleY(0.95) skewX(2deg);  opacity:0.97; }
-  85%     { transform: scaleX(0.94) scaleY(1.03) skewX(-1.5deg);opacity:0.93; }
+  0%,100% { transform: scaleX(1)    scaleY(1)    skewX(0deg);   opacity:1; }
+  18%     { transform: scaleX(0.95) scaleY(1.03) skewX(-1.2deg); opacity:0.93; }
+  35%     { transform: scaleX(1.04) scaleY(0.98) skewX(1deg);    opacity:0.97; }
+  52%     { transform: scaleX(0.97) scaleY(1.04) skewX(-0.7deg); opacity:0.95; }
+  68%     { transform: scaleX(1.03) scaleY(0.97) skewX(1.2deg);  opacity:0.97; }
+  84%     { transform: scaleX(0.96) scaleY(1.02) skewX(-0.9deg); opacity:0.94; }
 }
 @keyframes tf-particle {
   0%   { transform: translateY(0)    translateX(0)   scale(1);   opacity: var(--p-op); }
-  40%  { transform: translateY(-45%) translateX(var(--p-dx)) scale(0.75); opacity: calc(var(--p-op) * 0.7); }
-  100% { transform: translateY(-110%) translateX(calc(var(--p-dx) * 1.6)) scale(0.2); opacity: 0; }
+  40%  { transform: translateY(-40%) translateX(var(--p-dx)) scale(0.78); opacity: calc(var(--p-op) * 0.65); }
+  100% { transform: translateY(-100%) translateX(calc(var(--p-dx) * 1.4)) scale(0.2); opacity: 0; }
 }
 @keyframes tf-glow-pulse {
-  0%,100% { opacity: 0.55; transform: scale(1); }
-  50%     { opacity: 0.75; transform: scale(1.08); }
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50%     { opacity: 0.68; transform: scale(1.06); }
 }
 @media (prefers-reduced-motion: reduce) {
   .tf-flicker, .tf-particle { animation: none !important; }
@@ -75,17 +75,18 @@ export default function TorchFireEffect({
     const rand = seededRand(0xf1f0 ^ particleCount);
     return Array.from({ length: particleCount }, (_, i) => ({
       id:       i,
-      left:     20 + rand() * 60,       // % across the flame width
-      bottom:   rand() * 30,            // % up from base
+      left:     20 + rand() * 60,
+      bottom:   rand() * 30,
       size:     (1.5 + rand() * 2) * intensity,
-      dx:       (rand() - 0.5) * width * 0.7,
-      duration: 0.9 + rand() * 1.1,
-      delay:    rand() * -2,
-      opacity:  (0.55 + rand() * 0.45) * intensity,
+      dx:       (rand() - 0.5) * width * 0.5,
+      duration: 1.4 + rand() * 1.4,
+      delay:    rand() * -3,
+      opacity:  (0.5 + rand() * 0.45) * intensity,
     }));
   }, [particleCount, intensity, width]);
 
-  const flickerDuration = 0.18 + (1 - intensity) * 0.12;
+  // Slower, calmer flicker: 0.55–0.7s base
+  const flickerDuration = 0.55 + (1 - intensity) * 0.15;
 
   return (
     <div
@@ -113,7 +114,7 @@ export default function TorchFireEffect({
           background:   `radial-gradient(ellipse at 50% 70%, ${outerColor}40 0%, ${outerColor}18 40%, transparent 70%)`,
           opacity:      0.6 * intensity,
           pointerEvents:'none',
-          animation:    `tf-glow-pulse ${1.8 + Math.random() * 0.4}s ease-in-out infinite`,
+          animation:    `tf-glow-pulse 2.8s ease-in-out infinite`,
         }}
       />
 
@@ -124,7 +125,7 @@ export default function TorchFireEffect({
           position:    'absolute',
           inset:       0,
           transformOrigin: '50% 90%',
-          animation:   `tf-flicker ${flickerDuration + 0.06}s ease-in-out infinite`,
+          animation:   `tf-flicker ${flickerDuration}s ease-in-out infinite`,
         }}
       >
         {/* Outermost — coolest */}

@@ -502,9 +502,7 @@ function ImageLayer({
   }
 
   // Scale for selected choice
-  const scaleTransform = isChoice && isSelected && !isReveal
-    ? `scale(${layer.effects?.selectedScale ?? 1.06})`
-    : undefined;
+  // (removed — selection shown via fire, glow, and brightness only)
 
   // Door transform
   const doorStyle = isDoor ? getDoorStyle(layer, outcome, phase) : {};
@@ -539,9 +537,7 @@ function ImageLayer({
     WebkitTapHighlightColor: 'transparent',
     outline:    'none',
     overflow:   'visible',
-    cursor:     isChoice && phase === 'idle' ? 'pointer' : 'default',
-    transform:  scaleTransform,
-    transition: scaleTransform ? 'transform 0.3s ease' : undefined,
+    cursor:     isChoice && (phase === 'idle' || phase === 'selected') ? 'pointer' : 'default',
     animation:  animCSS,
     ...doorStyle,
   };
