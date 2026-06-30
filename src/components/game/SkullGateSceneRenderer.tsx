@@ -12,6 +12,7 @@ import { resolveLayerCSS } from '../../lib/layerLayout';
 import { BUTTONS } from '../../lib/assets';
 import ImageButton from '../ui/ImageButton';
 import AmbientFireflies from '../fx/AmbientFireflies';
+import TorchFireEffect from '../fx/TorchFireEffect';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Keyframe injection
@@ -632,6 +633,87 @@ function ImageLayer({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Torch fire overlay — positioned over the selected torch's flame area
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface TorchFireOverlayProps {
+  choiceLayer: SceneLayer;
+  phase:       Phase;
+  outcome:     Outcome;
+}
+
+function TorchFireOverlay({ choiceLayer, phase, outcome }: TorchFireOverlayProps) {
+  const isReveal = phase === 'revealing' || phase === 'done';
+
+  // Intensity ramp: medium on selected, high on revealing, outcome-based on done
+  let intensity: number;
+  let coreColor  = '#FFF5C0';
+  let midColor   = '#FF9A20';
+  let outerColor = '#FF4A00';
+
+  if (phase === 'selected') {
+    intensity = 0.75;
+  } else if (phase === 'revealing') {
+    intensity = 1.0;
+  } else if (phase === 'done') {
+    if (outcome === 'SURVIVE') {
+      intensity  = 1.1;
+      coreColor  = '#FFFAE0';
+      midColor   = '#FFD040';
+      outerColor = '#FFA000';
+    } else {
+      // Dying / dim
+      intensity  = 0.35;
+      coreColor  = '#FF8C40';
+      midColor   = '#CC4400';
+      outerColor = '#880000';
+    }
+  } else {
+    return null; // idle — no fire
+  }
+
+  // Position fire above the top-center of the torch choice layer
+  // The fire is centered horizontally and placed so its bottom sits at ~20% from top of torch
+  const pos = resolveLayerCSS(choiceLayer);
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{
+        position:      'absolute',
+        left:          pos.left,
+        top:           pos.top,
+        width:         pos.width,
+        height:        pos.height,
+        zIndex:        (choiceLayer.zIndex ?? 9) + 1,
+        pointerEvents: 'none',
+        overflow:      'visible',
+      }}
+    >
+      {/* Centered at top of torch */}
+      <div
+        style={{
+          position:  'absolute',
+          left:      '50%',
+          top:       '-5%',
+          transform: 'translateX(-50%) translateY(-100%)',
+        }}
+      >
+        <TorchFireEffect
+          width={44}
+          height={72}
+          intensity={intensity}
+          coreColor={coreColor}
+          midColor={midColor}
+          outerColor={outerColor}
+          particleCount={isReveal ? 12 : 8}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Props
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -666,6 +748,14 @@ export default function SkullGateSceneRenderer({
     () => [...sceneConfig.layers].sort((a, b) => a.zIndex - b.zIndex),
     [sceneConfig.layers],
   );
+
+  // Find the selected choice layer for fire overlay positioning
+  const selectedChoiceLayer = useMemo(() => {
+    if (!selectedChoiceId || revealPhase === 'idle') return null;
+    return sceneConfig.layers.find(
+      (l) => l.role === 'choice_object' && l.choiceId === selectedChoiceId && l.visible,
+    ) ?? null;
+  }, [sceneConfig.layers, selectedChoiceId, revealPhase]);
 
   const isReveal  = revealPhase === 'revealing' || revealPhase === 'done';
   const bgFilter  = resultOutcome === 'DIE' && isReveal
@@ -746,6 +836,15 @@ export default function SkullGateSceneRenderer({
           />
         );
       })}
+
+      {/* Torch fire effect on selected torch */}
+      {selectedChoiceLayer && (
+        <TorchFireOverlay
+          choiceLayer={selectedChoiceLayer}
+          phase={revealPhase}
+          outcome={resultOutcome}
+        />
+      )}
 
       {/* Gold bloom on survive — scene-level */}
       {resultOutcome === 'SURVIVE' && isReveal && (

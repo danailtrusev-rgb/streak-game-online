@@ -165,17 +165,27 @@ export default function SceneEditorCanvas({
     document.body.style.userSelect = '';
   }, []); // stable — no deps
 
+  // Stop drag when window loses focus (e.g. Alt+Tab while dragging)
+  const onWindowBlur = useCallback(() => {
+    if (!dragState.current?.active) return;
+    dragState.current = null;
+    if (containerRef.current) containerRef.current.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
   // Attach once; never re-attach mid-drag
   useEffect(() => {
     window.addEventListener('pointermove',   onPointerMove);
     window.addEventListener('pointerup',     onPointerUp);
     window.addEventListener('pointercancel', onPointerUp);
+    window.addEventListener('blur',          onWindowBlur);
     return () => {
       window.removeEventListener('pointermove',   onPointerMove);
       window.removeEventListener('pointerup',     onPointerUp);
       window.removeEventListener('pointercancel', onPointerUp);
+      window.removeEventListener('blur',          onWindowBlur);
     };
-  }, [onPointerMove, onPointerUp]);
+  }, [onPointerMove, onPointerUp, onWindowBlur]);
 
   // ── Keyboard nudge ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -224,6 +234,7 @@ export default function SceneEditorCanvas({
   const startMove = useCallback((e: React.PointerEvent, layer: SceneLayer) => {
     if (canvasMode !== 'editor' || layer.locked) return;
     e.stopPropagation();
+    e.preventDefault(); // prevent browser native drag hijacking pointer events
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
@@ -242,6 +253,7 @@ export default function SceneEditorCanvas({
     };
     document.body.style.userSelect = 'none';
     container.style.cursor = 'grabbing';
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
   }, [canvasMode, toPct]);
 
   // ── Start resize ──────────────────────────────────────────────────────────────
