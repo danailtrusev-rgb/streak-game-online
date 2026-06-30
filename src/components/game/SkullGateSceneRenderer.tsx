@@ -478,12 +478,13 @@ function ImageLayer({
 }: ImageLayerProps) {
   if (!layer.assetPath) return null;
 
-  const isReveal   = phase === 'revealing' || phase === 'done';
-  const isDoor     = layer.role === 'gate_door_left' || layer.role === 'gate_door_right';
-  const isChoice   = layer.role === 'choice_object' && layer.clickable && !!layer.choiceId;
-  const isSelected = isChoice && selectedChoiceId === layer.choiceId;
-  const isOther    = isChoice && selectedChoiceId !== null && selectedChoiceId !== layer.choiceId;
-  const isTapReveal = templateType === 'tap_reveal';
+  const isReveal    = phase === 'revealing' || phase === 'done';
+  const isDoor      = layer.role === 'gate_door_left' || layer.role === 'gate_door_right';
+  const isChoice    = layer.role === 'choice_object' && layer.clickable && !!layer.choiceId;
+  const isSelected  = isChoice && selectedChoiceId === layer.choiceId;
+  const isOther     = isChoice && selectedChoiceId !== null && selectedChoiceId !== layer.choiceId;
+  const isTapReveal  = templateType === 'tap_reveal';
+  const isHoldReveal = templateType === 'hold_reveal';
 
   // Image filter
   let imgFilter = '';
@@ -495,14 +496,21 @@ function ImageLayer({
     } else if (isReveal && !isSelected) {
       imgFilter = 'brightness(0.25) saturate(0.15)';
     } else if (isSelected) {
-      imgFilter = isTapReveal
-        ? 'brightness(1.4) drop-shadow(0 0 18px rgba(255,200,80,0.9)) drop-shadow(0 0 6px rgba(255,120,0,0.7)) saturate(1.2)'
-        : 'brightness(1.3) drop-shadow(0 0 14px rgba(255,140,20,0.8)) drop-shadow(0 0 5px rgba(255,100,0,0.5))';
+      if (isTapReveal) {
+        imgFilter = 'brightness(1.4) drop-shadow(0 0 18px rgba(255,200,80,0.9)) drop-shadow(0 0 6px rgba(255,120,0,0.7)) saturate(1.2)';
+      } else if (isHoldReveal) {
+        imgFilter = 'brightness(1.15) drop-shadow(0 0 16px rgba(180,30,10,0.55))';
+      } else {
+        imgFilter = 'brightness(1.3) drop-shadow(0 0 14px rgba(255,140,20,0.8)) drop-shadow(0 0 5px rgba(255,100,0,0.5))';
+      }
     } else if (isOther) {
       imgFilter = 'brightness(0.45) saturate(0.35)';
     } else {
+      // Idle unselected — hold_reveal uses normal brightness so the dark foreground is visible
       imgFilter = isTapReveal
         ? 'brightness(1.0) drop-shadow(0 0 8px rgba(255,140,40,0.5))'
+        : isHoldReveal
+        ? 'brightness(1.0)'
         : 'brightness(0.92) drop-shadow(0 0 6px rgba(255,120,0,0.35))';
     }
   }
@@ -616,7 +624,9 @@ function ImageLayer({
         style={{
           position:      'absolute', inset: 0,
           width:         '100%', height: '100%',
-          objectFit:     'contain', objectPosition: 'center',
+          // hold_reveal foreground spans the full container — fill, not letterbox
+          objectFit:     isHoldReveal && isChoice ? 'fill' : 'contain',
+          objectPosition: 'center',
           filter:        imgFilter || undefined,
           transition:    'filter 0.45s ease',
           userSelect:    'none', pointerEvents: 'none', display: 'block',

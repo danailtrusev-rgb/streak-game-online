@@ -4,8 +4,8 @@
 // Not visible to players. Does not affect live gameplay.
 // DB is the single source of truth — no static fallback is shown.
 
-import { useState, useCallback, useEffect } from 'react';
-import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database, ImageOff } from 'lucide-react';
 import SkullGateSceneRenderer from '../../components/game/SkullGateSceneRenderer';
 import { useSkullGateScenes } from '../../hooks/useSkullGateScenes';
 import { supabase } from '../../lib/supabase';
@@ -347,6 +347,32 @@ export default function AdminSkullGatePreview() {
   const [outcome,        setOutcome]        = useState<Outcome>(null);
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [showOutlines,   setShowOutlines]   = useState(false);
+
+  // Image asset probe: test every image layer path on scene change
+  const [imgStatus, setImgStatus] = useState<Record<string, 'loading' | 'ok' | 'error'>>({});
+  const probeRef = useRef<Record<string, HTMLImageElement>>({});
+
+  const probeImages = useCallback((cfg: SkullGateSceneConfig) => {
+    // Clear old probes
+    Object.values(probeRef.current).forEach((img) => { img.src = ''; });
+    probeRef.current = {};
+    const initial: Record<string, 'loading' | 'ok' | 'error'> = {};
+    cfg.layers.forEach((layer) => {
+      if (layer.assetPath && (layer.type === 'image' || (layer.type === 'effect' && layer.assetPath))) {
+        initial[layer.id] = 'loading';
+        const img = new Image();
+        img.onload  = () => setImgStatus((prev) => ({ ...prev, [layer.id]: 'ok' }));
+        img.onerror = () => setImgStatus((prev) => ({ ...prev, [layer.id]: 'error' }));
+        img.src = layer.assetPath;
+        probeRef.current[layer.id] = img;
+      }
+    });
+    setImgStatus(initial);
+  }, []);
+
+  useEffect(() => {
+    if (scene) probeImages(scene);
+  }, [scene, probeImages]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load scenes from DB on mount
   const loadScenes = useCallback(async () => {
@@ -834,59 +860,101 @@ export default function AdminSkullGatePreview() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {[...scene.layers]
                 .sort((a, b) => a.zIndex - b.zIndex)
-                .map((layer) => (
-                  <div
-                    key={layer.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '3px 8px',
-                      background: layer.visible ? 'rgba(18,26,20,0.6)' : 'rgba(10,14,11,0.35)',
-                      border: '1px solid rgba(40,55,42,0.18)',
-                      opacity: layer.visible ? 1 : 0.4,
-                    }}
-                  >
-                    <span style={{ fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.2)', minWidth: 14, textAlign: 'right' }}>
-                      {layer.zIndex}
-                    </span>
-                    <span style={{
-                      fontSize: 8, fontFamily: UF, letterSpacing: '0.1em', textTransform: 'uppercase',
-                      color: layer.type === 'button'
-                        ? 'rgba(120,180,255,0.7)'
-                        : layer.role === 'choice_object'
-                        ? 'rgba(255,154,48,0.75)'
-                        : layer.role.startsWith('gate_door')
-                        ? 'rgba(120,200,90,0.7)'
-                        : layer.type === 'text'
-                        ? 'rgba(200,200,120,0.65)'
-                        : 'rgba(255,255,255,0.28)',
-                      background: 'rgba(0,0,0,0.28)',
-                      padding: '1px 5px', flexShrink: 0,
-                    }}>
-                      {layer.type === 'button' ? 'btn' : layer.role.replace('_', ' ')}
-                    </span>
-                    <span style={{
-                      fontSize: 9, fontFamily: UF, color: 'rgba(255,255,255,0.45)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                    }}>
-                      {layer.name}
-                    </span>
-                    {/* Asset / procedural indicator */}
-                    <span style={{ fontSize: 8, flexShrink: 0 }}>
-                      {layer.assetPath
-                        ? <span style={{ color: 'rgba(120,200,90,0.65)' }}>●</span>
-                        : layer.type === 'text' || layer.type === 'button' || layer.type === 'particle' || layer.type === 'effect'
-                        ? <span style={{ color: 'rgba(200,180,80,0.5)' }}>~</span>
-                        : <span style={{ color: 'rgba(255,255,255,0.15)' }}>○</span>
-                      }
-                    </span>
-                  </div>
-                ))}
+                .map((layer) => {
+                  const imgSt = layer.assetPath ? imgStatus[layer.id] : undefined;
+                  const isFailed = imgSt === 'error';
+                  return (
+                    <div
+                      key={layer.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '3px 8px',
+                        background: isFailed
+                          ? 'rgba(180,30,30,0.12)'
+                          : layer.visible ? 'rgba(18,26,20,0.6)' : 'rgba(10,14,11,0.35)',
+                        border: `1px solid ${isFailed ? 'rgba(180,30,30,0.35)' : 'rgba(40,55,42,0.18)'}`,
+                        opacity: layer.visible ? 1 : 0.4,
+                      }}
+                    >
+                      <span style={{ fontSize: 8, fontFamily: UF, color: 'rgba(255,255,255,0.2)', minWidth: 14, textAlign: 'right' }}>
+                        {layer.zIndex}
+                      </span>
+                      <span style={{
+                        fontSize: 8, fontFamily: UF, letterSpacing: '0.1em', textTransform: 'uppercase',
+                        color: layer.type === 'button'
+                          ? 'rgba(120,180,255,0.7)'
+                          : layer.role === 'choice_object'
+                          ? 'rgba(255,154,48,0.75)'
+                          : layer.role.startsWith('gate_door')
+                          ? 'rgba(120,200,90,0.7)'
+                          : layer.type === 'text'
+                          ? 'rgba(200,200,120,0.65)'
+                          : 'rgba(255,255,255,0.28)',
+                        background: 'rgba(0,0,0,0.28)',
+                        padding: '1px 5px', flexShrink: 0,
+                      }}>
+                        {layer.type === 'button' ? 'btn' : layer.role.replace('_', ' ')}
+                      </span>
+                      <span style={{
+                        fontSize: 9, fontFamily: UF, color: isFailed ? 'rgba(220,80,80,0.85)' : 'rgba(255,255,255,0.45)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                      }}>
+                        {layer.name}
+                      </span>
+                      {/* Image status indicator */}
+                      {imgSt === 'loading' && (
+                        <Loader size={9} style={{ color: 'rgba(200,175,80,0.6)', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                      )}
+                      {imgSt === 'ok' && (
+                        <span style={{ fontSize: 8, color: 'rgba(120,200,90,0.65)', flexShrink: 0 }}>●</span>
+                      )}
+                      {imgSt === 'error' && (
+                        <ImageOff size={9} style={{ color: 'rgba(220,60,60,0.85)', flexShrink: 0 }} />
+                      )}
+                      {/* Fallback dot for non-image layers */}
+                      {!imgSt && (
+                        <span style={{ fontSize: 8, flexShrink: 0 }}>
+                          {layer.assetPath
+                            ? <span style={{ color: 'rgba(200,175,80,0.4)' }}>?</span>
+                            : layer.type === 'text' || layer.type === 'button' || layer.type === 'particle' || layer.type === 'effect'
+                            ? <span style={{ color: 'rgba(200,180,80,0.5)' }}>~</span>
+                            : <span style={{ color: 'rgba(255,255,255,0.15)' }}>○</span>
+                          }
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
+
+            {/* Image load error detail */}
+            {Object.entries(imgStatus).some(([, st]) => st === 'error') && (
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {scene.layers
+                  .filter((l) => imgStatus[l.id] === 'error')
+                  .map((l) => (
+                    <div key={l.id} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 6,
+                      padding: '6px 8px',
+                      background: 'rgba(180,30,30,0.10)',
+                      border: '1px solid rgba(180,30,30,0.35)',
+                      fontSize: 9, fontFamily: UF, color: 'rgba(220,80,80,0.85)',
+                      lineHeight: 1.5,
+                    }}>
+                      <ImageOff size={10} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>
+                        Image failed to load: <span style={{ color: 'rgba(255,140,140,0.9)', wordBreak: 'break-all' }}>{l.assetPath}</span>
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
             <div style={{
               marginTop: 6, fontSize: 9, fontFamily: UF, letterSpacing: '0.1em',
               color: 'rgba(255,255,255,0.2)',
             }}>
-              ● asset  ~ procedural / text  ○ no asset (hidden)
+              ● loaded  ~ procedural / text  ○ no asset
             </div>
           </div>
 
