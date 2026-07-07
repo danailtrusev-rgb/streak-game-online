@@ -1,23 +1,20 @@
 // SkullGateSceneChallenge
 //
-// Scene-renderer-driven version of SkullGateChallenge.
-// Rendered ONLY when USE_SCENE_BASED_SKULL_GATE = true AND an assignment with
-// a valid scene config exists. Caller (HomePage) guarantees both conditions.
+// Scene-renderer-driven challenge component.
+// Used when USE_SCENE_BASED_SKULL_GATE = true AND an assignment with a valid
+// scene config exists. Caller (HomePage) guarantees both conditions.
 //
 // Props mirror SkullGateChallenge exactly so the switch in HomePage is trivial.
 //
-// What this component does:
-//   - Renders the assigned scene via SkullGateSceneRenderer (player mode)
-//   - Manages idle → selected → revealing → done phase progression
-//   - Allows choice switching before CTA; locks choice after CTA press
-//   - Calls onComplete() when reveal finishes (same as SkullGateChallenge)
-//   - Uses pendingResult.outcome ONLY for visual reveal styling
-//   - Fire-and-forgets markStarted / markCompleted for analytics
+// hold_reveal interaction (Blood Moon Relic):
+//   - Pointer down on relic → starts RAF hold-progress loop (0→1)
+//   - Pointer up / cancel / leave before 100% → reset to 0, phase back to idle
+//   - Hold reaches 100% → trigger reveal (no CTA button needed)
+//   - CTA button is hidden for hold_reveal template
 //
-// hold_reveal template:
-//   - Tapping the relic auto-selects it (choiceId = 'relic')
-//   - CTA press locks and begins reveal (same flow, no actual hold timer)
-//   - holdProgress 0→1 animates over REVEAL_HOLD_MS for the ring effect
+// choice_2 / tap_reveal interaction:
+//   - Tap choice_object → phase becomes 'selected'
+//   - CTA button appears → press to confirm → reveal
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
@@ -35,10 +32,10 @@ const REVEAL_HOLD_MS = 1800;
 type ChallengePhase = 'idle' | 'selected' | 'revealing' | 'done';
 
 interface Props {
-  pendingResult: PlayResult;
-  onComplete:    () => void;
-  sceneConfig:   SkullGateSceneConfig;
-  assignment:    SkullGateAssignment;
+  pendingResult:   PlayResult;
+  onComplete:      () => void;
+  sceneConfig:     SkullGateSceneConfig;
+  assignment:      SkullGateAssignment;
   onMarkStarted:   (id: string | null) => void;
   onMarkCompleted: (id: string | null, outcome: 'SURVIVE' | 'DIE') => void;
 }
@@ -57,12 +54,19 @@ export default function SkullGateSceneChallenge({
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [holdProgress,   setHoldProgress]   = useState(0);
   const [visible,        setVisible]        = useState(false);
-  const startedRef    = useRef(false);
-  const holdRafRef    = useRef<number>(0);
-  const holdStartRef  = useRef<number>(0);
+
+  const startedRef     = useRef(false);
+  const holdRafRef     = useRef<number>(0);
+  const holdStartRef   = useRef<number>(0);
+  const holdActiveRef  = useRef(false);   // true while pointer is held down
+  const holdPointerRef = useRef<number>(-1);
+  const phaseRef       = useRef<ChallengePhase>('idle');
 
   const isHoldReveal = sceneConfig.templateType === 'hold_reveal';
   const survived     = pendingResult.outcome === 'SURVIVE';
+
+  // Keep phaseRef in sync so RAF callbacks see current phase without stale closure
+  useEffect(() => { phaseRef.current = phase; }, [phase]);
 
   // Fade-in entrance
   useEffect(() => {
@@ -76,46 +80,123 @@ export default function SkullGateSceneChallenge({
     onMarkStarted(assignment.assignment_id);
   }, [assignment.assignment_id, onMarkStarted]);
 
-  // For hold_reveal: auto-select the relic when tapped
+  // ── Finish reveal ──────────────────────────────────────────────────────────
+
+  const finishReveal = useCallback(() => {
+    setPhase('done');
+    onMarkCompleted(assignment.assignment_id, pendingResult.outcome);
+    setTimeout(onComplete, 400);
+  }, [assignment.assignment_id, pendingResult.outcome, onMarkCompleted, onComplete]);
+
+  // ── RAF hold loop ──────────────────────────────────────────────────────────
+
+  const cancelHold = useCallback(() => {
+    if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current);
+    holdActiveRef.current  = false;
+    holdPointerRef.current = -1;
+    setHoldProgress(0);
+    // Only reset phase if we haven't started the reveal yet
+    if (phaseRef.current !== 'revealing' && phaseRef.current !== 'done') {
+      setPhase('idle');
+      setSelectedChoice(null);
+    }
+  }, []);
+
+  const startHoldLoop = useCallback(() => {
+    holdStartRef.current = performance.now();
+    holdActiveRef.current = true;
+
+    const tick = (now: number) => {
+      if (!holdActiveRef.current) return;
+      const progress = Math.min(1, (now - holdStartRef.current) / REVEAL_HOLD_MS);
+      setHoldProgress(progress);
+      if (progress < 1) {
+        holdRafRef.current = requestAnimationFrame(tick);
+      } else {
+        holdActiveRef.current = false;
+        setPhase('revealing');
+        // Phase transition: revealing → done handled by a small timeout
+        setTimeout(finishReveal, 400);
+      }
+    };
+    holdRafRef.current = requestAnimationFrame(tick);
+  }, [finishReveal]);
+
+  // ── hold_reveal pointer handlers (passed down to renderer via callbacks) ───
+
+  const handleRelicPointerDown = useCallback((pointerId: number) => {
+    if (phaseRef.current === 'revealing' || phaseRef.current === 'done') return;
+    if (holdActiveRef.current) return;
+
+    holdPointerRef.current = pointerId;
+    setSelectedChoice('relic');
+    setPhase('selected');
+    startHoldLoop();
+  }, [startHoldLoop]);
+
+  const handleRelicPointerUp = useCallback((pointerId: number) => {
+    if (holdPointerRef.current !== pointerId) return;
+    if (phaseRef.current === 'revealing' || phaseRef.current === 'done') return;
+    cancelHold();
+  }, [cancelHold]);
+
+  // ── choice_2 / tap_reveal handlers ────────────────────────────────────────
+
   const handleChoiceSelect = useCallback((choiceId: string) => {
+    if (isHoldReveal) return; // hold_reveal doesn't use click-select flow
     if (phase !== 'idle' && phase !== 'selected') return;
     setSelectedChoice(choiceId);
     setPhase('selected');
-  }, [phase]);
+  }, [isHoldReveal, phase]);
 
-  // CTA pressed — animate hold ring then begin reveal
+  // CTA pressed — for non-hold_reveal templates
   const handleCta = useCallback(() => {
+    if (isHoldReveal) return;
     if (phase !== 'selected' || !selectedChoice) return;
 
     setPhase('revealing');
-    holdStartRef.current = performance.now();
-    setHoldProgress(0);
+    // For non-hold templates the reveal is immediate (no progress animation)
+    setTimeout(finishReveal, 400);
+  }, [isHoldReveal, phase, selectedChoice, finishReveal]);
 
-    const animate = (now: number) => {
-      const elapsed = now - holdStartRef.current;
-      const progress = Math.min(1, elapsed / REVEAL_HOLD_MS);
-      setHoldProgress(progress);
-      if (progress < 1) {
-        holdRafRef.current = requestAnimationFrame(animate);
-      } else {
-        setPhase('done');
-        onMarkCompleted(assignment.assignment_id, pendingResult.outcome);
-        setTimeout(onComplete, 400);
+  // ── Global pointer-up listener for hold_reveal ────────────────────────────
+
+  useEffect(() => {
+    if (!isHoldReveal) return;
+
+    const onPointerUp = (e: PointerEvent) => {
+      if (holdPointerRef.current === e.pointerId) {
+        handleRelicPointerUp(e.pointerId);
       }
     };
-    holdRafRef.current = requestAnimationFrame(animate);
-  }, [phase, selectedChoice, assignment.assignment_id, pendingResult.outcome, onMarkCompleted, onComplete]);
+    const onPointerCancel = (e: PointerEvent) => {
+      if (holdPointerRef.current === e.pointerId) {
+        cancelHold();
+      }
+    };
+    const onVisChange = () => {
+      if (document.visibilityState === 'hidden') cancelHold();
+    };
 
-  // Cleanup RAF on unmount
-  useEffect(() => () => { if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current); }, []);
+    window.addEventListener('pointerup',     onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => {
+      window.removeEventListener('pointerup',     onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      document.removeEventListener('visibilitychange', onVisChange);
+    };
+  }, [isHoldReveal, handleRelicPointerUp, cancelHold]);
 
-  // For hold_reveal idle phase: auto-select the relic so the effect shows immediately on tap
-  // (relic is the only choice, and tapping it triggers handleChoiceSelect)
+  // ── Cleanup RAF on unmount ─────────────────────────────────────────────────
 
-  const rendererPhase: 'idle' | 'selected' | 'revealing' | 'done' =
-    phase === 'idle'      ? 'idle'      :
-    phase === 'selected'  ? 'selected'  :
-    phase === 'revealing' ? 'revealing' : 'done';
+  useEffect(() => () => {
+    if (holdRafRef.current) cancelAnimationFrame(holdRafRef.current);
+  }, []);
+
+  // ── Phase mapping for renderer ────────────────────────────────────────────
+
+  const rendererPhase: 'idle' | 'selected' | 'revealing' | 'done' = phase;
 
   const rendererOutcome: 'SURVIVE' | 'DIE' | null =
     (phase === 'revealing' || phase === 'done') ? pendingResult.outcome : null;
@@ -136,17 +217,17 @@ export default function SkullGateSceneChallenge({
         justifyContent: 'center',
       }}
     >
-      {/* 9:16 play area — constrained by both width and height so it never distorts */}
+      {/* 9:16 play area */}
       <div
         className="animate-scene-enter"
         style={{
-          position:  'relative',
-          width:     'min(100%, calc(100vh * 9 / 16))',
-          maxWidth:   480,
+          position:    'relative',
+          width:       'min(100%, calc(100vh * 9 / 16))',
+          maxWidth:     480,
           aspectRatio: '9 / 16',
-          alignSelf: 'center',
-          overflow:  'hidden',
-          flexShrink: 0,
+          alignSelf:   'center',
+          overflow:    'hidden',
+          flexShrink:   0,
         }}
       >
         <SkullGateSceneRenderer
@@ -157,21 +238,22 @@ export default function SkullGateSceneChallenge({
           revealPhase={rendererPhase}
           onChoiceSelect={handleChoiceSelect}
           onCta={handleCta}
+          onRelicPointerDown={isHoldReveal ? handleRelicPointerDown : undefined}
           showEditorOutlines={false}
           holdProgress={holdProgress}
         />
 
-        {/* Idle nudge overlay — only before any choice is made */}
+        {/* Idle nudge — only before hold starts */}
         {phase === 'idle' && (
           <div
             style={{
-              position:  'absolute',
-              bottom:    'max(env(safe-area-inset-bottom, 0px), 24px)',
-              left:       0, right: 0,
-              display:   'flex',
+              position:      'absolute',
+              bottom:        'max(env(safe-area-inset-bottom, 0px), 24px)',
+              left:           0, right: 0,
+              display:       'flex',
               justifyContent: 'center',
               pointerEvents: 'none',
-              zIndex:     100,
+              zIndex:         100,
             }}
           >
             <span style={{
@@ -182,13 +264,38 @@ export default function SkullGateSceneChallenge({
               textTransform: 'uppercase',
             }}>
               {isHoldReveal
-                ? 'Touch the relic to begin'
+                ? 'Press and hold the relic'
                 : (sceneConfig.instructionText ?? 'Tap to begin')}
             </span>
           </div>
         )}
 
-        {/* Reveal status bar — appears during/after reveal, above renderer layers */}
+        {/* Hold progress hint — shows while holding */}
+        {isHoldReveal && phase === 'selected' && (
+          <div
+            style={{
+              position:      'absolute',
+              bottom:        'max(env(safe-area-inset-bottom, 0px), 24px)',
+              left:           0, right: 0,
+              display:       'flex',
+              justifyContent: 'center',
+              pointerEvents: 'none',
+              zIndex:         100,
+            }}
+          >
+            <span style={{
+              fontSize:      11,
+              color:         'rgba(200,80,60,0.55)',
+              fontFamily:    "'Inter', system-ui, sans-serif",
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}>
+              Hold…
+            </span>
+          </div>
+        )}
+
+        {/* Reveal status bar */}
         {(phase === 'revealing' || phase === 'done') && (
           <div
             style={{
@@ -219,4 +326,3 @@ export default function SkullGateSceneChallenge({
     </div>
   , document.body);
 }
-

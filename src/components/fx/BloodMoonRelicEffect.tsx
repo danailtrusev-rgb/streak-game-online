@@ -80,13 +80,11 @@ export default function BloodMoonRelicEffect({
     }));
   }, []);
 
-  const isActive   = phase !== 'idle';
-  const isFailed   = phase === 'failed';
-  const isSurvived = phase === 'survived';
-  const isHolding  = phase === 'holding';
+  const isFailed    = phase === 'failed';
+  const isSurvived  = phase === 'survived';
+  const isHolding   = phase === 'holding';
   const isResolving = phase === 'resolving';
 
-  // Primary glow color
   const glowColor = isSurvived
     ? 'rgba(245,208,80,0.55)'
     : isFailed
@@ -99,10 +97,10 @@ export default function BloodMoonRelicEffect({
 
   const glowOp = isSurvived ? 0.65 : isFailed ? 0.7 : isHolding || isResolving ? 0.55 : 0.38;
 
-  // Hold progress ring — drawn as an SVG arc
-  const ringRadius = 44;
+  const ringRadius       = 44;
   const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringOffset = ringCircumference * (1 - (isHolding ? holdProgress : isResolving || isSurvived || isFailed ? 1 : 0));
+  const ringFill         = isHolding ? holdProgress : (isResolving || isSurvived || isFailed ? 1 : 0);
+  const ringOffset       = ringCircumference * (1 - ringFill);
 
   return (
     <div
@@ -112,43 +110,66 @@ export default function BloodMoonRelicEffect({
         position: 'absolute',
         inset:     0,
         pointerEvents: 'none',
+        overflow: 'visible',
         ...style,
       }}
     >
-      {/* Base radial glow behind relic */}
-      {isActive && (
+      {/* Idle subtle pulse — always visible when scene loads (bottom of relic) */}
+      <div
+        className="bmr-anim"
+        style={{
+          position:     'absolute',
+          left:         '50%',
+          top:          '62%',
+          transform:    'translate(-50%, -50%)',
+          width:        '45%',
+          height:       '20%',
+          borderRadius: '50%',
+          background:   phase === 'idle'
+            ? 'radial-gradient(ellipse at 50% 50%, rgba(110,10,5,0.35) 0%, transparent 70%)'
+            : 'none',
+          filter:       'blur(14px)',
+          animation:    phase === 'idle' ? 'bmr-pulse 3.8s ease-in-out infinite' : undefined,
+          opacity:      phase === 'idle' ? 1 : 0,
+          transition:   'opacity 0.4s ease',
+          '--bmr-op':   '0.3',
+        } as React.CSSProperties}
+      />
+
+      {/* Active radial glow behind relic (all non-idle phases) */}
+      {phase !== 'idle' && (
         <div
           className="bmr-anim"
           style={{
-            position:   'absolute',
-            left:       '50%',
-            top:        '60%',
-            transform:  'translate(-50%, -50%)',
-            width:      '70%',
-            height:     '35%',
+            position:     'absolute',
+            left:         '50%',
+            top:          '60%',
+            transform:    'translate(-50%, -50%)',
+            width:        '70%',
+            height:       '35%',
             borderRadius: '50%',
-            background:  `radial-gradient(ellipse 80% 80% at 50% 50%, ${glowColor} 0%, transparent 70%)`,
-            filter:     'blur(18px)',
-            animation:  `bmr-glow-breathe ${isFailed ? '0.4s' : '2.4s'} ease-in-out infinite`,
+            background:   `radial-gradient(ellipse 80% 80% at 50% 50%, ${glowColor} 0%, transparent 70%)`,
+            filter:       'blur(18px)',
+            animation:    `bmr-glow-breathe ${isFailed ? '0.4s' : '2.4s'} ease-in-out infinite`,
             '--bmr-glow-op': String(glowOp),
           } as React.CSSProperties}
         />
       )}
 
-      {/* Hold progress ring — SVG */}
+      {/* Hold progress ring — SVG, rendered behind the relic image via parent z-ordering */}
       {(isHolding || isResolving) && (
         <svg
           className="bmr-anim"
           style={{
-            position: 'absolute',
-            left:     '50%',
-            top:      '62%',
-            transform: 'translate(-50%, -50%)',
-            width:    100,
-            height:   100,
-            overflow: 'visible',
-            animation: isResolving ? `bmr-ring-spin 1.2s linear infinite` : undefined,
-            transformOrigin: '50% 50%',
+            position:        'absolute',
+            left:            '50%',
+            top:             '62%',
+            transform:       'translate(-50%, -50%)',
+            width:            100,
+            height:           100,
+            overflow:        'visible',
+            animation:       isResolving ? 'bmr-ring-spin 1.2s linear infinite' : undefined,
+            transformOrigin: '50% 62%',
           }}
           viewBox="0 0 100 100"
         >
@@ -169,7 +190,7 @@ export default function BloodMoonRelicEffect({
             strokeDasharray={ringCircumference}
             strokeDashoffset={ringOffset}
             transform="rotate(-90 50 50)"
-            style={{ transition: 'stroke-dashoffset 0.1s linear' }}
+            style={{ transition: isHolding ? 'stroke-dashoffset 0.08s linear' : 'none' }}
           />
         </svg>
       )}
@@ -179,15 +200,15 @@ export default function BloodMoonRelicEffect({
         <div
           className="bmr-anim"
           style={{
-            position:   'absolute',
-            left:       '50%',
-            top:        '60%',
-            transform:  'translate(-50%, -50%)',
-            width:      '90%',
-            height:     '50%',
+            position:     'absolute',
+            left:         '50%',
+            top:          '60%',
+            transform:    'translate(-50%, -50%)',
+            width:        '90%',
+            height:       '50%',
             borderRadius: '50%',
-            background:  'radial-gradient(ellipse 70% 65% at 50% 50%, rgba(255,220,60,0.55) 0%, rgba(220,160,20,0.2) 50%, transparent 75%)',
-            animation:  'bmr-gold-bloom 0.7s ease-out 1 forwards',
+            background:   'radial-gradient(ellipse 70% 65% at 50% 50%, rgba(255,220,60,0.55) 0%, rgba(220,160,20,0.2) 50%, transparent 75%)',
+            animation:    'bmr-gold-bloom 0.7s ease-out 1 forwards',
           }}
         />
       )}
@@ -217,31 +238,11 @@ export default function BloodMoonRelicEffect({
         <div
           className="bmr-anim"
           style={{
-            position:   'absolute',
-            inset:       0,
-            background:  'rgba(60,0,0,0.45)',
-            animation:  'bmr-crack-flash 0.5s ease-in-out 3',
+            position:  'absolute',
+            inset:      0,
+            background: 'rgba(60,0,0,0.45)',
+            animation: 'bmr-crack-flash 0.5s ease-in-out 3',
           }}
-        />
-      )}
-
-      {/* Idle subtle pulse glow — always visible when scene loads */}
-      {!isActive && (
-        <div
-          className="bmr-anim"
-          style={{
-            position:   'absolute',
-            left:       '50%',
-            top:        '62%',
-            transform:  'translate(-50%, -50%)',
-            width:      '45%',
-            height:     '20%',
-            borderRadius: '50%',
-            background:  'radial-gradient(ellipse at 50% 50%, rgba(110,10,5,0.35) 0%, transparent 70%)',
-            filter:     'blur(14px)',
-            animation:  'bmr-pulse 3.8s ease-in-out infinite',
-            '--bmr-op': '0.3',
-          } as React.CSSProperties}
         />
       )}
     </div>

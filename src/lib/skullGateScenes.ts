@@ -376,30 +376,30 @@ const bloodMoonRelicLayers: SceneLayer[] = [
     effectPreset:    'none',
   },
 
-  // 2. Gate glow — crimson/blood-moon tint (procedural)
+  // 2. Blood moon glow — deep crimson radial bloom from top-center (procedural)
   {
-    id:              'bmr_gate_glow',
+    id:              'bmr_blood_moon_glow',
     name:            'Blood Moon Glow',
     type:            'effect',
     role:            'gate_glow',
     assetPath:       '',
-    x:               0, y: 0, width: 100, height: 55,
-    opacity:         0.45,
+    x:               0, y: 0, width: 100, height: 60,
+    opacity:         0.6,
     zIndex:          4,
     visible:         true,
     animationPreset: 'pulse_glow',
-    effectPreset:    'gate_glow',
+    effectPreset:    'blood_moon_glow',
   },
 
-  // 3. Low fog — procedural atmosphere
+  // 3. Low fog — procedural dark blue-gray atmosphere
   {
     id:              'bmr_fog',
     name:            'Low Fog',
     type:            'effect',
     role:            'atmosphere_effect',
     assetPath:       '',
-    x:               0, y: 50, width: 100, height: 50,
-    opacity:         0.35,
+    x:               0, y: 48, width: 100, height: 52,
+    opacity:         0.62,
     zIndex:          6,
     visible:         true,
     animationPreset: 'fog_drift',
@@ -408,6 +408,7 @@ const bloodMoonRelicLayers: SceneLayer[] = [
 
   // 4. Relic foreground — 941×1006 image, bottom-aligned in 941×1672 scene
   //    y=39.8%, height=60.2% = 1006/1672 ≈ 60.2%, starting at (1-0.602)*100 = 39.8%
+  //    hitArea: central relic body only, layer-relative %
   {
     id:              'bmr_relic_foreground',
     name:            'Relic Foreground',
@@ -421,6 +422,7 @@ const bloodMoonRelicLayers: SceneLayer[] = [
     clickable:       true,
     clickAction:     'hold_reveal',
     choiceId:        'relic',
+    hitArea:         { x: 20, y: 5, width: 60, height: 55 },
     effects: {
       glow:         true,
       selectedGlow: true,
@@ -429,20 +431,20 @@ const bloodMoonRelicLayers: SceneLayer[] = [
     },
   },
 
-  // 5. Particles — fireflies/embers (procedural)
+  // 5. Ritual motes — crimson/gold floating particles (procedural)
   {
     id:              'bmr_particles',
-    name:            'Blood Moon Particles',
+    name:            'Ritual Motes',
     type:            'particle',
     role:            'particle_effect',
     assetPath:       '',
     x:               0, y: 0, width: 100, height: 100,
-    opacity:         0.8,
+    opacity:         1,
     zIndex:          25,
     visible:         true,
     locked:          true,
-    animationPreset: 'firefly_random',
-    effectPreset:    'fireflies',
+    animationPreset: 'ritual_motes',
+    effectPreset:    'ritual_motes',
   },
 
   // 6. Intro/instruction text

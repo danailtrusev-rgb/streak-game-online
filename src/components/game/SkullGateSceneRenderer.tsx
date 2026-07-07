@@ -1,10 +1,4 @@
-// Skull Gate Scene Renderer — Prompt 19 created, Prompt 20 revised
-//
-// Renders a SkullGateSceneConfig from src/lib/skullGateScenes.ts.
-// Used in AdminSkullGatePreview for internal testing only.
-//
-// Live SkullGateChallenge.tsx is NOT touched. Prompt 21+ will wire this
-// into the live challenge flow to replace the hardcoded Torch Trial.
+// Skull Gate Scene Renderer
 
 import { useMemo } from 'react';
 import type { SkullGateSceneConfig, SceneLayer, AnimationPreset } from '../../lib/types';
@@ -20,7 +14,7 @@ import type { BloodMoonPhase } from '../fx/BloodMoonRelicEffect';
 // Keyframe injection
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STYLE_ID = 'sgsr-keyframes-v3';
+const STYLE_ID = 'sgsr-keyframes-v4';
 const KEYFRAMES = `
 @keyframes sgsr-slow-float {
   0%,100% { transform: translateY(0px); }
@@ -106,6 +100,16 @@ const KEYFRAMES = `
   0%,100% { opacity: var(--il-op, 0); }
   50%     { opacity: calc(var(--il-op, 0) * 1.2); }
 }
+@keyframes sgsr-ritual-mote {
+  0%   { transform: translate(var(--mx0,0px), var(--my0,0px)) scale(1);   opacity: 0; }
+  15%  { opacity: var(--mop, 0.6); }
+  70%  { opacity: calc(var(--mop, 0.6) * 0.7); }
+  100% { transform: translate(var(--mx1,0px), var(--my1,0px)) scale(0.4); opacity: 0; }
+}
+@keyframes sgsr-bmg-pulse {
+  0%,100% { opacity: var(--bmg-op, 0.55); filter: blur(24px); }
+  50%     { opacity: calc(var(--bmg-op, 0.55) * 1.35); filter: blur(30px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .sgsr-anim { animation: none !important; }
   .sgsr-door { transition: none !important; }
@@ -134,12 +138,86 @@ function animPresetToCSS(preset: AnimationPreset | undefined): string | undefine
     case 'branch_sway':       return 'sgsr-branch-sway 7s ease-in-out infinite';
     case 'ember_float':       return 'sgsr-ember-float 2.8s ease-out infinite';
     case 'firefly_random':    return undefined; // handled by AmbientFireflies
+    case 'ritual_motes':      return undefined; // handled by RitualMotes
     case 'light_ray_pulse':   return 'sgsr-light-ray 5s ease-in-out infinite';
     case 'gate_rumble':       return 'sgsr-rumble 0.35s ease-in-out 3';
     case 'torch_flicker':     return 'sgsr-torch-flicker 2.8s ease-in-out infinite';
     case 'inner_light_pulse': return 'sgsr-inner-light 3s ease-in-out infinite';
     default:                  return undefined;
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Ritual motes — seeded, deterministic, crimson/gold particles
+// ─────────────────────────────────────────────────────────────────────────────
+
+function seededRand(seed: number) {
+  let s = seed;
+  return () => { s = (Math.imul(s, 1664525) + 1013904223) | 0; return (s >>> 0) / 0x100000000; };
+}
+
+interface RitualMotesProps {
+  count:   number;
+  zIndex:  number;
+  phase:   Phase;
+  outcome: Outcome;
+}
+
+function RitualMotes({ count, zIndex, phase, outcome }: RitualMotesProps) {
+  const motes = useMemo(() => {
+    const rand = seededRand(0xb100d1c);
+    const isReveal = phase === 'revealing' || phase === 'done';
+    const n = isReveal ? Math.floor(count * 1.6) : count;
+    return Array.from({ length: n }, (_, i) => {
+      const x0 = 5 + rand() * 90;
+      const y0 = 20 + rand() * 70;
+      const dx = (rand() - 0.5) * 60;
+      const dy = -(20 + rand() * 50);
+      const size = 2.5 + rand() * 4;
+      const dur  = 3.5 + rand() * 4.5;
+      const delay = rand() * -8;
+      // crimson → gold spectrum
+      const hue = isReveal && outcome === 'SURVIVE'
+        ? 35 + rand() * 25      // gold on survive
+        : isReveal && outcome === 'DIE'
+        ? 0 + rand() * 15       // deep red on fail
+        : 5 + rand() * 30;      // red/orange idle
+      const sat  = 80 + rand() * 20;
+      const lig  = 45 + rand() * 25;
+      const opacity = 0.35 + rand() * 0.5;
+      return { i, x0, y0, dx, dy, size, dur, delay, hue, sat, lig, opacity };
+    });
+  }, [count, phase, outcome]);
+
+  return (
+    <div
+      aria-hidden="true"
+      style={{ position: 'absolute', inset: 0, zIndex, pointerEvents: 'none', overflow: 'hidden' }}
+    >
+      {motes.map((m) => (
+        <div
+          key={m.i}
+          className="sgsr-anim"
+          style={{
+            position:     'absolute',
+            left:         `${m.x0}%`,
+            top:          `${m.y0}%`,
+            width:         m.size,
+            height:        m.size,
+            borderRadius: '50%',
+            background:   `hsl(${m.hue}, ${m.sat}%, ${m.lig}%)`,
+            boxShadow:    `0 0 ${m.size * 2}px hsl(${m.hue}, ${m.sat}%, ${m.lig + 15}%)`,
+            animation:    `sgsr-ritual-mote ${m.dur}s ${m.delay}s ease-out infinite`,
+            '--mx0':      '0px',
+            '--my0':      '0px',
+            '--mx1':      `${m.dx}px`,
+            '--my1':      `${m.dy}px`,
+            '--mop':      String(m.opacity),
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,13 +232,9 @@ function resolveInstructionText(
   phase:    Phase,
   outcome:  Outcome,
 ): string {
-  if (phase === 'idle')     return scene.introText ?? scene.instructionText;
-  if (phase === 'selected') return scene.instructionText;
-  if (phase === 'revealing') {
-    return outcome === 'SURVIVE'
-      ? 'The gate answers…'
-      : 'The gate answers…';
-  }
+  if (phase === 'idle')      return scene.introText ?? scene.instructionText;
+  if (phase === 'selected')  return scene.instructionText;
+  if (phase === 'revealing') return 'The gate answers…';
   if (phase === 'done') {
     return outcome === 'SURVIVE' ? scene.surviveText : scene.failText;
   }
@@ -174,11 +248,11 @@ function resolveInstructionText(
 function ProceduralEffect({
   layer, outcome, phase, isBloodMoon,
 }: { layer: SceneLayer; outcome: Outcome; phase: Phase; isBloodMoon?: boolean }) {
-  const isReveal = phase === 'revealing' || phase === 'done';
-  const animEnabled = layer.parallaxEnabled !== false;
+  const isReveal     = phase === 'revealing' || phase === 'done';
+  const animEnabled  = layer.parallaxEnabled !== false;
 
-  // Fireflies
-  if (layer.role === 'particle_effect' || layer.effectPreset === 'fireflies') {
+  // Fireflies (torch trial)
+  if (layer.effectPreset === 'fireflies') {
     return (
       <AmbientFireflies
         count={isReveal ? 22 : 12}
@@ -188,41 +262,88 @@ function ProceduralEffect({
     );
   }
 
-  // Fog
+  // Ritual motes (blood moon relic)
+  if (layer.effectPreset === 'ritual_motes' || layer.animationPreset === 'ritual_motes') {
+    return (
+      <RitualMotes
+        count={isReveal ? 18 : 10}
+        zIndex={layer.zIndex}
+        phase={phase}
+        outcome={outcome}
+      />
+    );
+  }
+
+  // Fog / atmosphere
   if (layer.role === 'atmosphere_effect' || layer.effectPreset === 'fog') {
     const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
-    const pos = resolveLayerCSS({ ...layer, y: layer.y ?? 55, height: layer.height ?? 45 });
+    const fogOp   = layer.opacity ?? 0.55;
+    const pos     = resolveLayerCSS({ ...layer, y: layer.y ?? 55, height: layer.height ?? 45 });
     return (
       <div
         aria-hidden="true"
         className="sgsr-anim"
         style={{
-          position:   'absolute',
-          left:       pos.left,
-          top:        pos.top,
-          width:      pos.width,
-          height:     pos.height,
-          opacity:    layer.opacity ?? 0.4,
-          zIndex:     layer.zIndex,
+          position:  'absolute',
+          left:      pos.left,
+          top:       pos.top,
+          width:     pos.width,
+          height:    pos.height,
+          opacity:   fogOp,
+          zIndex:    layer.zIndex,
           pointerEvents: 'none',
-          background: 'linear-gradient(180deg, transparent 0%, rgba(5,12,7,0.5) 50%, rgba(3,8,5,0.72) 100%)',
-          filter:     'blur(6px)',
-          animation:  animCSS,
-          '--fog-op': String(layer.opacity ?? 0.4),
+          // blood moon fog: dark blue-gray rising from bottom
+          background: isBloodMoon
+            ? 'linear-gradient(180deg, transparent 0%, rgba(8,4,18,0.45) 40%, rgba(5,2,12,0.75) 100%)'
+            : 'linear-gradient(180deg, transparent 0%, rgba(5,12,7,0.5) 50%, rgba(3,8,5,0.72) 100%)',
+          filter:    'blur(8px)',
+          animation: animCSS,
+          '--fog-op': String(fogOp),
         } as React.CSSProperties}
       />
     );
   }
 
-  // Gate glow
+  // Blood moon glow — deep crimson radial bloom from top-center
+  if (layer.effectPreset === 'blood_moon_glow') {
+    const animCSS = animEnabled ? 'sgsr-bmg-pulse 3.5s ease-in-out infinite' : undefined;
+    const bmgOp   = layer.opacity ?? 0.6;
+    const glowColor = isReveal
+      ? outcome === 'SURVIVE' ? 'rgba(220,160,40,0.5)' : 'rgba(140,15,5,0.65)'
+      : 'rgba(160,20,8,0.55)';
+    const pos = resolveLayerCSS({ ...layer, x: layer.x ?? 0, y: layer.y ?? 0, width: layer.width ?? 100, height: layer.height ?? 60 });
+    return (
+      <div
+        aria-hidden="true"
+        className="sgsr-anim"
+        style={{
+          position:  'absolute',
+          left:      pos.left,
+          top:       pos.top,
+          width:     pos.width,
+          height:    pos.height,
+          opacity:   bmgOp,
+          zIndex:    layer.zIndex,
+          pointerEvents: 'none',
+          background: `radial-gradient(ellipse 80% 65% at 50% 0%, ${glowColor} 0%, rgba(80,5,0,0.2) 55%, transparent 80%)`,
+          filter:    'blur(24px)',
+          animation: animCSS,
+          transition: 'background 0.9s ease',
+          '--bmg-op': String(bmgOp),
+        } as React.CSSProperties}
+      />
+    );
+  }
+
+  // Gate glow (torch trial + blood moon fallback)
   if (layer.role === 'gate_glow' || layer.effectPreset === 'gate_glow') {
-    const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
+    const animCSS  = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     const glowColor = outcome === 'SURVIVE' && isReveal
       ? 'rgba(245,208,96,0.20)'
       : outcome === 'DIE' && isReveal
       ? 'rgba(150,20,20,0.16)'
       : isBloodMoon
-      ? 'rgba(140,15,5,0.18)'   // blood moon idle — deep crimson
+      ? 'rgba(140,15,5,0.18)'
       : 'rgba(255,130,20,0.10)';
     const pos = resolveLayerCSS({ ...layer, height: layer.height ?? 55 });
     return (
@@ -230,17 +351,17 @@ function ProceduralEffect({
         aria-hidden="true"
         className="sgsr-anim"
         style={{
-          position:   'absolute',
-          left:       pos.left,
-          top:        pos.top,
-          width:      pos.width,
-          height:     pos.height,
-          opacity:    layer.opacity ?? 0.7,
-          zIndex:     layer.zIndex,
+          position:  'absolute',
+          left:      pos.left,
+          top:       pos.top,
+          width:     pos.width,
+          height:    pos.height,
+          opacity:   layer.opacity ?? 0.7,
+          zIndex:    layer.zIndex,
           pointerEvents: 'none',
           background: `radial-gradient(ellipse 80% 70% at 50% 40%, ${glowColor} 0%, transparent 70%)`,
           transition: 'background 0.8s ease',
-          animation:  animCSS,
+          animation: animCSS,
           '--glow-op': String(layer.opacity ?? 0.7),
         } as React.CSSProperties}
       />
@@ -258,24 +379,24 @@ function ProceduralEffect({
         aria-hidden="true"
         className="sgsr-anim"
         style={{
-          position:   'absolute',
-          left:       pos.left,
-          top:        pos.top,
-          width:      pos.width,
-          height:     pos.height,
-          opacity:    ilOp,
-          zIndex:     layer.zIndex,
+          position:  'absolute',
+          left:      pos.left,
+          top:       pos.top,
+          width:     pos.width,
+          height:    pos.height,
+          opacity:   ilOp,
+          zIndex:    layer.zIndex,
           pointerEvents: 'none',
           background: 'radial-gradient(ellipse 70% 65% at 50% 55%, rgba(245,228,140,0.30) 0%, rgba(255,190,60,0.10) 45%, transparent 70%)',
           transition: 'opacity 1s ease 0.3s',
-          animation:  visible ? animCSS : undefined,
-          '--il-op':  String(ilOp),
+          animation: visible ? animCSS : undefined,
+          '--il-op': String(ilOp),
         } as React.CSSProperties}
       />
     );
   }
 
-  // Torch flame procedural fallback (no asset)
+  // Torch flame procedural fallback
   if (layer.role === 'torch_flame' || layer.effectPreset === 'torch_fire') {
     const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
     const pos = resolveLayerCSS({ ...layer, width: layer.width ?? 10, height: layer.height ?? 15 });
@@ -362,32 +483,32 @@ function TextLayer({
 function ButtonLayer({
   layer, scene, phase, selectedChoiceId, onCta, templateType,
 }: {
-  layer:           SceneLayer;
-  scene:           SkullGateSceneConfig;
-  phase:           Phase;
+  layer:            SceneLayer;
+  scene:            SkullGateSceneConfig;
+  phase:            Phase;
   selectedChoiceId: string | null;
-  onCta?:          () => void;
-  templateType?:   string;
+  onCta?:           () => void;
+  templateType?:    string;
 }) {
-  const isReveal = phase === 'revealing' || phase === 'done';
-  // For hold_reveal: button shows when the player has "touched" the relic (selectedChoiceId set)
-  // For other templates: button shows when a choice is selected
-  const show = !isReveal && selectedChoiceId !== null;
+  // hold_reveal: no CTA button — interaction is direct hold on relic
+  if (templateType === 'hold_reveal') return null;
 
+  const isReveal = phase === 'revealing' || phase === 'done';
+  const show     = !isReveal && selectedChoiceId !== null;
   if (!show) return null;
 
   const label = layer.text ?? scene.ctaText;
-  const pos = resolveLayerCSS({ ...layer, x: layer.x ?? 5, y: layer.y ?? 84, width: layer.width ?? 90 });
+  const pos   = resolveLayerCSS({ ...layer, x: layer.x ?? 5, y: layer.y ?? 84, width: layer.width ?? 90 });
 
   return (
     <div
       style={{
-        position:   'absolute',
-        left:       pos.left,
-        top:        pos.top,
-        width:      pos.width,
-        zIndex:     layer.zIndex,
-        opacity:    layer.opacity ?? 1,
+        position: 'absolute',
+        left:     pos.left,
+        top:      pos.top,
+        width:    pos.width,
+        zIndex:   layer.zIndex,
+        opacity:  layer.opacity ?? 1,
       }}
       className="animate-soft-scale-in"
     >
@@ -422,7 +543,7 @@ function getDoorStyle(layer: SceneLayer, outcome: Outcome, phase: Phase): React.
   const da = layer.doorAnimation;
   if (!da) return {};
 
-  const isReveal = phase === 'revealing' || phase === 'done';
+  const isReveal   = phase === 'revealing' || phase === 'done';
   const transition = `transform ${da.durationMs}ms ${da.easing ?? 'ease'} ${da.delayMs ?? 0}ms, opacity ${da.durationMs}ms ease ${da.delayMs ?? 0}ms`;
 
   const shouldOpen =
@@ -432,11 +553,8 @@ function getDoorStyle(layer: SceneLayer, outcome: Outcome, phase: Phase): React.
   const shouldRumble =
     isReveal && outcome === 'DIE' && da.preset === 'rumble_only';
 
-  if (shouldRumble) {
-    return { animation: 'sgsr-rumble 0.35s ease-in-out 3', transition };
-  }
-
-  if (!shouldOpen) return { transition };
+  if (shouldRumble) return { animation: 'sgsr-rumble 0.35s ease-in-out 3', transition };
+  if (!shouldOpen)  return { transition };
 
   const tx  = da.openTranslateX ?? 0;
   const ty  = da.openTranslateY ?? 0;
@@ -445,14 +563,9 @@ function getDoorStyle(layer: SceneLayer, outcome: Outcome, phase: Phase): React.
 
   let tf: string;
   switch (da.preset) {
-    case 'swing_open':
-      tf = `rotate(${rot}deg) translateX(${tx}%) translateY(${ty}%)`;
-      break;
-    case 'crack_open':
-      tf = `translateX(${tx * 0.3}%) scaleX(${sc * 0.97})`;
-      break;
-    default: // slide_open
-      tf = `translateX(${tx}%) translateY(${ty}%) rotate(${rot}deg) scale(${sc})`;
+    case 'swing_open': tf = `rotate(${rot}deg) translateX(${tx}%) translateY(${ty}%)`; break;
+    case 'crack_open': tf = `translateX(${tx * 0.3}%) scaleX(${sc * 0.97})`; break;
+    default:           tf = `translateX(${tx}%) translateY(${ty}%) rotate(${rot}deg) scale(${sc})`;
   }
 
   return { transform: tf, opacity: da.openOpacity ?? 1, transition };
@@ -463,26 +576,30 @@ function getDoorStyle(layer: SceneLayer, outcome: Outcome, phase: Phase): React.
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ImageLayerProps {
-  layer:            SceneLayer;
-  selectedChoiceId: string | null;
-  outcome:          Outcome;
-  phase:            Phase;
-  onChoiceSelect?:  (choiceId: string) => void;
-  showOutlines:     boolean;
-  mode:             'preview' | 'player';
-  templateType?:    string;
+  layer:              SceneLayer;
+  selectedChoiceId:   string | null;
+  outcome:            Outcome;
+  phase:              Phase;
+  onChoiceSelect?:    (choiceId: string) => void;
+  onRelicPointerDown?: (pointerId: number) => void;
+  showOutlines:       boolean;
+  mode:               'preview' | 'player';
+  templateType?:      string;
+  holdProgress:       number;
+  bloodMoonPhase:     BloodMoonPhase;
 }
 
 function ImageLayer({
-  layer, selectedChoiceId, outcome, phase, onChoiceSelect, showOutlines, mode, templateType,
+  layer, selectedChoiceId, outcome, phase, onChoiceSelect, onRelicPointerDown,
+  showOutlines, mode, templateType, holdProgress, bloodMoonPhase,
 }: ImageLayerProps) {
   if (!layer.assetPath) return null;
 
-  const isReveal    = phase === 'revealing' || phase === 'done';
-  const isDoor      = layer.role === 'gate_door_left' || layer.role === 'gate_door_right';
-  const isChoice    = layer.role === 'choice_object' && layer.clickable && !!layer.choiceId;
-  const isSelected  = isChoice && selectedChoiceId === layer.choiceId;
-  const isOther     = isChoice && selectedChoiceId !== null && selectedChoiceId !== layer.choiceId;
+  const isReveal     = phase === 'revealing' || phase === 'done';
+  const isDoor       = layer.role === 'gate_door_left' || layer.role === 'gate_door_right';
+  const isChoice     = layer.role === 'choice_object' && layer.clickable && !!layer.choiceId;
+  const isSelected   = isChoice && selectedChoiceId === layer.choiceId;
+  const isOther      = isChoice && selectedChoiceId !== null && selectedChoiceId !== layer.choiceId;
   const isTapReveal  = templateType === 'tap_reveal';
   const isHoldReveal = templateType === 'hold_reveal';
 
@@ -506,7 +623,6 @@ function ImageLayer({
     } else if (isOther) {
       imgFilter = 'brightness(0.45) saturate(0.35)';
     } else {
-      // Idle unselected — hold_reveal uses normal brightness so the dark foreground is visible
       imgFilter = isTapReveal
         ? 'brightness(1.0) drop-shadow(0 0 8px rgba(255,140,40,0.5))'
         : isHoldReveal
@@ -515,14 +631,9 @@ function ImageLayer({
     }
   }
 
-  // Scale for selected choice
-  // (removed — selection shown via fire, glow, and brightness only)
-
-  // Door transform
-  const doorStyle = isDoor ? getDoorStyle(layer, outcome, phase) : {};
-
-  // Animation — tap_reveal gets pulsing when selected, burst on reveal, crack on fail
+  const doorStyle   = isDoor ? getDoorStyle(layer, outcome, phase) : {};
   const animEnabled = layer.parallaxEnabled !== false;
+
   let animCSS: string | undefined;
   if (isChoice && isTapReveal) {
     if (isReveal && isSelected) {
@@ -538,9 +649,11 @@ function ImageLayer({
       : undefined;
   }
 
+  const { left, top, width, height } = (() => { const p = resolveLayerCSS(layer); return p; })();
+
   const containerStyle: React.CSSProperties = {
     position:   'absolute',
-    ...(() => { const p = resolveLayerCSS(layer); return { left: p.left, top: p.top, width: p.width, height: p.height }; })(),
+    left, top, width, height,
     zIndex:     layer.zIndex,
     opacity:    layer.opacity ?? 1,
     background: 'transparent',
@@ -553,26 +666,46 @@ function ImageLayer({
     overflow:   'visible',
     cursor:     isChoice && (phase === 'idle' || phase === 'selected') ? 'pointer' : 'default',
     animation:  animCSS,
+    touchAction: isHoldReveal && isChoice ? 'none' : undefined,
     ...doorStyle,
   };
 
   const Wrapper = isChoice ? 'button' : 'div';
 
+  // hit area — restricts interactive zone (layer-relative %)
+  const ha = layer.hitArea;
+
   return (
     <Wrapper
       className="sgsr-anim sgsr-door"
       style={containerStyle as React.CSSProperties}
-      {...(isChoice && onChoiceSelect && (phase === 'idle' || phase === 'selected') ? {
-        onClick:     () => onChoiceSelect(layer.choiceId!),
+      {...(isChoice && !isHoldReveal && onChoiceSelect && (phase === 'idle' || phase === 'selected') ? {
+        onClick:      () => onChoiceSelect(layer.choiceId!),
+        'aria-label': layer.name,
+      } : {})}
+      {...(isChoice && isHoldReveal && onRelicPointerDown && (phase === 'idle' || phase === 'selected') ? {
+        onPointerDown: (e: React.PointerEvent) => {
+          e.preventDefault();
+          onRelicPointerDown(e.pointerId);
+        },
         'aria-label': layer.name,
       } : {})}
     >
-      {/* Radial glow behind selected choice — no rectangle */}
-      {isChoice && isSelected && (
+      {/* BloodMoonRelicEffect — rendered BEHIND the image (lower z-index) */}
+      {isHoldReveal && isChoice && (
+        <BloodMoonRelicEffect
+          phase={bloodMoonPhase}
+          holdProgress={holdProgress}
+          style={{ zIndex: 0 }}
+        />
+      )}
+
+      {/* Radial glow behind selected choice (non-hold_reveal) */}
+      {isChoice && isSelected && !isHoldReveal && (
         <div
           aria-hidden="true"
           style={{
-            position:   'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+            position:  'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
             background: isReveal
               ? outcome === 'SURVIVE'
                 ? 'radial-gradient(ellipse 85% 90% at 50% 65%, rgba(255,210,50,0.32) 0%, transparent 70%)'
@@ -585,15 +718,13 @@ function ImageLayer({
         />
       )}
 
-      {/* Tap ring burst — tap_reveal only, fires once on selection */}
+      {/* Tap ring burst — tap_reveal only */}
       {isTapReveal && isChoice && isSelected && !isReveal && (
         <div
           aria-hidden="true"
           style={{
-            position:     'absolute',
-            inset:        '-20%',
-            pointerEvents: 'none',
-            zIndex:        1,
+            position:     'absolute', inset: '-20%',
+            pointerEvents: 'none',   zIndex: 2,
             borderRadius: '50%',
             border:       '2px solid rgba(255,190,60,0.7)',
             animation:    'sgsr-tap-ring 0.55s ease-out 1 forwards',
@@ -606,10 +737,8 @@ function ImageLayer({
         <div
           aria-hidden="true"
           style={{
-            position:     'absolute',
-            inset:        '-30%',
-            pointerEvents: 'none',
-            zIndex:        1,
+            position:     'absolute', inset: '-30%',
+            pointerEvents: 'none',   zIndex: 2,
             borderRadius: '50%',
             background:   'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(255,230,100,0.5) 0%, rgba(255,180,40,0.2) 40%, transparent 70%)',
             animation:    'sgsr-tap-ring 0.8s ease-out 1 forwards',
@@ -617,14 +746,14 @@ function ImageLayer({
         />
       )}
 
+      {/* Image — rendered on top of BloodMoonRelicEffect (zIndex: 3) */}
       <img
         src={layer.assetPath}
         alt={layer.name}
         draggable={false}
         style={{
-          position:      'absolute', inset: 0,
+          position:      'absolute', inset: 0, zIndex: 3,
           width:         '100%', height: '100%',
-          // hold_reveal foreground spans the full container — fill, not letterbox
           objectFit:     isHoldReveal && isChoice ? 'fill' : 'contain',
           objectPosition: 'center',
           filter:        imgFilter || undefined,
@@ -640,12 +769,29 @@ function ImageLayer({
         } as React.CSSProperties}
         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
       />
+
+      {/* hitArea visual debug overlay (preview mode only) */}
+      {showOutlines && mode === 'preview' && ha && (
+        <div
+          aria-hidden="true"
+          style={{
+            position:    'absolute',
+            left:        `${ha.x}%`,
+            top:         `${ha.y}%`,
+            width:       `${ha.width}%`,
+            height:      `${ha.height}%`,
+            border:      '1px solid rgba(255,80,80,0.7)',
+            pointerEvents: 'none',
+            zIndex:       10,
+          }}
+        />
+      )}
     </Wrapper>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Torch fire overlay — positioned over the selected torch's flame area
+// Torch fire overlay
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface TorchFireOverlayProps {
@@ -657,7 +803,6 @@ interface TorchFireOverlayProps {
 function TorchFireOverlay({ choiceLayer, phase, outcome }: TorchFireOverlayProps) {
   const isReveal = phase === 'revealing' || phase === 'done';
 
-  // Intensity ramp: medium on selected, high on revealing, outcome-based on done
   let intensity: number;
   let coreColor  = '#FFF5C0';
   let midColor   = '#FF9A20';
@@ -669,51 +814,31 @@ function TorchFireOverlay({ choiceLayer, phase, outcome }: TorchFireOverlayProps
     intensity = 1.0;
   } else if (phase === 'done') {
     if (outcome === 'SURVIVE') {
-      intensity  = 1.1;
-      coreColor  = '#FFFAE0';
-      midColor   = '#FFD040';
-      outerColor = '#FFA000';
+      intensity = 1.1; coreColor = '#FFFAE0'; midColor = '#FFD040'; outerColor = '#FFA000';
     } else {
-      // Dying / dim
-      intensity  = 0.35;
-      coreColor  = '#FF8C40';
-      midColor   = '#CC4400';
-      outerColor = '#880000';
+      intensity = 0.35; coreColor = '#FF8C40'; midColor = '#CC4400'; outerColor = '#880000';
     }
   } else {
-    return null; // idle — no fire
+    return null;
   }
 
-  // Position fire above the top-center of the torch choice layer
-  // The fire is centered horizontally and placed so its bottom sits at ~20% from top of torch
   const pos = resolveLayerCSS(choiceLayer);
 
   return (
     <div
       aria-hidden="true"
       style={{
-        position:      'absolute',
-        left:          pos.left,
-        top:           pos.top,
-        width:         pos.width,
-        height:        pos.height,
-        zIndex:        (choiceLayer.zIndex ?? 9) + 1,
+        position: 'absolute',
+        left: pos.left, top: pos.top,
+        width: pos.width, height: pos.height,
+        zIndex: (choiceLayer.zIndex ?? 9) + 1,
         pointerEvents: 'none',
-        overflow:      'visible',
+        overflow: 'visible',
       }}
     >
-      {/* Centered at top of torch */}
-      <div
-        style={{
-          position:  'absolute',
-          left:      '50%',
-          top:       '-5%',
-          transform: 'translateX(-50%) translateY(-100%)',
-        }}
-      >
+      <div style={{ position: 'absolute', left: '50%', top: '-5%', transform: 'translateX(-50%) translateY(-100%)' }}>
         <TorchFireEffect
-          width={44}
-          height={72}
+          width={44} height={72}
           intensity={intensity}
           coreColor={coreColor}
           midColor={midColor}
@@ -730,16 +855,17 @@ function TorchFireOverlay({ choiceLayer, phase, outcome }: TorchFireOverlayProps
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SkullGateSceneRendererProps {
-  sceneConfig:        SkullGateSceneConfig;
-  mode?:              'preview' | 'player';
-  selectedChoiceId?:  string | null;
-  resultOutcome?:     Outcome;
-  revealPhase?:       Phase;
-  onChoiceSelect?:    (choiceId: string) => void;
-  onCta?:             () => void;
-  showEditorOutlines?: boolean;
-  /** 0–1 hold progress for hold_reveal template (used by BloodMoonRelicEffect ring) */
-  holdProgress?:      number;
+  sceneConfig:          SkullGateSceneConfig;
+  mode?:                'preview' | 'player';
+  selectedChoiceId?:    string | null;
+  resultOutcome?:       Outcome;
+  revealPhase?:         Phase;
+  onChoiceSelect?:      (choiceId: string) => void;
+  onCta?:               () => void;
+  /** hold_reveal: called when pointer goes down on the relic */
+  onRelicPointerDown?:  (pointerId: number) => void;
+  showEditorOutlines?:  boolean;
+  holdProgress?:        number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -754,39 +880,40 @@ export default function SkullGateSceneRenderer({
   revealPhase       = 'idle',
   onChoiceSelect,
   onCta,
+  onRelicPointerDown,
   showEditorOutlines = false,
   holdProgress       = 0,
 }: SkullGateSceneRendererProps) {
   ensureKeyframes();
 
   const isHoldReveal = sceneConfig.templateType === 'hold_reveal';
-  const isBloodMoon  = isHoldReveal; // all hold_reveal scenes use blood moon color scheme
+  const isBloodMoon  = isHoldReveal;
 
   const sortedLayers = useMemo(
     () => [...sceneConfig.layers].sort((a, b) => a.zIndex - b.zIndex),
     [sceneConfig.layers],
   );
 
-  // For hold_reveal: the single choice_object is the relic. Find it for effect positioning.
+  // For torch fire overlay
   const selectedChoiceLayer = useMemo(() => {
-    if (!selectedChoiceId || revealPhase === 'idle') return null;
+    if (!selectedChoiceId) return null;
     return sceneConfig.layers.find(
       (l) => l.role === 'choice_object' && l.choiceId === selectedChoiceId && l.visible,
     ) ?? null;
-  }, [sceneConfig.layers, selectedChoiceId, revealPhase]);
+  }, [sceneConfig.layers, selectedChoiceId]);
 
-  const isReveal  = revealPhase === 'revealing' || revealPhase === 'done';
-  const bgFilter  = resultOutcome === 'DIE' && isReveal
+  const isReveal = revealPhase === 'revealing' || revealPhase === 'done';
+  const bgFilter = resultOutcome === 'DIE' && isReveal
     ? 'brightness(0.6) saturate(0.45)'
     : undefined;
 
-  // Map renderer phase to BloodMoonPhase
+  // Map to BloodMoonPhase — used directly inside ImageLayer for hold_reveal choice objects
   const bloodMoonPhase: BloodMoonPhase =
-    revealPhase === 'idle'      ? (selectedChoiceId ? 'holding' : 'idle') :
-    revealPhase === 'selected'  ? 'holding' :
-    revealPhase === 'revealing' ? 'resolving' :
-    revealPhase === 'done'      ? (resultOutcome === 'SURVIVE' ? 'survived' : 'failed') :
-    'idle';
+    revealPhase === 'done'
+      ? (resultOutcome === 'SURVIVE' ? 'survived' : 'failed')
+      : revealPhase === 'revealing'
+      ? 'resolving'
+      : (selectedChoiceId ? 'holding' : 'idle');
 
   return (
     <div
@@ -803,10 +930,11 @@ export default function SkullGateSceneRenderer({
       {sortedLayers.map((layer) => {
         if (!layer.visible) return null;
 
-        // Procedural-only roles
         const isProcedural =
           layer.role === 'particle_effect'  ||
           layer.role === 'atmosphere_effect' ||
+          layer.effectPreset === 'ritual_motes' ||
+          layer.effectPreset === 'blood_moon_glow' ||
           (layer.role === 'gate_glow'        && !layer.assetPath) ||
           (layer.role === 'gate_inner_light' && !layer.assetPath) ||
           (layer.role === 'torch_flame'      && !layer.assetPath);
@@ -849,7 +977,6 @@ export default function SkullGateSceneRenderer({
           );
         }
 
-        // image / effect with assetPath
         return (
           <ImageLayer
             key={layer.id}
@@ -858,14 +985,17 @@ export default function SkullGateSceneRenderer({
             outcome={resultOutcome}
             phase={revealPhase}
             onChoiceSelect={onChoiceSelect}
+            onRelicPointerDown={onRelicPointerDown}
             showOutlines={showEditorOutlines}
             mode={mode}
             templateType={sceneConfig.templateType}
+            holdProgress={holdProgress}
+            bloodMoonPhase={bloodMoonPhase}
           />
         );
       })}
 
-      {/* Torch fire effect on selected torch (choice_2 only) */}
+      {/* Torch fire overlay (choice_2 / tap_reveal only) */}
       {!isHoldReveal && selectedChoiceLayer && (
         <TorchFireOverlay
           choiceLayer={selectedChoiceLayer}
@@ -874,32 +1004,7 @@ export default function SkullGateSceneRenderer({
         />
       )}
 
-      {/* Blood Moon Relic effect overlay (hold_reveal) */}
-      {isHoldReveal && selectedChoiceLayer && (() => {
-        const pos = resolveLayerCSS(selectedChoiceLayer);
-        return (
-          <div
-            aria-hidden="true"
-            style={{
-              position:      'absolute',
-              left:          pos.left,
-              top:           pos.top,
-              width:         pos.width,
-              height:        pos.height,
-              zIndex:        (selectedChoiceLayer.zIndex ?? 10) + 1,
-              pointerEvents: 'none',
-              overflow:      'visible',
-            }}
-          >
-            <BloodMoonRelicEffect
-              phase={bloodMoonPhase}
-              holdProgress={holdProgress}
-            />
-          </div>
-        );
-      })()}
-
-      {/* Gold bloom on survive — scene-level */}
+      {/* Gold bloom on survive */}
       {resultOutcome === 'SURVIVE' && isReveal && (
         <div
           aria-hidden="true"
@@ -911,7 +1016,7 @@ export default function SkullGateSceneRenderer({
         />
       )}
 
-      {/* Vignette — always on top */}
+      {/* Vignette */}
       <div
         aria-hidden="true"
         style={{
@@ -920,17 +1025,14 @@ export default function SkullGateSceneRenderer({
         }}
       />
 
-      {/* Editor outline label */}
       {showEditorOutlines && mode === 'preview' && (
-        <div
-          style={{
-            position:  'absolute', top: 4, left: 4, zIndex: 999,
-            fontSize:  9, fontFamily: "'Inter', system-ui, sans-serif",
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            color:     'rgba(120,200,100,0.7)', background: 'rgba(0,0,0,0.55)',
-            padding:   '2px 6px', pointerEvents: 'none',
-          }}
-        >
+        <div style={{
+          position: 'absolute', top: 4, left: 4, zIndex: 999,
+          fontSize: 9, fontFamily: "'Inter', system-ui, sans-serif",
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: 'rgba(120,200,100,0.7)', background: 'rgba(0,0,0,0.55)',
+          padding: '2px 6px', pointerEvents: 'none',
+        }}>
           Outlines On
         </div>
       )}

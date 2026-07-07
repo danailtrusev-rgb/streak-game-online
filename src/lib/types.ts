@@ -391,6 +391,7 @@ export type AnimationPreset =
   | 'branch_sway'
   | 'ember_float'
   | 'firefly_random'
+  | 'ritual_motes'
   | 'light_ray_pulse'
   | 'gate_rumble'
   | 'torch_flicker'
@@ -402,6 +403,7 @@ export type EffectPreset =
   | 'rain'
   | 'light_rays'
   | 'fireflies'
+  | 'ritual_motes'
   | 'embers'
   | 'dust'
   | 'vignette'
@@ -409,6 +411,7 @@ export type EffectPreset =
   | 'foreground_branches'
   | 'torch_fire'
   | 'gate_glow'
+  | 'blood_moon_glow'
   | 'inner_light';
 
 export interface DoorAnimationConfig {
@@ -437,6 +440,13 @@ export interface LayerEffectsConfig {
   colorMood?:      string;
 }
 
+export interface HitArea {
+  x:      number;
+  y:      number;
+  width:  number;
+  height: number;
+}
+
 export interface SceneLayer {
   id:                string;
   name:              string;
@@ -461,6 +471,8 @@ export interface SceneLayer {
   clickable?:        boolean;
   clickAction?:      string;
   choiceId?:         string;
+  /** Restrict pointer events to this sub-rect (layer-relative %, 0-100) */
+  hitArea?:          HitArea;
   doorAnimation?:    DoorAnimationConfig;
   effects?:          LayerEffectsConfig;
   mobileSafeArea?:   boolean;
