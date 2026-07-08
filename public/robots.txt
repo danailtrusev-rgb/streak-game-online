@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /sys/admin
+
+Sitemap: https://survivethestreak.com/sitemap.xml
