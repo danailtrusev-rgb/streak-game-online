@@ -1,7 +1,0 @@
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/((?!operator-gate\\.html|operator\\.html|assets/|api/).*)", "destination": "/index.html" }
-  ]
-}
