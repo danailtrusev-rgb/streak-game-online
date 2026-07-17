@@ -7,9 +7,18 @@
   since the stored `status` column is never advanced by anything while
   Cron remains inactive except at creation and finalization. Both are
   exposed; the stored column is not removed or reinterpreted.
+
+  ## Note on DROP + CREATE
+  `CREATE OR REPLACE VIEW` cannot rename an existing view column
+  (`status` → `stored_status`) — Postgres rejects it with
+  `42P16: cannot change name of view column`. The view is dropped first,
+  then recreated with the new column names. This is safe because the view
+  is read-only with no dependent objects.
 */
 
-CREATE OR REPLACE VIEW public.v_event_instances_by_region AS
+DROP VIEW IF EXISTS public.v_event_instances_by_region;
+
+CREATE VIEW public.v_event_instances_by_region AS
 SELECT
   ei.id,
   ei.event_type,
