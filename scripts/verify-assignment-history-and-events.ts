@@ -214,10 +214,10 @@ console.log('\n== Migration consistency (re-confirmed, not rebuilt) ==');
 console.log('\n== Admin UI: readiness wording distinguishes all five dimensions ==');
 {
   const adminSrc = normalize(read('src/pages/admin/AdminGameTimeSection.tsx'));
-  for (const label of ['Game Time foundation', 'Daily play readiness', 'Notification readiness', 'Weekend event instance readiness', 'Finalization/reward readiness']) {
+  for (const label of ['Game Time foundation', 'Daily play readiness', 'Notification readiness', 'Weekend event readiness', 'Deployment readiness']) {
     check(`admin UI distinguishes "${label}"`, adminSrc.includes(label));
   }
-  check('admin UI does not overstate readiness — finalization gap is explicitly called out', /not complete/.test(adminSrc) && /run twice for the same winner/.test(adminSrc));
+  check('admin UI does not overstate readiness — deployment not complete is explicitly called out', /not complete/.test(adminSrc) && /not yet been manually tested/.test(adminSrc));
   const rawLines = read('src/pages/admin/AdminGameTimeSection.tsx').split('\n');
   const hasEditableToggleWiring = rawLines.some((line) => /regional_game_time_live_enabled/.test(line) && /onChange=|onClick=/.test(line));
   check('regional_game_time_live_enabled is still not an editable admin toggle', !hasEditableToggleWiring);

@@ -117,13 +117,20 @@ const CARDS: ConfigCard[] = [
 
 const VALID_SUBSECTIONS = CARDS.map((c) => c.key).filter((k) => k !== null) as string[];
 
+const SUBSECTION_ALIASES: Record<string, SubPage> = {
+  'system-config': 'system',
+  'game-config': 'economy',
+  'game-time': 'game_time',
+};
+
 interface AdminConfigProps {
   subsection?: string;
   onSubsectionChange?: (sub: string | null) => void;
 }
 
 export default function AdminConfig({ subsection, onSubsectionChange }: AdminConfigProps) {
-  const subPage: SubPage = (subsection && VALID_SUBSECTIONS.includes(subsection)) ? subsection as SubPage : null;
+  const resolvedSub = subsection ? (SUBSECTION_ALIASES[subsection] ?? (VALID_SUBSECTIONS.includes(subsection) ? subsection as SubPage : null)) : null;
+  const subPage: SubPage = resolvedSub;
 
   const back = () => {
     if (onSubsectionChange) {

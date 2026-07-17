@@ -279,6 +279,23 @@ export default function AdminGameTimeSection() {
         </div>
       </section>
 
+      {/* Readiness checklist */}
+      <section>
+        <div className="border border-moss-dark/25 bg-ritual-surface/20 px-4 py-3 space-y-2 text-xs">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-bone">Regional Game Time Readiness</h3>
+          <p className="text-bone-faint leading-relaxed">
+            Regional Game Time is structurally ready at code and database level, but it is not yet enabled for live gameplay. It must remain disabled until controlled test-region validation has been completed in the Supabase/Bolt environment.
+          </p>
+          <div className="space-y-1.5 text-bone-faint leading-relaxed">
+            <p><strong className="text-bone">Game Time foundation</strong> — region model, resolution, active/pending assignment history: region-aware at code level.</p>
+            <p><strong className="text-bone">Daily play readiness</strong> — play_daily_gate, get_my_state, cashout audit, duplicate-play protection: region-aware at code level.</p>
+            <p><strong className="text-bone">Notification readiness</strong> — next-day/last-call timing and dedupe: region-aware at code level.</p>
+            <p><strong className="text-bone">Weekend event readiness</strong> — Saturday Showdown / Sunday Crown participation, event-instance uniqueness, region-scoped leaderboards, finalization idempotency, reward protection, and reporting: region-aware at code level.</p>
+            <p><strong className="text-bone">Deployment readiness</strong> — <span className="text-death-glow">not complete</span>. Regional Game Time has not yet been manually tested with multiple regions and controlled test users. Keep <code className="font-mono">regional_game_time_live_enabled=false</code> until test-region validation passes and activation is approved.</p>
+          </div>
+        </div>
+      </section>
+
       {/* Testing Unlock */}
       <section>
         <div className="border border-torch-ember/40 bg-torch-ember/5 px-4 py-3 space-y-3 text-xs">
