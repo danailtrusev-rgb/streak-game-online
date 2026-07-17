@@ -17,7 +17,7 @@ export interface ActivationGuardResult {
 }
 
 export const REGIONAL_NOT_READY_MESSAGE =
-  'Regional Game Time is not yet available for live gameplay. Core play, streak, qualification, Saturday/Sunday event, and reporting logic must be upgraded before this can be activated.';
+  'Regional Game Time is structurally code-ready but not deployment-tested. It must remain disabled until controlled test-region validation has been completed.';
 
 export const REGIONAL_NOT_ENABLED_ERROR = 'Regional Game Time is not enabled for live gameplay yet.';
 

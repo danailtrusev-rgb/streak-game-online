@@ -222,18 +222,18 @@ export default function AdminGameTimeSection() {
             <div className="flex items-center justify-between">
               <span className="text-bone font-medium">Regional Game Time</span>
               <span className="text-[10px] uppercase tracking-wider text-bone-faint px-2 py-0.5 border border-moss-dark/30">
-                Partially code-ready · Finalization idempotency gap
+                Structurally code-ready · Not deployment-tested
               </span>
             </div>
             <p className="text-bone-faint leading-relaxed">
-              {REGIONAL_NOT_READY_MESSAGE}
+              Regional Game Time is structurally ready at code and database level, but it is not yet enabled for live gameplay. It must remain disabled until controlled test-region validation has been completed in the Supabase/Bolt environment.
             </p>
             <div className="text-[11px] text-bone-faint leading-relaxed border-t border-moss-dark/20 pt-2 space-y-1.5">
               <p><strong className="text-bone">Game Time foundation</strong> — region model, resolution, active/pending assignment history: region-aware at code level.</p>
               <p><strong className="text-bone">Daily play readiness</strong> — play_daily_gate, get_my_state, cashout audit, duplicate-play protection: region-aware at code level.</p>
               <p><strong className="text-bone">Notification readiness</strong> — next-day/last-call timing and dedupe: region-aware at code level.</p>
-              <p><strong className="text-bone">Weekend event instance readiness</strong> — Saturday Showdown / Sunday Crown participation, event-instance uniqueness, region-scoped leaderboards: region-aware at code level.</p>
-              <p><strong className="text-bone">Finalization/reward readiness</strong> — <span className="text-death-glow">not complete</span>. Reward finalization has no built-in protection against being run twice for the same winner; this is a pre-existing property of the finalization flow, not fixed in this pass. This is the reason Regional Game Time is not classified as fully code-ready.</p>
+              <p><strong className="text-bone">Weekend event readiness</strong> — Saturday Showdown / Sunday Crown participation, event-instance uniqueness, region-scoped leaderboards, finalization idempotency, reward protection, and reporting: region-aware at code level.</p>
+              <p><strong className="text-bone">Deployment readiness</strong> — <span className="text-death-glow">not complete</span>. Regional Game Time has not yet been manually tested with multiple regions and controlled test users. Keep <code className="font-mono">regional_game_time_live_enabled=false</code> until test-region validation passes and activation is approved.</p>
             </div>
             <p className="text-[11px] text-bone-faint font-mono">
               regional_game_time_live_enabled: <span className={regionalLiveReady ? 'text-moss-light' : 'text-death-glow'}>{String(regionalLiveReady)}</span>
@@ -241,8 +241,8 @@ export default function AdminGameTimeSection() {
             </p>
             {activationGuard.allowed && (
               // Only ever rendered once the backend readiness flag is
-              // genuinely true — i.e. after a future phase has upgraded
-              // gameplay RPCs and someone has deliberately flipped it.
+              // genuinely true — i.e. after controlled test-region
+              // validation passes and someone has deliberately flipped it.
               <button
                 disabled={settings?.mode === 'regional' || scheduling}
                 onClick={() => setConfirming('regional')}
