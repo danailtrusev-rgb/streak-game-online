@@ -51,15 +51,12 @@
      about what a "valid" call looks like. New signature:
      `cashout_game(p_game_id text, p_idem_key text, p_context_id
      timestamptz) RETURNS jsonb` — no defaults on any parameter.
-  2. **`CREATE OR REPLACE FUNCTION` is valid here** (not a drop+recreate):
-     removing defaults does not change the argument *type* list — Postgres
-     identifies overloads by types, not defaults — so the function
-     identity remains `cashout_game(text, text, timestamptz)` and grants
-     are preserved automatically. Re-declared explicitly anyway
-     (`RETURNS jsonb`, `LANGUAGE plpgsql`, `SECURITY DEFINER`) per this
-     task's instruction to confirm rather than assume, and grants are also
-     explicitly reasserted below as a defensive, unambiguous statement of
-     intent, not because `CREATE OR REPLACE` requires it.
+  2. Postgres does NOT allow removing parameter defaults via
+     `CREATE OR REPLACE FUNCTION` (error 42P13). The 3-arg overload
+     created by `20260713200000_*.sql` WITH defaults must be
+     `DROP FUNCTION`'d first, then re-created without defaults. Grants
+     are explicitly reasserted at the bottom of this migration so the
+     DROP+CREATE does not lose permissions.
   3. **Search path hardened to `SET search_path = ''`** with every object
      reference fully schema-qualified (`public.game_state`,
      `public.wallet_ledger`, `public.wallet_balance_cache`,
