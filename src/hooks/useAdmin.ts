@@ -288,6 +288,64 @@ export function useAdmin() {
     [adminFetch],
   );
 
+  const setGameTimeTestingUnlock = useCallback(
+    (enabled: boolean) =>
+      adminFetch('/game-time/set-testing-unlock', {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+      }),
+    [adminFetch],
+  );
+
+  const createGameTimeRegion = useCallback(
+    (fields: {
+      key: string; name: string; timezone: string;
+      daily_rollover_local_time?: string;
+      saturday_start_local_time?: string | null;
+      saturday_end_local_time?: string | null;
+      sunday_start_local_time?: string | null;
+      sunday_end_local_time?: string | null;
+      enabled?: boolean; display_order?: number;
+    }) =>
+      adminFetch('/game-time/regions/create', {
+        method: 'POST',
+        body: JSON.stringify(fields),
+      }),
+    [adminFetch],
+  );
+
+  const updateGameTimeRegion = useCallback(
+    (fields: {
+      id: string;
+      key?: string; name?: string; timezone?: string;
+      daily_rollover_local_time?: string;
+      saturday_start_local_time?: string | null;
+      saturday_end_local_time?: string | null;
+      sunday_start_local_time?: string | null;
+      sunday_end_local_time?: string | null;
+      enabled?: boolean; display_order?: number;
+    }) =>
+      adminFetch('/game-time/regions/update', {
+        method: 'POST',
+        body: JSON.stringify(fields),
+      }),
+    [adminFetch],
+  );
+
+  const assignUserRegion = useCallback(
+    (userId: string, regionId: string, reason?: string, forceImmediate?: boolean) =>
+      adminFetch('/game-time/regions/assign-user', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: userId,
+          region_id: regionId,
+          assignment_reason: reason,
+          force_effective_immediately_for_test: forceImmediate,
+        }),
+      }),
+    [adminFetch],
+  );
+
   return {
     authenticated,
     mustChangePassword,
@@ -319,5 +377,9 @@ export function useAdmin() {
     createFlyer,
     fetchWinners,
     createWinner,
+    setGameTimeTestingUnlock,
+    createGameTimeRegion,
+    updateGameTimeRegion,
+    assignUserRegion,
   };
 }

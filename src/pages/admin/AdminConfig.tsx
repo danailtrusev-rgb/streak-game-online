@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import {
   Settings, Bell, TrendingUp, Puzzle, BookOpen, Globe, HelpCircle,
   ChevronRight, ArrowLeft, Key, Trophy, Image, FileText, Clock,
@@ -115,12 +115,27 @@ const CARDS: ConfigCard[] = [
   },
 ];
 
-// Subset of sections passed to AdminSettings to show only one section at a time
+const VALID_SUBSECTIONS = CARDS.map((c) => c.key).filter((k) => k !== null) as string[];
 
-export default function AdminConfig() {
-  const [subPage, setSubPage] = useState<SubPage>(null);
+interface AdminConfigProps {
+  subsection?: string;
+  onSubsectionChange?: (sub: string | null) => void;
+}
 
-  const back = () => setSubPage(null);
+export default function AdminConfig({ subsection, onSubsectionChange }: AdminConfigProps) {
+  const subPage: SubPage = (subsection && VALID_SUBSECTIONS.includes(subsection)) ? subsection as SubPage : null;
+
+  const back = () => {
+    if (onSubsectionChange) {
+      onSubsectionChange(null);
+    }
+  };
+
+  const navigate = (key: SubPage) => {
+    if (onSubsectionChange) {
+      onSubsectionChange(key);
+    }
+  };
 
   if (subPage === 'translations') {
     return (
@@ -177,6 +192,7 @@ export default function AdminConfig() {
       </SubPageWrapper>
     );
   }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 mb-4">
@@ -188,7 +204,7 @@ export default function AdminConfig() {
         {CARDS.map((card) => (
           <button
             key={card.key}
-            onClick={() => setSubPage(card.key)}
+            onClick={() => navigate(card.key)}
             className="flex items-center gap-3 border border-moss-dark/20 bg-ritual-surface/20 px-4 py-3.5 text-left transition-colors hover:border-moss-dark/40 hover:bg-ritual-surface/40 group"
           >
             <div className="flex-shrink-0">{card.icon}</div>

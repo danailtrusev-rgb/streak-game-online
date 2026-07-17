@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter, Routes, Route, Navigate, useParams,
+} from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { useAuth } from './context/AuthContext';
 import { I18nProvider } from './context/I18nContext';
 import AppLayout from './components/layout/AppLayout';
 import GameLayout from './components/layout/GameLayout';
@@ -21,6 +21,9 @@ import { recordNotificationClickFromUrl } from './lib/notificationClick';
 import OnboardingModal from './components/onboarding/OnboardingModal';
 import MergeGuestProgressModal from './components/onboarding/MergeGuestProgressModal';
 import { useOnboarding } from './hooks/useOnboarding';
+import { useAuth } from './context/AuthContext';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import DicePage from './pages/games/DicePage';
 import PickPage from './pages/games/PickPage';
 import SafeBoxPage from './pages/games/SafeBoxPage';
@@ -69,7 +72,6 @@ function UrlErrorCleaner() {
   useEffect(() => {
     const hash = window.location.hash;
     if (hash && (hash.includes('error=') || hash.includes('error_code='))) {
-      // Strip the error hash left by Supabase email-change links so the app isn't stuck
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }, []);
@@ -83,16 +85,13 @@ function NotificationClickHandler() {
   return null;
 }
 
-// The operator/partner proposition now lives entirely on a separate,
-// independently hosted PHP site (see AI_HANDOFF_NOTES.md) — this player
-// bundle has no operator code at all anymore. These are just quiet
-// redirects in case any old links to the previous in-app operator routes
-// are still floating around.
 const LEGACY_REDIRECT_PATHS = ['/operators', '/operator'];
-
-// Public marketing routes render no game chrome and no onboarding/merge
-// modals. Keep this list in sync with the public <Route> paths below.
 const PUBLIC_LANDING_ROUTES = ['/', '/about', ...LEGACY_REDIRECT_PATHS];
+
+function AdminConfigRoute() {
+  const { subsection } = useParams();
+  return <AdminPage section="config" subsection={subsection} />;
+}
 
 function AppWithOnboarding() {
   const { showOnboarding, completeOnboarding } = useOnboarding();
@@ -100,7 +99,6 @@ function AppWithOnboarding() {
   const location = useLocation();
   const onPublicLandingRoute = PUBLIC_LANDING_ROUTES.includes(location.pathname);
 
-  // Show merge modal when: not loading, not guest (just logged in), and we have a pending guest ID
   const showMergeModal = !loading && !isGuest && !!pendingGuestMergeId;
 
   return (
@@ -108,16 +106,12 @@ function AppWithOnboarding() {
       <UrlErrorCleaner />
       <NotificationClickHandler />
       <Routes>
-        {/* Public marketing pages — no auth, no game chrome, no modals */}
         <Route path="/" element={<PlayerLandingPage />} />
         <Route path="/about" element={<AboutPage />} />
-        {/* Legacy links to the old in-app operator routes — the operator
-            site is now a separate, independently hosted project. */}
         {LEGACY_REDIRECT_PATHS.map((path) => (
           <Route key={path} path={path} element={<Navigate to="/" replace />} />
         ))}
 
-        {/* Standard app pages — GameHUD header + BottomNav always visible */}
         <Route element={<AppLayout />}>
           <Route path="/play" element={<HomePage />} />
           <Route path="/games" element={<GamesPage />} />
@@ -127,13 +121,11 @@ function AppWithOnboarding() {
           <Route path="/settings/faq" element={<FAQPage />} />
         </Route>
 
-        {/* Pot and Streak — full-screen pages, no player header/footer */}
         <Route element={<GameLayout />}>
           <Route path="/pot" element={<PotPage />} />
           <Route path="/streak" element={<StreakPage />} />
         </Route>
 
-        {/* Game screens and admin — no player header/footer */}
         <Route element={<GameLayout />}>
           <Route path="/games/pick" element={<PickPage />} />
           <Route path="/games/safebox" element={<SafeBoxPage />} />
@@ -142,7 +134,18 @@ function AppWithOnboarding() {
           <Route path="/games/puzzle" element={<PuzzlePage />} />
           <Route path="/weekend/saturday" element={<SaturdayPage />} />
           <Route path="/weekend/sunday" element={<SundayPage />} />
+
+          {/* Admin deep-link routes */}
           <Route path="/sys/admin" element={<AdminPage />} />
+          <Route path="/sys/admin/dashboard" element={<AdminPage section="dashboard" />} />
+          <Route path="/sys/admin/players" element={<AdminPage section="players" />} />
+          <Route path="/sys/admin/games" element={<AdminPage section="games" />} />
+          <Route path="/sys/admin/events" element={<AdminPage section="events" />} />
+          <Route path="/sys/admin/winners" element={<AdminPage section="winners" />} />
+          <Route path="/sys/admin/game-time" element={<AdminPage section="game-time" />} />
+          <Route path="/sys/admin/config" element={<AdminPage section="config" />} />
+          <Route path="/sys/admin/config/:subsection" element={<AdminConfigRoute />} />
+          <Route path="/sys/admin/*" element={<AdminPage />} />
         </Route>
       </Routes>
       {!onPublicLandingRoute && showOnboarding && <OnboardingModal onClose={completeOnboarding} />}

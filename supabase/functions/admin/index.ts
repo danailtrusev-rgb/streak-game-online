@@ -113,6 +113,12 @@ Deno.serve(async (req: Request) => {
     if (req.method === "POST" && path === "/skull-gate-assets/update")      return await handleUpdateAsset(supabase, username, await req.json());
     if (req.method === "POST" && path === "/skull-gate-assets/delete")      return await handleDeleteAsset(supabase, username, await req.json());
 
+    // ── Game Time System routes ──────────────────────────────────────────────
+    if (req.method === "POST" && path === "/game-time/set-testing-unlock")  return await handleSetTestingUnlock(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/game-time/regions/create")      return await handleCreateRegion(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/game-time/regions/update")      return await handleUpdateRegion(supabase, username, await req.json());
+    if (req.method === "POST" && path === "/game-time/regions/assign-user") return await handleAssignUserRegion(supabase, username, await req.json());
+
     return errorResponse("Not found", 404);
   } catch (err) {
     return errorResponse(err instanceof Error ? err.message : "Internal error", 500);
@@ -1026,4 +1032,101 @@ async function handleDeleteAsset(
     payload_json: { id, asset_path: existing?.asset_path },
   });
   return jsonResponse({ success: true });
+}
+
+// ── Game Time System handlers ──────────────────────────────────────────────
+
+async function handleSetTestingUnlock(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: { enabled: boolean },
+) {
+  const { data, error } = await supabase.rpc("admin_set_regional_game_time_testing_unlock", {
+    p_enabled: body.enabled,
+    p_admin_actor: actor,
+  });
+  if (error) return errorResponse(error.message);
+  return jsonResponse(data);
+}
+
+async function handleCreateRegion(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: {
+    key: string; name: string; timezone: string;
+    daily_rollover_local_time?: string;
+    saturday_start_local_time?: string | null;
+    saturday_end_local_time?: string | null;
+    sunday_start_local_time?: string | null;
+    sunday_end_local_time?: string | null;
+    enabled?: boolean; display_order?: number;
+  },
+) {
+  const { data, error } = await supabase.rpc("admin_create_game_time_region", {
+    p_key: body.key,
+    p_name: body.name,
+    p_timezone: body.timezone,
+    p_daily_rollover_local_time: body.daily_rollover_local_time ?? "00:00:00",
+    p_saturday_start_local_time: body.saturday_start_local_time ?? null,
+    p_saturday_end_local_time: body.saturday_end_local_time ?? null,
+    p_sunday_start_local_time: body.sunday_start_local_time ?? null,
+    p_sunday_end_local_time: body.sunday_end_local_time ?? null,
+    p_enabled: body.enabled ?? true,
+    p_display_order: body.display_order ?? 0,
+    p_admin_actor: actor,
+  });
+  if (error) return errorResponse(error.message);
+  return jsonResponse(data);
+}
+
+async function handleUpdateRegion(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: {
+    id: string;
+    key?: string; name?: string; timezone?: string;
+    daily_rollover_local_time?: string;
+    saturday_start_local_time?: string | null;
+    saturday_end_local_time?: string | null;
+    sunday_start_local_time?: string | null;
+    sunday_end_local_time?: string | null;
+    enabled?: boolean; display_order?: number;
+  },
+) {
+  const { data, error } = await supabase.rpc("admin_update_game_time_region", {
+    p_region_id: body.id,
+    p_key: body.key ?? null,
+    p_name: body.name ?? null,
+    p_timezone: body.timezone ?? null,
+    p_daily_rollover_local_time: body.daily_rollover_local_time ?? null,
+    p_saturday_start_local_time: body.saturday_start_local_time ?? null,
+    p_saturday_end_local_time: body.saturday_end_local_time ?? null,
+    p_sunday_start_local_time: body.sunday_start_local_time ?? null,
+    p_sunday_end_local_time: body.sunday_end_local_time ?? null,
+    p_enabled: body.enabled ?? null,
+    p_display_order: body.display_order ?? null,
+    p_admin_actor: actor,
+  });
+  if (error) return errorResponse(error.message);
+  return jsonResponse(data);
+}
+
+async function handleAssignUserRegion(
+  supabase: ReturnType<typeof createClient>,
+  actor: string,
+  body: {
+    user_id: string; region_id: string;
+    assignment_reason?: string;
+    force_effective_immediately_for_test?: boolean;
+  },
+) {
+  const { data, error } = await supabase.rpc("admin_assign_user_to_region", {
+    p_user_id: body.user_id,
+    p_region_id: body.region_id,
+    p_assigned_by: actor,
+    p_assignment_reason: body.assignment_reason ?? "manual_admin_assignment",
+    p_force_effective_immediately_for_test: body.force_effective_immediately_for_test ?? false,
+  });
+  if (error) return errorResponse(error.message);
+  return jsonResponse(data);
 }

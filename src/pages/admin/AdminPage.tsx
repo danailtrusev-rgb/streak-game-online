@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Shield, BarChart3, Users, Settings, LogOut, Lock,
-  Gamepad2, CalendarDays, Crown,
+  Gamepad2, CalendarDays, Crown, Clock,
 } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import AdminKPIs from './AdminKPIs';
@@ -10,29 +11,50 @@ import AdminConfig from './AdminConfig';
 import AdminGames from './AdminGames';
 import AdminWeekendEvents from './AdminWeekendEvents';
 import AdminWinners from './AdminWinners';
+import AdminGameTimeSection from './AdminGameTimeSection';
 
-const tabs = [
-  { key: 'kpis',     label: 'KPIs',    icon: BarChart3 },
-  { key: 'users',    label: 'Players', icon: Users },
-  { key: 'games',    label: 'Games',   icon: Gamepad2 },
-  { key: 'events',   label: 'Events',  icon: CalendarDays },
-  { key: 'winners',  label: 'Winners', icon: Crown },
-  { key: 'settings', label: 'Config',  icon: Settings },
+interface TabDef {
+  key: string;
+  label: string;
+  icon: typeof BarChart3;
+  path: string;
+}
+
+const TABS: TabDef[] = [
+  { key: 'dashboard',  label: 'KPIs',      icon: BarChart3,    path: '/sys/admin/dashboard' },
+  { key: 'players',    label: 'Players',   icon: Users,        path: '/sys/admin/players' },
+  { key: 'games',      label: 'Games',     icon: Gamepad2,     path: '/sys/admin/games' },
+  { key: 'events',     label: 'Events',    icon: CalendarDays, path: '/sys/admin/events' },
+  { key: 'winners',    label: 'Winners',   icon: Crown,        path: '/sys/admin/winners' },
+  { key: 'game-time',  label: 'Game Time', icon: Clock,        path: '/sys/admin/game-time' },
+  { key: 'config',     label: 'Config',    icon: Settings,     path: '/sys/admin/config' },
 ];
 
-export default function AdminPage() {
+const VALID_SECTIONS = TABS.map((t) => t.key);
+
+export default function AdminPage({ section, subsection }: { section?: string; subsection?: string }) {
   const { authenticated, mustChangePassword, login, logout, changePassword, loading, error } = useAdmin();
-  const [activeTab, setActiveTab] = useState('kpis');
+  const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwError, setPwError] = useState<string | null>(null);
 
+  const activeSection = section && VALID_SECTIONS.includes(section) ? section : 'dashboard';
+
   useEffect(() => {
     document.getElementById('root')?.classList.add('admin-wide');
     return () => { document.getElementById('root')?.classList.remove('admin-wide'); };
   }, []);
+
+  // If at bare /sys/admin with no section, redirect to dashboard
+  useEffect(() => {
+    if (!section && location.pathname === '/sys/admin') {
+      navigate('/sys/admin/dashboard', { replace: true });
+    }
+  }, [section, location.pathname, navigate]);
 
   const handleLogin = () => {
     if (username && password) login(username, password);
@@ -152,12 +174,12 @@ export default function AdminPage() {
       </div>
 
       <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none">
-        {tabs.map(({ key, label, icon: Icon }) => (
+        {TABS.map(({ key, label, icon: Icon, path }) => (
           <button
             key={key}
-            onClick={() => setActiveTab(key)}
+            onClick={() => navigate(path)}
             className={`flex items-center gap-1.5 whitespace-nowrap border px-3 py-2 text-[12px] font-medium tracking-[0.1em] uppercase transition-all duration-300 ${
-              activeTab === key
+              activeSection === key
                 ? 'border-torch-orange/30 bg-torch-orange/5 text-torch-ember'
                 : 'border-transparent text-bone-dark hover:text-bone-muted'
             }`}
@@ -168,12 +190,20 @@ export default function AdminPage() {
         ))}
       </div>
 
-      {activeTab === 'kpis' && <AdminKPIs />}
-      {activeTab === 'users' && <AdminUsers />}
-      {activeTab === 'games' && <AdminGames />}
-      {activeTab === 'events' && <AdminWeekendEvents />}
-      {activeTab === 'winners' && <AdminWinners />}
-      {activeTab === 'settings' && <AdminConfig />}
+      {activeSection === 'dashboard' && <AdminKPIs />}
+      {activeSection === 'players' && <AdminUsers />}
+      {activeSection === 'games' && <AdminGames />}
+      {activeSection === 'events' && <AdminWeekendEvents />}
+      {activeSection === 'winners' && <AdminWinners />}
+      {activeSection === 'game-time' && <AdminGameTimeSection />}
+      {activeSection === 'config' && (
+        <AdminConfig
+          subsection={subsection}
+          onSubsectionChange={(sub) => {
+            navigate(sub ? `/sys/admin/config/${sub}` : '/sys/admin/config');
+          }}
+        />
+      )}
     </div>
   );
 }
