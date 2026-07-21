@@ -1,15 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
-const ALLOWED_ORIGINS = new Set<string>([
-  "https://survive-streak-jungl-m02f.bolt.host",
-  "http://localhost:5173",
-  "http://localhost:5174",
-]);
-
 const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-session",
   "Access-Control-Max-Age": "86400",
 };
@@ -50,9 +44,8 @@ async function validateSession(supabase: ReturnType<typeof createClient>, sessio
 }
 
 Deno.serve(async (req: Request) => {
-  // CORS preflight — handled before any routing, auth, or body parsing.
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -295,10 +288,16 @@ async function handleSearchUsers(
 ) {
   const offset = (page - 1) * pageSize;
 
+  // When searching, fetch matching users sorted by game_state.updated_at via a join approach:
+  // 1. Get matching user IDs from users table
+  // 2. Join with game_state to sort by most recent activity (updated_at)
+  // Sorting field: game_state.updated_at (most recent play/state change)
+
   let userIds: string[] = [];
   let totalCount = 0;
 
   if (query) {
+    // Search mode — filter first, then paginate
     const isUuid = /^[0-9a-f-]{36}$/i.test(query);
     const { data: matchedUsers, error: searchErr } = await supabase
       .from("users")
@@ -308,6 +307,7 @@ async function handleSearchUsers(
     if (searchErr) return errorResponse(searchErr.message);
     userIds = (matchedUsers || []).map((u: { id: string }) => u.id);
     totalCount = userIds.length;
+    // Sort matched IDs by game_state.updated_at
     if (userIds.length > 0) {
       const { data: sorted } = await supabase
         .from("game_state")
@@ -316,10 +316,12 @@ async function handleSearchUsers(
         .order("updated_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
       const sortedIds = (sorted || []).map((r: { user_id: string }) => r.user_id);
+      // Include any matched users without a game_state row (new users)
       const unsorted = userIds.filter((id) => !sortedIds.includes(id));
       userIds = [...sortedIds, ...unsorted].slice(0, pageSize);
     }
   } else {
+    // Default listing — sort all users by game_state.updated_at DESC
     const { count } = await supabase
       .from("game_state")
       .select("*", { count: "exact", head: true });
@@ -498,6 +500,7 @@ async function handleUpdateGame(supabase: ReturnType<typeof createClient>, actor
   const { game_id, launch_state, category, points_on_play, points_on_win, sort_order, qualification_enabled } = body;
   if (!game_id) return errorResponse("Missing game_id");
 
+  // Use RPC to bypass PostgREST schema cache issues with newer columns like launch_state
   const { data: ok, error } = await supabase.rpc("update_game_fields", {
     p_game_id:               game_id,
     p_launch_state:          launch_state          ?? null,
@@ -712,6 +715,7 @@ function validateSceneConfig(cfg: Record<string, unknown>): string[] {
   if (cfg.templateType === "choice_3" && choices.length < 3)
     errors.push("choice_3 scenes require at least 3 clickable choice_object layers with choiceId");
 
+  // Validate door layers
   const doorRoles = ["gate_door_left", "gate_door_right"];
   layers
     .filter((l) => doorRoles.includes(l.role as string))
@@ -822,6 +826,7 @@ async function handleDuplicateScene(
   const newSlug = `${src.slug}-copy-${Date.now().toString(36)}`;
   const newTitle = `${src.title} (Copy)`;
 
+  // Patch the draft config with new slug/title so it stays consistent
   const patchedConfig = {
     ...(src.draft_config_json as Record<string, unknown>),
     slug: newSlug,
@@ -916,6 +921,7 @@ async function handleDeleteScene(
   const { id } = body;
   if (!id) return errorResponse("Missing id");
 
+  // Only allow deletion of archived scenes
   const { data: scene, error: fetchErr } = await supabase
     .from("skull_gate_scenes")
     .select("id, slug, status")
