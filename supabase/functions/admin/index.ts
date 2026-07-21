@@ -63,6 +63,15 @@ Deno.serve(async (req: Request) => {
       return await handleChangePassword(supabase, username, await req.json());
     }
 
+    // Lightweight session validation — used by the client on mount to confirm
+    // a stored token is still valid before rendering any protected UI.
+    if (req.method === "GET" && path === "/validate") {
+      const sessionToken = req.headers.get("x-admin-session") || "";
+      const username = await validateSession(supabase, sessionToken);
+      if (!username) return errorResponse("Unauthorized", 401);
+      return jsonResponse({ valid: true, username });
+    }
+
     const sessionToken = req.headers.get("x-admin-session") || "";
     const username = await validateSession(supabase, sessionToken);
     if (!username) return errorResponse("Unauthorized", 401);

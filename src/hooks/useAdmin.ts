@@ -25,10 +25,46 @@ function adminUrl(path: string): string {
 }
 
 export function useAdmin() {
-  const [authenticated, setAuthenticated] = useState(!!localStorage.getItem('admin_session'));
+  const hasStoredToken = !!localStorage.getItem('admin_session');
+  const [authenticated, setAuthenticated] = useState(false);
+  const [validating, setValidating] = useState(hasStoredToken);
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Validate any stored session token against the server on mount.
+  // A stale/invalid token must not allow the dashboard to render.
+  useEffect(() => {
+    if (!hasStoredToken) {
+      setValidating(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(adminUrl('/validate'), {
+          method: 'GET',
+          headers: getAdminHeaders(),
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          setAuthenticated(true);
+        } else {
+          localStorage.removeItem('admin_session');
+          setAuthenticated(false);
+        }
+      } catch {
+        if (!cancelled) {
+          // Network/CORS failure — don't trust the token, but don't wipe it
+          // either (could be a transient issue). Keep unauthenticated.
+          setAuthenticated(false);
+        }
+      } finally {
+        if (!cancelled) setValidating(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [hasStoredToken]);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     setLoading(true);
@@ -348,6 +384,7 @@ export function useAdmin() {
 
   return {
     authenticated,
+    validating,
     mustChangePassword,
     loading,
     error,

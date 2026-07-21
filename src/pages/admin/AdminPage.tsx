@@ -33,7 +33,7 @@ const TABS: TabDef[] = [
 const VALID_SECTIONS = TABS.map((t) => t.key);
 
 export default function AdminPage({ section, subsection }: { section?: string; subsection?: string }) {
-  const { authenticated, mustChangePassword, login, logout, changePassword, loading, error } = useAdmin();
+  const { authenticated, validating, mustChangePassword, login, logout, changePassword, loading, error } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
   const [username, setUsername] = useState('');
@@ -72,6 +72,17 @@ export default function AdminPage({ section, subsection }: { section?: string; s
     setPwError(null);
     await changePassword(newPassword);
   };
+
+  if (validating) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 animate-fade-in">
+        <div className="flex h-16 w-16 items-center justify-center border border-moss-dark/40 bg-moss-dark/20 animate-pulse">
+          <Shield className="h-8 w-8 text-torch-ember" strokeWidth={1} />
+        </div>
+        <p className="text-[12px] tracking-[0.15em] text-bone-faint">Verifying admin session…</p>
+      </div>
+    );
+  }
 
   if (authenticated && mustChangePassword) {
     return (
