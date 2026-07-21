@@ -94,13 +94,14 @@ export default function AdminPage({ section, subsection }: { section?: string; s
         <p className="text-[12px] tracking-[0.15em] text-bone-faint text-center max-w-xs">
           You must set a new password before continuing.
         </p>
-        <div className="w-full max-w-xs space-y-3">
+        <form className="w-full max-w-xs space-y-3" onSubmit={(e) => { e.preventDefault(); handleChangePassword(); }}>
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password (min 8 characters)"
             className="ritual-input w-full"
+            autoComplete="new-password"
           />
           <input
             type="password"
@@ -108,10 +109,10 @@ export default function AdminPage({ section, subsection }: { section?: string; s
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm new password"
             className="ritual-input w-full"
-            onKeyDown={(e) => e.key === 'Enter' && handleChangePassword()}
+            autoComplete="new-password"
           />
           <button
-            onClick={handleChangePassword}
+            type="submit"
             disabled={loading}
             className="jungle-button w-full disabled:opacity-50"
           >
@@ -120,7 +121,7 @@ export default function AdminPage({ section, subsection }: { section?: string; s
           {(pwError || error) && (
             <p className="text-center text-xs text-death-glow">{pwError || error}</p>
           )}
-        </div>
+        </form>
       </div>
     );
   }
@@ -135,7 +136,7 @@ export default function AdminPage({ section, subsection }: { section?: string; s
         <p className="text-[12px] tracking-[0.15em] text-bone-faint text-center max-w-xs">
           Enter your credentials to access the dashboard.
         </p>
-        <div className="w-full max-w-xs space-y-3">
+        <form className="w-full max-w-xs space-y-3" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
           <input
             type="text"
             value={username}
@@ -151,10 +152,9 @@ export default function AdminPage({ section, subsection }: { section?: string; s
             placeholder="Password"
             className="ritual-input w-full"
             autoComplete="current-password"
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
           />
           <button
-            onClick={handleLogin}
+            type="submit"
             disabled={loading || !username || !password}
             className="jungle-button w-full disabled:opacity-50"
           >
@@ -163,7 +163,7 @@ export default function AdminPage({ section, subsection }: { section?: string; s
           {error && (
             <p className="text-center text-xs text-death-glow">{error}</p>
           )}
-        </div>
+        </form>
       </div>
     );
   }

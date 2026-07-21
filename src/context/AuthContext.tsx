@@ -209,6 +209,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchPlayerState]);
 
   useEffect(() => {
+    // Skip guest-account provisioning on admin routes — admin auth is
+    // independent of player auth and must not trigger Supabase signup.
+    if (window.location.pathname.startsWith('/sys/admin')) {
+      setLoading(false);
+      return;
+    }
+
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
