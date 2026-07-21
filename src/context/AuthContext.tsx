@@ -218,11 +218,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
+    let creatingGuest = false;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (event === 'SIGNED_OUT') {
-        // Session is gone — clear state then provision a fresh guest session
+        // Session is gone — clear state then provision a fresh guest session.
+        // Guard against repeated SIGNED_OUT events causing a signup loop
+        // (e.g. when signUp itself fails with 402 and fires another event).
         setSession(null);
         setPlayerState(null);
+        if (creatingGuest) return;
+        creatingGuest = true;
         (async () => {
           const guestId  = crypto.randomUUID();
           const password = crypto.randomUUID();
@@ -231,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             password,
             options: { data: { guest_id: guestId } },
           });
+          creatingGuest = false;
           if (!error && data.session) {
             setSession(data.session);
             const { data: ps } = await supabase.rpc('get_my_state');

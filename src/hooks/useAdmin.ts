@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import type {
   AdminKPIs,
   AdminUser,
@@ -25,17 +25,21 @@ function adminUrl(path: string): string {
 }
 
 export function useAdmin() {
-  const hasStoredToken = !!localStorage.getItem('admin_session');
   const [authenticated, setAuthenticated] = useState(false);
-  const [validating, setValidating] = useState(hasStoredToken);
+  const [validating, setValidating] = useState(() => !!localStorage.getItem('admin_session'));
   const [mustChangePassword, setMustChangePassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const validateCalled = useRef(false);
 
-  // Validate any stored session token against the server on mount.
+  // Validate any stored session token against the server on mount — once.
   // A stale/invalid token must not allow the dashboard to render.
   useEffect(() => {
-    if (!hasStoredToken) {
+    if (validateCalled.current) return;
+    validateCalled.current = true;
+
+    const token = localStorage.getItem('admin_session');
+    if (!token) {
       setValidating(false);
       return;
     }
@@ -64,7 +68,7 @@ export function useAdmin() {
       }
     })();
     return () => { cancelled = true; };
-  }, [hasStoredToken]);
+  }, []);
 
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     setLoading(true);

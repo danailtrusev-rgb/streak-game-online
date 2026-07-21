@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useEffect, useState, useCallback,
+  createContext, useContext, useEffect, useState, useCallback, useRef,
   type ReactNode,
 } from 'react';
 import { supabase } from '../lib/supabase';
@@ -78,9 +78,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<string>(() =>
     localStorage.getItem(LANG_STORAGE_KEY) ?? 'en',
   );
-  const [translations, setTranslations] = useState<TranslationMap>({});
-  const [fallback, setFallback] = useState<TranslationMap>({});
+  const [translations, setTranslations] = useState<TranslationMap>(() =>
+    readCache(localStorage.getItem(LANG_STORAGE_KEY) ?? 'en') ?? {},
+  );
+  const [fallback, setFallback] = useState<TranslationMap>(() =>
+    readCache('en') ?? {},
+  );
   const [loading, setLoading] = useState(true);
+  const initCalled = useRef(false);
 
   const loadTranslations = useCallback(async (lang: string) => {
     // Try cache first
@@ -116,6 +121,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, [translations, fallback]);
 
   useEffect(() => {
+    if (initCalled.current) return;
+    initCalled.current = true;
+
     let cancelled = false;
     async function init() {
       setLoading(true);
