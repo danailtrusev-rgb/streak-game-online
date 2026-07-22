@@ -5,11 +5,12 @@
 // DB is the single source of truth — no static fallback is shown.
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database, ImageOff } from 'lucide-react';
+import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database, ImageOff, WifiOff } from 'lucide-react';
 import SkullGateSceneRenderer from '../../components/game/SkullGateSceneRenderer';
 import { useSkullGateScenes } from '../../hooks/useSkullGateScenes';
 import { supabase } from '../../lib/supabase';
 import { USE_SCENE_BASED_SKULL_GATE } from '../../lib/constants';
+import { DEFAULT_SKULL_GATE_SCENES } from '../../lib/skullGateScenes';
 import type { SkullGateSceneConfig } from '../../lib/types';
 import type { SkullGateAssignment } from '../../hooks/useSkullGateAssignment';
 
@@ -374,15 +375,26 @@ export default function AdminSkullGatePreview() {
     if (scene) probeImages(scene);
   }, [scene, probeImages]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load scenes from DB on mount
+  // Load scenes from DB on mount — fall back to local static scenes when DB unavailable
   const loadScenes = useCallback(async () => {
     setLoadingScenes(true);
     setLoadError(null);
     const rows = await sceneApi.listScenes();
     if (rows === null) {
-      // DB error — show error state, do NOT fall back to static defaults
+      // DB error — fall back to local static scenes so preview works without Supabase
       setLoadError(sceneApi.error ?? 'Failed to load scenes from database');
-      setEntries([]);
+      const staticEntries: SceneEntry[] = DEFAULT_SKULL_GATE_SCENES.map((cfg) => ({
+        config:    cfg,
+        sourceId:  null,
+        slug:      cfg.slug,
+        updatedAt: null,
+      }));
+      setEntries(staticEntries);
+      const savedSlug = localStorage.getItem(PREVIEW_SCENE_KEY);
+      if (savedSlug) {
+        const idx = staticEntries.findIndex((e) => e.slug === savedSlug);
+        if (idx >= 0) setSceneIdx(idx);
+      }
     } else if (rows.length === 0) {
       // DB empty — show empty state
       setEntries([]);
@@ -455,6 +467,14 @@ export default function AdminSkullGatePreview() {
     if (!selectedChoice) setSelectedChoice(firstChoiceId);
   }, [selectedChoice, firstChoiceId]);
 
+  // Auto-advance to 'done' phase after 2.5s to let visual animation play before result modal
+  useEffect(() => {
+    if (phase === 'revealing' && outcome) {
+      const timer = setTimeout(() => setPhase('done'), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, outcome]);
+
   const simulateDone = useCallback(() => {
     setPhase('done');
   }, []);
@@ -488,7 +508,7 @@ export default function AdminSkullGatePreview() {
     );
   }
 
-  // DB error — no fallback rendered
+  // DB error with local static fallback — show scenes with warning banner
   if (loadError && entries.length === 0) {
     return (
       <div style={{
@@ -504,10 +524,6 @@ export default function AdminSkullGatePreview() {
         </div>
         <div style={{ fontSize: 11, fontFamily: UF, color: 'rgba(200,80,80,0.7)', textAlign: 'center', maxWidth: 340, lineHeight: 1.6 }}>
           {loadError}
-        </div>
-        <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.6 }}>
-          Static defaults are not shown to prevent masking DB issues.<br />
-          Check admin auth and DB connection, then reload.
         </div>
         <button
           onClick={loadScenes}
@@ -626,18 +642,18 @@ export default function AdminSkullGatePreview() {
         </div>
       </div>
 
-      {/* ── Load error banner (only when entries exist from previous load) ── */}
-      {loadError && entries.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 12px', background: 'rgba(180,40,40,0.08)',
-          border: '1px solid rgba(180,40,40,0.3)',
-          fontSize: 10, fontFamily: UF, color: 'rgba(200,70,70,0.85)',
-        }}>
-          <AlertCircle size={13} style={{ flexShrink: 0 }} />
-          DB reload failed: {loadError} — showing last loaded scenes.
-        </div>
-      )}
+        {/* DB error banner with local static fallback notice */}
+        {loadError && entries.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px', background: 'rgba(180,140,0,0.08)',
+            border: '1px solid rgba(180,140,0,0.3)',
+            fontSize: 10, fontFamily: UF, color: 'rgba(200,175,80,0.85)',
+          }}>
+            <WifiOff size={13} style={{ flexShrink: 0 }} />
+            DB unavailable — showing <strong style={{ color: 'rgba(245,208,96,0.8)' }}>local static / no DB</strong> scenes. Retry to reconnect.
+          </div>
+        )}
 
       {/* ── Debug info bar ── */}
       <div style={{
@@ -650,7 +666,7 @@ export default function AdminSkullGatePreview() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Database size={10} style={{ color: isDbSource ? 'rgba(120,200,90,0.7)' : 'rgba(200,175,80,0.6)', flexShrink: 0 }} />
           <span style={{ color: isDbSource ? 'rgba(120,200,90,0.7)' : 'rgba(200,175,80,0.6)', textTransform: 'uppercase' }}>
-            {isDbSource ? 'db (draft)' : 'static fallback'}
+            {isDbSource ? 'db (draft)' : 'local static / no DB'}
           </span>
         </div>
         {entry.sourceId && (

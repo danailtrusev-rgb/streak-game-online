@@ -364,6 +364,8 @@ export type LayerRole =
   | 'gate_seal'
   | 'choice_object'
   | 'torch_flame'
+  | 'bridge_section'
+  | 'lava_effect'
   | 'foreground_decoration'
   | 'atmosphere_effect'
   | 'particle_effect'
@@ -408,7 +410,10 @@ export type AnimationPreset =
   | 'light_ray_pulse'
   | 'gate_rumble'
   | 'torch_flicker'
-  | 'inner_light_pulse';
+  | 'inner_light_pulse'
+  | 'sky_loop'
+  | 'lava_shimmer'
+  | 'lever_pull';
 
 export type EffectPreset =
   | 'none'
@@ -423,7 +428,9 @@ export type EffectPreset =
   | 'foreground_branches'
   | 'torch_fire'
   | 'gate_glow'
-  | 'inner_light';
+  | 'inner_light'
+  | 'lava_shimmer'
+  | 'lava_embers';
 
 export interface DoorAnimationConfig {
   preset:           DoorAnimationPreset;

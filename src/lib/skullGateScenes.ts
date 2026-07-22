@@ -503,6 +503,266 @@ export const BLOOD_MOON_RELIC_SCENE_CONFIG: SkullGateSceneConfig = {
   updatedAt:       '2026-06-30T00:00:00.000Z',
 };
 
+// ── Cross the Bridge layers ───────────────────────────────────────────────────
+
+const G_CTB = '/assets/games/skull-gate/cross-the-bridge';
+
+const crossTheBridgeLayers: SceneLayer[] = [
+  // 1. Sky — full-cover, slow horizontal loop
+  {
+    id:              'ctb_sky',
+    name:            'Sky',
+    type:            'image',
+    role:            'background',
+    assetPath:       `${G_CTB}/cross-the-bridge-sky.jpg`,
+    x:               0, y: 0, width: 100, height: 100,
+    opacity:         1,
+    zIndex:          0,
+    visible:         true,
+    locked:          true,
+    animationPreset: 'sky_loop',
+    effectPreset:    'none',
+  },
+
+  // 2. Mountains
+  {
+    id:              'ctb_mountains',
+    name:            'Mountains',
+    type:            'image',
+    role:            'backplate',
+    assetPath:       `${G_CTB}/cross-the-bridge-mountains.png`,
+    x:               0, y: 10, width: 100, height: 60,
+    opacity:         1,
+    zIndex:          1,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 3. Wall + lava
+  {
+    id:              'ctb_wall_lava',
+    name:            'Wall + Lava',
+    type:            'image',
+    role: 'gate_frame',
+    assetPath:       `${G_CTB}/cross-the-bridge-wall-lava.png`,
+    x:               0, y: 30, width: 100, height: 70,
+    opacity:         1,
+    zIndex:          2,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 4. Lava shimmer effect (procedural)
+  {
+    id:              'ctb_lava_shimmer',
+    name:            'Lava Shimmer',
+    type:            'effect',
+    role:            'lava_effect',
+    assetPath:       '',
+    x:               0, y: 55, width: 100, height: 45,
+    opacity:         0.6,
+    zIndex:          3,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'lava_shimmer',
+    effectPreset:    'lava_shimmer',
+  },
+
+  // 5. Ember particles (procedural)
+  {
+    id:              'ctb_lava_embers',
+    name:            'Lava Embers',
+    type:            'particle',
+    role:            'particle_effect',
+    assetPath:       '',
+    x:               0, y: 40, width: 100, height: 60,
+    opacity:         0.7,
+    zIndex:          4,
+    visible:         true,
+    locked:          true,
+    animationPreset: 'ember_float',
+    effectPreset:    'lava_embers',
+  },
+
+  // 6. Bridge part 2 (back section)
+  {
+    id:              'ctb_bridge_2',
+    name:            'Bridge Part 2',
+    type:            'image',
+    role:            'bridge_section',
+    assetPath:       `${G_CTB}/cross-the-bridge-bridge-part-2.png`,
+    x:               10, y: 45, width: 80, height: 30,
+    opacity:         1,
+    zIndex:          5,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 7. Bridge part 1 (front section — collapses first on fail)
+  {
+    id:              'ctb_bridge_1',
+    name:            'Bridge Part 1',
+    type:            'image',
+    role:            'bridge_section',
+    assetPath:       `${G_CTB}/cross-the-bridge-bridge-part-1.png`,
+    x:               10, y: 55, width: 80, height: 30,
+    opacity:         1,
+    zIndex:          6,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 8. Foreground with lever holders
+  {
+    id:              'ctb_foreground',
+    name:            'Foreground with Lever Holders',
+    type:            'image',
+    role:            'foreground_decoration',
+    assetPath:       `${G_CTB}/cross-the-bridge-foreground-with-lever-holders.png`,
+    x:               0, y: 0, width: 100, height: 100,
+    opacity:         1,
+    zIndex:          7,
+    visible:         true,
+    locked:          true,
+    animationPreset: 'none',
+    effectPreset:    'none',
+  },
+
+  // 9. Left lever — clickable choice
+  {
+    id:              'ctb_lever_left',
+    name:            'Left Lever',
+    type:            'image',
+    role:            'choice_object',
+    assetPath:       `${G_CTB}/cross-the-bridge-left-lever.png`,
+    x:               8, y: 60, width: 25, height: 30,
+    opacity:         1,
+    zIndex:          9,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+    clickable:       true,
+    clickAction:     'select_choice',
+    choiceId:        'left_lever',
+    effects: {
+      glow:          true,
+      selectedGlow:  true,
+      selectedScale: 1.0,
+      brightness:    0.95,
+    },
+  },
+
+  // 10. Right lever — clickable choice
+  {
+    id:              'ctb_lever_right',
+    name:            'Right Lever',
+    type:            'image',
+    role:            'choice_object',
+    assetPath:       `${G_CTB}/cross-the-bridge-right-lever.png`,
+    x:               67, y: 60, width: 25, height: 30,
+    opacity:         1,
+    zIndex:          9,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+    clickable:       true,
+    clickAction:     'select_choice',
+    choiceId:        'right_lever',
+    effects: {
+      glow:          true,
+      selectedGlow:  true,
+      selectedScale: 1.0,
+      brightness:    0.95,
+    },
+  },
+
+  // 11. Gate glow — shifts gold/red based on outcome (procedural)
+  {
+    id:              'ctb_gate_glow',
+    name:            'Gate Glow',
+    type:            'effect',
+    role:            'gate_glow',
+    assetPath:       '',
+    x:               0, y: 0, width: 100, height: 55,
+    opacity:         0.5,
+    zIndex:          8,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'pulse_glow',
+    effectPreset:    'gate_glow',
+  },
+
+  // 12. Instruction text
+  {
+    id:              'ctb_instruction_text',
+    name:            'Instruction Text',
+    type:            'text',
+    role:            'text',
+    x:               10, y: 74, width: 80, height: 8,
+    opacity:         1,
+    zIndex:          20,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+    mobileSafeArea:  true,
+  },
+
+  // 13. CTA button — "Pull the Lever"
+  {
+    id:              'ctb_cta_button',
+    name:            'CTA Button',
+    type:            'button',
+    role:            'button',
+    assetPath:       BUTTONS.confirm_default,
+    text:            'Pull the Lever',
+    x:               5, y: 84, width: 90, height: 10,
+    opacity:         1,
+    zIndex:          21,
+    visible:         true,
+    locked:          false,
+    animationPreset: 'none',
+    effectPreset:    'none',
+    mobileSafeArea:  true,
+    clickAction:     'cta',
+  },
+];
+
+// ── Cross the Bridge Scene Config ──────────────────────────────────────────────
+
+export const CROSS_THE_BRIDGE_SCENE_CONFIG: SkullGateSceneConfig = {
+  id:              'cross-the-bridge',
+  slug:            'cross-the-bridge',
+  title:           'Cross the Bridge',
+  description:     'Choose a lever and cross your fate above the lava.',
+  templateType:    'choice_2',
+  status:          'draft',
+  enabled:         false,
+  weight:          50,
+  cooldownDays:    1,
+  minStreak:       0,
+  maxStreak:       null,
+  introText:       'Two levers control the crossing.',
+  instructionText: 'Choose a lever. One opens the gate. One drops the bridge.',
+  ctaText:         'Pull the Lever',
+  surviveText:     'The gate opens. Your streak survives.',
+  failText:        'The bridge gives way. Your streak falls.',
+  cashoutText:     'Collect Your Winnings',
+  layers:          crossTheBridgeLayers,
+  createdAt:       '2026-07-22T00:00:00.000Z',
+  updatedAt:       '2026-07-22T00:00:00.000Z',
+};
+
 // ── Product mechanic → scene template type mapping ────────────────────────────
 // Reference for scene authors and the Scene Editor template selector.
 // Pick/SafeBox   → choice_2 (player picks one of two hidden options)
@@ -531,4 +791,5 @@ export const MECHANIC_TEMPLATE_MAP: Record<string, string> = {
 export const DEFAULT_SKULL_GATE_SCENES: SkullGateSceneConfig[] = [
   TORCH_TRIAL_SCENE_CONFIG,
   BLOOD_MOON_RELIC_SCENE_CONFIG,
+  CROSS_THE_BRIDGE_SCENE_CONFIG,
 ];

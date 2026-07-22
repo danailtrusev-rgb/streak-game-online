@@ -106,6 +106,47 @@ const KEYFRAMES = `
   0%,100% { opacity: var(--il-op, 0); }
   50%     { opacity: calc(var(--il-op, 0) * 1.2); }
 }
+@keyframes sgsr-sky-loop {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-10%); }
+}
+@keyframes sgsr-lava-shimmer {
+  0%,100% { opacity: var(--lava-op, 0.5); filter: blur(4px) hue-rotate(0deg); }
+  30%     { opacity: calc(var(--lava-op, 0.5) * 1.3); filter: blur(5px) hue-rotate(8deg); }
+  60%     { opacity: calc(var(--lava-op, 0.5) * 0.85); filter: blur(3px) hue-rotate(-5deg); }
+}
+@keyframes sgsr-lava-ember {
+  0%   { transform: translate(0,0) scale(1); opacity: 0.8; }
+  50%  { transform: translate(2px,-20px) scale(0.7); opacity: 0.5; }
+  100% { transform: translate(-1px,-40px) scale(0.3); opacity: 0; }
+}
+@keyframes sgsr-lever-pull {
+  0%   { transform: rotate(0deg); }
+  40%  { transform: rotate(35deg); }
+  60%  { transform: rotate(30deg); }
+  100% { transform: rotate(32deg); }
+}
+@keyframes sgsr-bridge-collapse-1 {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  30%  { transform: translateY(2px) rotate(-2deg); opacity: 0.9; }
+  100% { transform: translateY(60px) rotate(15deg); opacity: 0; }
+}
+@keyframes sgsr-bridge-collapse-2 {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+  20%  { transform: translateY(1px) rotate(1deg); opacity: 0.95; }
+  100% { transform: translateY(45px) rotate(-12deg); opacity: 0; }
+}
+@keyframes sgsr-gate-rumble-soft {
+  0%,100% { transform: translateX(0) translateY(0); }
+  25%     { transform: translateX(-2px) translateY(-1px); }
+  50%     { transform: translateX(2px) translateY(1px); }
+  75%     { transform: translateX(-1px) translateY(0); }
+}
+@keyframes sgsr-dust-settle {
+  0%   { opacity: 0; transform: translateY(0) scale(1); }
+  30%  { opacity: 0.4; }
+  100% { opacity: 0; transform: translateY(-15px) scale(1.5); }
+}
 @media (prefers-reduced-motion: reduce) {
   .sgsr-anim { animation: none !important; }
   .sgsr-door { transition: none !important; }
@@ -138,6 +179,9 @@ function animPresetToCSS(preset: AnimationPreset | undefined): string | undefine
     case 'gate_rumble':       return 'sgsr-rumble 0.35s ease-in-out 3';
     case 'torch_flicker':     return 'sgsr-torch-flicker 2.8s ease-in-out infinite';
     case 'inner_light_pulse': return 'sgsr-inner-light 3s ease-in-out infinite';
+    case 'sky_loop':           return 'sgsr-sky-loop 40s linear infinite';
+    case 'lava_shimmer':      return 'sgsr-lava-shimmer 3.5s ease-in-out infinite';
+    case 'lever_pull':        return 'sgsr-lever-pull 0.6s ease-in 0.1s forwards';
     default:                  return undefined;
   }
 }
@@ -272,6 +316,71 @@ function ProceduralEffect({
           '--il-op':  String(ilOp),
         } as React.CSSProperties}
       />
+    );
+  }
+
+  // Lava shimmer procedural effect
+  if (layer.role === 'lava_effect' || layer.effectPreset === 'lava_shimmer') {
+    const animCSS = animEnabled ? animPresetToCSS(layer.animationPreset) : undefined;
+    const pos = resolveLayerCSS({ ...layer, width: layer.width ?? 100, height: layer.height ?? 45 });
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          position:    'absolute',
+          left:        pos.left,
+          top:         pos.top,
+          width:       pos.width,
+          height:      pos.height,
+          opacity:     layer.opacity ?? 0.6,
+          zIndex:      layer.zIndex,
+          pointerEvents: 'none',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(255,60,0,0.15) 30%, rgba(255,120,0,0.25) 50%, rgba(255,40,0,0.12) 70%, transparent 100%)',
+          filter:      'blur(4px)',
+          animation:   animCSS,
+          ['--lava-op' as string]: layer.opacity ?? 0.5,
+        } as React.CSSProperties}
+      />
+    );
+  }
+
+  // Lava ember particles procedural effect
+  if (layer.effectPreset === 'lava_embers') {
+    const pos = resolveLayerCSS({ ...layer, width: layer.width ?? 100, height: layer.height ?? 60 });
+    const embers = Array.from({ length: 12 }, (_, i) => i);
+    return (
+      <div
+        aria-hidden="true"
+        style={{
+          position:    'absolute',
+          left:        pos.left,
+          top:         pos.top,
+          width:       pos.width,
+          height:      pos.height,
+          opacity:     layer.opacity ?? 0.7,
+          zIndex:      layer.zIndex,
+          pointerEvents: 'none',
+          overflow:    'hidden',
+        }}
+      >
+        {embers.map((i) => (
+          <div
+            key={i}
+            style={{
+              position:    'absolute',
+              left:        `${5 + i * 8}%`,
+              bottom:      '0%',
+              width:       '4px',
+              height:      '4px',
+              borderRadius: '50%',
+              background: 'rgba(255,120,20,0.8)',
+              boxShadow:  '0 0 6px rgba(255,100,0,0.6)',
+              animation:  `sgsr-lava-ember ${2.5 + (i % 3) * 0.8}s ease-out ${i * 0.3}s infinite`,
+              pointerEvents: 'none',
+            }}
+          />
+        ))}
+      </div>
     );
   }
 
@@ -479,6 +588,8 @@ function ImageLayer({
   if (!layer.assetPath) return null;
 
   const isReveal    = phase === 'revealing' || phase === 'done';
+  const isBridge    = layer.role === 'bridge_section';
+  const isLever     = layer.role === 'choice_object' && layer.assetPath && layer.assetPath.includes('lever');
   const isDoor      = layer.role === 'gate_door_left' || layer.role === 'gate_door_right';
   const isChoice    = layer.role === 'choice_object' && layer.clickable && !!layer.choiceId;
   const isSelected  = isChoice && selectedChoiceId === layer.choiceId;
@@ -521,6 +632,26 @@ function ImageLayer({
   // Door transform
   const doorStyle = isDoor ? getDoorStyle(layer, outcome, phase) : {};
 
+  // Bridge collapse animation on fail
+  let bridgeStyle: React.CSSProperties = {};
+  if (isBridge && isReveal && outcome === 'DIE') {
+    const isBridge1 = layer.id.includes('bridge_1') || layer.name.includes('Part 1');
+    bridgeStyle = {
+      animation: isBridge1
+        ? 'sgsr-bridge-collapse-1 1.5s ease-in 0.2s forwards'
+        : 'sgsr-bridge-collapse-2 1.5s ease-in 0.8s forwards',
+    };
+  }
+
+  // Lever pull animation on revealing
+  let leverStyle: React.CSSProperties = {};
+  if (isLever && isReveal && isSelected) {
+    leverStyle = {
+      animation: 'sgsr-lever-pull 0.6s ease-in 0.1s forwards',
+      transformOrigin: 'bottom center',
+    };
+  }
+
   // Animation — tap_reveal gets pulsing when selected, burst on reveal, crack on fail
   const animEnabled = layer.parallaxEnabled !== false;
   let animCSS: string | undefined;
@@ -554,6 +685,8 @@ function ImageLayer({
     cursor:     isChoice && (phase === 'idle' || phase === 'selected') ? 'pointer' : 'default',
     animation:  animCSS,
     ...doorStyle,
+    ...bridgeStyle,
+    ...leverStyle,
   };
 
   const Wrapper = isChoice ? 'button' : 'div';
@@ -807,6 +940,7 @@ export default function SkullGateSceneRenderer({
         const isProcedural =
           layer.role === 'particle_effect'  ||
           layer.role === 'atmosphere_effect' ||
+          layer.role === 'lava_effect'       ||
           (layer.role === 'gate_glow'        && !layer.assetPath) ||
           (layer.role === 'gate_inner_light' && !layer.assetPath) ||
           (layer.role === 'torch_flame'      && !layer.assetPath);
@@ -909,6 +1043,28 @@ export default function SkullGateSceneRenderer({
             transition: 'opacity 0.8s ease',
           }}
         />
+      )}
+
+      {/* Gate rumble + dust on survive (Cross the Bridge placeholder) */}
+      {resultOutcome === 'SURVIVE' && isReveal && sceneConfig.slug === 'cross-the-bridge' && (
+        <>
+          <div
+            aria-hidden="true"
+            style={{
+              position:   'absolute', inset: 0, pointerEvents: 'none', zIndex: 14,
+              animation:  'sgsr-gate-rumble-soft 0.4s ease-in-out 3',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position:   'absolute', left: '30%', top: '20%', width: '40%', height: '30%',
+              pointerEvents: 'none', zIndex: 14,
+              background: 'radial-gradient(ellipse 60% 50% at 50% 60%, rgba(255,220,120,0.2) 0%, transparent 70%)',
+              animation:  'sgsr-dust-settle 2.5s ease-out 0.3s forwards',
+            }}
+          />
+        </>
       )}
 
       {/* Vignette — always on top */}
