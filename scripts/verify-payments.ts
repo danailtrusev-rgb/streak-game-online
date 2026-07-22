@@ -4,7 +4,7 @@
  *
  * Static verification of the payments architecture.
  * Does NOT require a live Supabase connection.
- * Verifies source files and migration SQL for correctness.
+ * Verifies source files and migration SQL for correctness and security.
  */
 
 import * as fs from 'fs';
@@ -32,6 +32,8 @@ function readFile(relPath: string): string {
 // ── 1. topup_wallet is not re-granted to authenticated ────────────────────────
 
 const migrationSql = readFile('supabase/migrations/20260722101732_20260722000000_20260722_payments_foundation.sql');
+const hardeningSql = readFile('supabase/migrations/20260722110000_20260722_payments_hardening_defaults.sql');
+
 check(
   '1. topup_wallet is not re-granted to authenticated in migration',
   migrationSql.includes('REVOKE ALL ON FUNCTION public.topup_wallet(integer, text) FROM PUBLIC, anon, authenticated'),
@@ -41,6 +43,19 @@ check(
   '1b. No GRANT EXECUTE on topup_wallet to authenticated in migration',
   !migrationSql.includes('GRANT EXECUTE ON FUNCTION public.topup_wallet'),
 );
+
+check(
+  '1c. topup_wallet re-revoked in hardening migration',
+  hardeningSql.includes('REVOKE ALL ON FUNCTION public.topup_wallet(integer, text) FROM PUBLIC, anon, authenticated'),
+);
+
+check(
+  '1d. topup_wallet is NOT granted to authenticated (no GRANT in either migration)',
+  !migrationSql.includes('GRANT EXECUTE ON FUNCTION public.topup_wallet') &&
+  !hardeningSql.includes('GRANT EXECUTE ON FUNCTION public.topup_wallet'),
+);
+
+// ── 2. Payment webhook event idempotency exists ────────────────────────────────
 
 // ── 2. Payment webhook event idempotency exists ────────────────────────────────
 
@@ -138,6 +153,16 @@ check(
   dummyProvider.includes('if (!signatureHeader) return false'),
 );
 
+check(
+  '7e. Webhook routes call verifySignature before processing',
+  edgeFn.includes('verifySignature') && edgeFn.includes('handleDummyWebhookPayment'),
+);
+
+check(
+  '7f. Webhook returns 401 on invalid signature',
+  edgeFn.includes("'Invalid signature', 401"),
+);
+
 // ── 8. Dummy provider secret is not VITE_ exposed ──────────────────────────────
 
 check(
@@ -156,20 +181,35 @@ check(
   !frontendTypes.includes('webhook_secret') && !frontendTypes.includes('WEBHOOK_SECRET'),
 );
 
-// ── 9. Admin/test simulate routes are not normal public wallet-credit routes ───
+// ── 9. Simulate routes require admin session, NOT player JWT ────────────────────
 
 check(
-  '9. Simulate routes require authentication',
-  edgeFn.includes('handleSimulatePayment') && edgeFn.includes('user.id'),
+  '9. Simulate routes use requireAdmin (admin session guard)',
+  edgeFn.includes('requireAdmin') && edgeFn.includes('validateAdminSession'),
 );
 
 check(
-  '9b. Simulate routes only work on own orders (user_id check)',
-  edgeFn.includes('.eq(\'user_id\', userId)') || edgeFn.includes(".eq('user_id', userId)"),
+  '9b. Simulate routes check x-admin-session header',
+  edgeFn.includes("x-admin-session"),
 );
 
 check(
-  '9c. Simulate routes go through webhook flow, not direct credit',
+  '9c. Simulate routes return 403 when admin auth fails',
+  edgeFn.includes("'Admin authorization required', 403"),
+);
+
+check(
+  '9d. Simulate routes do NOT use player JWT (getUserFromRequest)',
+  !edgeFn.includes('handleSimulatePayment(req, user.id)') && !edgeFn.includes('handleSimulatePayout(req, user.id)'),
+);
+
+check(
+  '9e. Simulate routes are placed BEFORE player-authenticated routes',
+  edgeFn.indexOf('/dummy/simulate-payment') < edgeFn.indexOf('const user = await getUserFromRequest'),
+);
+
+check(
+  '9f. Simulate routes go through webhook flow, not direct credit',
   edgeFn.includes('webhooks/dummy/payment') && !edgeFn.includes("rpc('topup_wallet'"),
 );
 
@@ -185,9 +225,13 @@ check(
   edgeFn.includes('...corsHeaders') && edgeFn.includes('errorResponse'),
 );
 
+check(
+  '10c. CORS allows x-admin-session header',
+  edgeFn.includes('x-admin-session'),
+);
+
 // ── 11. RLS prevents players from updating payment orders/webhook events ───────
 
-// Extract only RLS policy section (DROP POLICY / CREATE POLICY) to check for unauthorized INSERT/UPDATE/DELETE
 const policyLines = migrationSql.split('\n').filter((l) => l.includes('CREATE POLICY'));
 const paymentOrderPolicies = policyLines.filter((l) => l.includes('payment_orders'));
 check(
@@ -259,7 +303,6 @@ check(
 
 // ── 15. Existing cashout_game is not changed ───────────────────────────────────
 
-// Strip /* ... */ comment blocks and -- line comments, then check SQL only
 const sqlOnly = migrationSql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^--[^\n]*$/gm, '');
 check(
   '15. Migration does not reference cashout_game in SQL statements',
@@ -270,6 +313,131 @@ check(
   '15b. Migration does not alter game_state table',
   !migrationSql.includes('ALTER TABLE public.game_state'),
 );
+
+check(
+  '15c. Hardening migration does not reference cashout_game in SQL statements',
+  !hardeningSql.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^--[^\n]*$/gm, '').includes('cashout_game'),
+);
+
+const buyCredits = readFile('src/components/payments/BuyCreditsSection.tsx');
+check(
+  '16. BuyCreditsSection does not call simulatePayment',
+  !buyCredits.includes('simulatePayment') && !buyCredits.includes('simulate-payment'),
+);
+
+check(
+  '16b. BuyCreditsSection does not call simulatePayout',
+  !buyCredits.includes('simulatePayout') && !buyCredits.includes('simulate-payout'),
+);
+
+const withdrawSection = readFile('src/components/payments/WithdrawSection.tsx');
+check(
+  '16c. WithdrawSection does not call simulatePayment',
+  !withdrawSection.includes('simulatePayment') && !withdrawSection.includes('simulate-payment'),
+);
+
+check(
+  '16d. WithdrawSection does not call simulatePayout',
+  !withdrawSection.includes('simulatePayout') && !withdrawSection.includes('simulate-payout'),
+);
+
+check(
+  '16e. BuyCreditsSection shows admin-only message for pending orders',
+  buyCredits.includes('Admin') || buyCredits.includes('admin'),
+);
+
+check(
+  '16f. WithdrawSection shows admin-only message for pending withdrawals',
+  withdrawSection.includes('Admin') || withdrawSection.includes('admin'),
+);
+
+// ── 17. Admin UI has simulation controls ────────────────────────────────────────
+
+const adminPayments = readFile('src/pages/admin/AdminPayments.tsx');
+check(
+  '17. AdminPayments imports usePayments for simulation',
+  adminPayments.includes('usePayments') && adminPayments.includes('simulatePayment'),
+);
+
+check(
+  '17b. AdminPayments has simulate payment buttons',
+  adminPayments.includes('handleSimulatePayment'),
+);
+
+check(
+  '17c. AdminPayments has simulate payout buttons',
+  adminPayments.includes('handleSimulatePayout'),
+);
+
+check(
+  '17d. AdminPayments uses admin session via usePayments hook',
+  adminPayments.includes('simulatePayment') && usePaymentsHook.includes('admin_session'),
+);
+
+// ── 18. usePayments hook uses admin session for simulation, not player JWT ──────
+
+check(
+  '18. usePayments simulatePayment uses x-admin-session header',
+  usePaymentsHook.includes("'x-admin-session'") && usePaymentsHook.includes('simulatePayment'),
+);
+
+check(
+  '18b. usePayments simulatePayout uses x-admin-session header',
+  usePaymentsHook.includes("'x-admin-session'") && usePaymentsHook.includes('simulatePayout'),
+);
+
+// Verify simulate functions specifically use admin session, not Bearer token
+const simulatePaymentSection = usePaymentsHook.substring(usePaymentsHook.indexOf('simulatePayment'), usePaymentsHook.indexOf('simulatePayment') + 500);
+const simulatePayoutSection = usePaymentsHook.substring(usePaymentsHook.indexOf('simulatePayout'), usePaymentsHook.indexOf('simulatePayout') + 500);
+check(
+  '18d. simulatePayment function body uses x-admin-session, not Bearer token',
+  simulatePaymentSection.includes('x-admin-session') && !simulatePaymentSection.includes('Bearer ${token}'),
+);
+check(
+  '18e. simulatePayout function body uses x-admin-session, not Bearer token',
+  simulatePayoutSection.includes('x-admin-session') && !simulatePayoutSection.includes('Bearer ${token}'),
+);
+
+// ── 19. Safe defaults in hardening migration ───────────────────────────────────
+
+check(
+  '19. Hardening migration sets withdrawals_enabled = false',
+  hardeningSql.includes("'withdrawals_enabled'") && hardeningSql.includes("'false'"),
+);
+
+check(
+  '19b. Hardening migration sets dummy_simulation_enabled = false',
+  hardeningSql.includes("'dummy_simulation_enabled'") && hardeningSql.includes("'false'"),
+);
+
+check(
+  '19c. Hardening migration disables dummy provider for withdrawal',
+  hardeningSql.includes('is_active_for_withdrawal = false') && hardeningSql.includes("provider_key = 'dummy'"),
+);
+
+// ── 20. Wallet credit finalization is service-role/RPC only ─────────────────────
+
+check(
+  '20. finalize_credit_purchase is SECURITY DEFINER',
+  migrationSql.includes('SECURITY DEFINER') && migrationSql.includes('finalize_credit_purchase'),
+);
+
+check(
+  '20b. finalize_credit_purchase is revoked from authenticated',
+  migrationSql.includes('REVOKE ALL ON FUNCTION public.finalize_credit_purchase') && migrationSql.includes('authenticated'),
+);
+
+check(
+  '20c. create_withdrawal_request is SECURITY DEFINER',
+  migrationSql.includes('SECURITY DEFINER') && migrationSql.includes('create_withdrawal_request'),
+);
+
+check(
+  '20d. create_withdrawal_request is revoked from authenticated',
+  migrationSql.includes('REVOKE ALL ON FUNCTION public.create_withdrawal_request') && migrationSql.includes('authenticated'),
+);
+
+// ── Summary ────────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed > 0) {

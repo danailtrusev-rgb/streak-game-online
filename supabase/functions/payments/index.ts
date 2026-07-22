@@ -24,7 +24,7 @@ import {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey, x-admin-session',
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -59,6 +59,27 @@ async function getUserFromRequest(req: Request): Promise<{ id: string } | null> 
   const token = authHeader.replace('Bearer ', '');
   const { data: { user } } = await supabase.auth.getUser(token);
   return user ? { id: user.id } : null;
+}
+
+async function validateAdminSession(sessionToken: string): Promise<string | null> {
+  if (!sessionToken) return null;
+  const supabase = getServiceClient();
+  const { data } = await supabase
+    .from('admin_sessions')
+    .select('username, expires_at')
+    .eq('id', sessionToken)
+    .maybeSingle();
+  if (!data) return null;
+  if (new Date(data.expires_at) < new Date()) {
+    await supabase.from('admin_sessions').delete().eq('id', sessionToken);
+    return null;
+  }
+  return data.username as string;
+}
+
+async function requireAdmin(req: Request): Promise<string | null> {
+  const sessionToken = req.headers.get('x-admin-session') || '';
+  return validateAdminSession(sessionToken);
 }
 
 async function getPaymentConfig(): Promise<PaymentConfig | null> {
@@ -421,7 +442,7 @@ async function handleDummyWebhookPayout(req: Request): Promise<Response> {
   }
 }
 
-async function handleSimulatePayment(req: Request, userId: string): Promise<Response> {
+async function handleSimulatePayment(req: Request): Promise<Response> {
   const body = await req.json() as SimulatePaymentRequest;
   if (!body.order_id) return errorResponse('Missing order_id', 400);
   if (!body.outcome || !['succeeded', 'failed'].includes(body.outcome)) {
@@ -433,7 +454,6 @@ async function handleSimulatePayment(req: Request, userId: string): Promise<Resp
     .from('payment_orders')
     .select('id, provider_payment_id, amount_cents, currency, status, user_id')
     .eq('id', body.order_id)
-    .eq('user_id', userId)
     .maybeSingle();
 
   if (!order) return errorResponse('Order not found', 404);
@@ -466,7 +486,7 @@ async function handleSimulatePayment(req: Request, userId: string): Promise<Resp
   return jsonResponse({ simulated: true, outcome: body.outcome, webhook_result: result });
 }
 
-async function handleSimulatePayout(req: Request, userId: string): Promise<Response> {
+async function handleSimulatePayout(req: Request): Promise<Response> {
   const body = await req.json() as SimulatePayoutRequest;
   if (!body.withdrawal_id) return errorResponse('Missing withdrawal_id', 400);
   if (!body.outcome || !['paid', 'failed'].includes(body.outcome)) {
@@ -478,7 +498,6 @@ async function handleSimulatePayout(req: Request, userId: string): Promise<Respo
     .from('withdrawal_requests')
     .select('id, provider_payout_id, amount_cents, currency, status, user_id')
     .eq('id', body.withdrawal_id)
-    .eq('user_id', userId)
     .maybeSingle();
 
   if (!wr) return errorResponse('Withdrawal not found', 404);
@@ -535,7 +554,19 @@ Deno.serve(async (req: Request) => {
       return await handleDummyWebhookPayout(req);
     }
 
-    // Authenticated routes
+    // Admin-only routes (require x-admin-session, NOT player JWT)
+    if (path === '/dummy/simulate-payment' && req.method === 'POST') {
+      const adminUser = await requireAdmin(req);
+      if (!adminUser) return errorResponse('Admin authorization required', 403);
+      return await handleSimulatePayment(req);
+    }
+    if (path === '/dummy/simulate-payout' && req.method === 'POST') {
+      const adminUser = await requireAdmin(req);
+      if (!adminUser) return errorResponse('Admin authorization required', 403);
+      return await handleSimulatePayout(req);
+    }
+
+    // Player-authenticated routes (require player JWT)
     const user = await getUserFromRequest(req);
     if (!user) return errorResponse('Unauthorized', 401);
 
@@ -554,12 +585,6 @@ Deno.serve(async (req: Request) => {
     }
     if (path === '/withdrawal-requests' && req.method === 'GET') {
       return await handleGetWithdrawalRequests(user.id);
-    }
-    if (path === '/dummy/simulate-payment' && req.method === 'POST') {
-      return await handleSimulatePayment(req, user.id);
-    }
-    if (path === '/dummy/simulate-payout' && req.method === 'POST') {
-      return await handleSimulatePayout(req, user.id);
     }
 
     return errorResponse('Not found', 404);

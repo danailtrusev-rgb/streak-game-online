@@ -145,13 +145,12 @@ export function usePayments() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const adminSession = localStorage.getItem('admin_session') || '';
       const res = await fetch(paymentsUrl('/dummy/simulate-payment'), {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
-          'Authorization': `Bearer ${token}`,
+          'x-admin-session': adminSession,
         },
         body: JSON.stringify({ order_id: orderId, outcome }),
       });
@@ -173,13 +172,12 @@ export function usePayments() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const adminSession = localStorage.getItem('admin_session') || '';
       const res = await fetch(paymentsUrl('/dummy/simulate-payout'), {
         method: 'POST',
         headers: {
           ...getAuthHeaders(),
-          'Authorization': `Bearer ${token}`,
+          'x-admin-session': adminSession,
         },
         body: JSON.stringify({ withdrawal_id: withdrawalId, outcome }),
       });

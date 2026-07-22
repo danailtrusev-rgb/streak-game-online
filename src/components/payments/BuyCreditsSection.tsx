@@ -1,13 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
-import { CreditCard, CheckCircle2, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { CreditCard, AlertTriangle, Info } from 'lucide-react';
 import { usePayments } from '../../hooks/usePayments';
-import { useAuth } from '../../context/AuthContext';
 import { formatEuros, shouldShowDummyLabel } from '../../lib/payments/dummyProvider';
 import type { PaymentOrder } from '../../lib/payments/paymentTypes';
 
 export default function BuyCreditsSection() {
-  const { config, createCreditOrder, simulatePayment, fetchOrders, orders, loading, error } = usePayments();
-  const { refresh } = useAuth();
+  const { config, createCreditOrder, fetchOrders, orders, loading, error } = usePayments();
   const [activeOrder, setActiveOrder] = useState<PaymentOrder | null>(null);
 
   useEffect(() => {
@@ -21,14 +19,6 @@ export default function BuyCreditsSection() {
       await fetchOrders();
     }
   }, [createCreditOrder, fetchOrders]);
-
-  const handleSimulate = useCallback(async (outcome: 'succeeded' | 'failed') => {
-    if (!activeOrder) return;
-    await simulatePayment(activeOrder.id, outcome);
-    await fetchOrders();
-    await refresh();
-    setActiveOrder(null);
-  }, [activeOrder, simulatePayment, fetchOrders, refresh]);
 
   if (!config?.payments_enabled || !config.credit_purchases_enabled) {
     return null;
@@ -120,59 +110,29 @@ export default function BuyCreditsSection() {
           padding: 16,
         }}>
           <div style={{
-            fontFamily: "'Inter', system-ui, sans-serif",
-            fontSize: 12,
-            color: 'rgba(255,255,255,0.7)',
-            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 8,
           }}>
-            Order created. Simulate payment outcome:
+            <Info size={14} style={{ color: '#F5D060', flexShrink: 0, marginTop: 2 }} />
+            <div>
+              <div style={{
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.7)',
+                marginBottom: 4,
+              }}>
+                Dummy checkout created. An admin must simulate success or failure from Admin → Payments.
+              </div>
+              <div style={{
+                fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 11,
+                color: 'rgba(255,255,255,0.4)',
+              }}>
+                Order ID: {activeOrder.id.slice(0, 8)}…
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => handleSimulate('succeeded')}
-              disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 14px',
-                border: '1px solid rgba(120,176,96,0.3)',
-                background: 'rgba(120,176,96,0.08)',
-                cursor: 'pointer',
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <CheckCircle2 size={14} style={{ color: '#78B060' }} />
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#78B060' }}>
-                Simulate Success
-              </span>
-            </button>
-            <button
-              onClick={() => handleSimulate('failed')}
-              disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 14px',
-                border: '1px solid rgba(255,122,0,0.3)',
-                background: 'rgba(255,122,0,0.06)',
-                cursor: 'pointer',
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <XCircle size={14} style={{ color: '#FF7A00' }} />
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 12, color: '#FF7A00' }}>
-                Simulate Failure
-              </span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          <Loader2 size={16} className="animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />
         </div>
       )}
 

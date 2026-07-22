@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { ArrowDownCircle, Loader2, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowDownCircle, AlertTriangle, Info } from 'lucide-react';
 import { usePayments } from '../../hooks/usePayments';
 import { useAuth } from '../../context/AuthContext';
 import { formatCents } from '../../lib/constants';
@@ -7,7 +7,7 @@ import { formatEuros, shouldShowDummyLabel } from '../../lib/payments/dummyProvi
 import type { WithdrawalRequest } from '../../lib/payments/paymentTypes';
 
 export default function WithdrawSection() {
-  const { config, createWithdrawal, simulatePayout, fetchWithdrawals, withdrawals, loading, error } = usePayments();
+  const { config, createWithdrawal, fetchWithdrawals, withdrawals, loading, error } = usePayments();
   const { playerState, refresh } = useAuth();
   const [amount, setAmount] = useState('');
 
@@ -25,12 +25,6 @@ export default function WithdrawSection() {
     await refresh();
     setAmount('');
   }, [amount, createWithdrawal, fetchWithdrawals, refresh]);
-
-  const handleSimulate = useCallback(async (withdrawalId: string, outcome: 'paid' | 'failed') => {
-    await simulatePayout(withdrawalId, outcome);
-    await fetchWithdrawals();
-    await refresh();
-  }, [simulatePayout, fetchWithdrawals, refresh]);
 
   if (!config?.payments_enabled) {
     return null;
@@ -173,12 +167,6 @@ export default function WithdrawSection() {
         </button>
       </div>
 
-      {loading && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: 8 }}>
-          <Loader2 size={14} className="animate-spin" style={{ color: 'rgba(255,255,255,0.4)' }} />
-        </div>
-      )}
-
       {error && (
         <div style={{ fontSize: 12, color: '#CC4444', fontFamily: "'Inter', sans-serif", textAlign: 'center' }}>
           {error}
@@ -208,41 +196,15 @@ export default function WithdrawSection() {
                 </span>
               </div>
               {isDummy && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => handleSimulate(w.id, 'paid')}
-                    disabled={loading}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '6px 10px',
-                      border: '1px solid rgba(120,176,96,0.3)',
-                      background: 'rgba(120,176,96,0.06)',
-                      cursor: 'pointer',
-                      opacity: loading ? 0.5 : 1,
-                    }}
-                  >
-                    <CheckCircle2 size={12} style={{ color: '#78B060' }} />
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#78B060' }}>Simulate Paid</span>
-                  </button>
-                  <button
-                    onClick={() => handleSimulate(w.id, 'failed')}
-                    disabled={loading}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '6px 10px',
-                      border: '1px solid rgba(255,122,0,0.3)',
-                      background: 'rgba(255,122,0,0.06)',
-                      cursor: 'pointer',
-                      opacity: loading ? 0.5 : 1,
-                    }}
-                  >
-                    <XCircle size={12} style={{ color: '#FF7A00' }} />
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: '#FF7A00' }}>Simulate Failed</span>
-                  </button>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 6,
+                }}>
+                  <Info size={12} style={{ color: '#F5D060', flexShrink: 0, marginTop: 2 }} />
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: 'rgba(245,208,96,0.6)' }}>
+                    Payout simulation is admin-only. Use Admin → Payments.
+                  </span>
                 </div>
               )}
             </div>
