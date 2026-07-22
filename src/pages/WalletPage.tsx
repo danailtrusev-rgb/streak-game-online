@@ -9,6 +9,8 @@ import { formatCents } from '../lib/constants';
 import { ICONS } from '../lib/assets';
 import type { WalletEntry } from '../lib/types';
 import { useI18n } from '../context/I18nContext';
+import BuyCreditsSection from '../components/payments/BuyCreditsSection';
+import WithdrawSection from '../components/payments/WithdrawSection';
 
 function LedgerRow({ entry }: { entry: WalletEntry }) {
   const { t } = useI18n();
@@ -237,6 +239,14 @@ export default function WalletPage() {
           {error}
         </div>
       )}
+
+      {/* Buy Credits (payment provider) */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+      <BuyCreditsSection />
+
+      {/* Withdraw Balance (payment provider) */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+      <WithdrawSection />
 
       {/* Divider */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />

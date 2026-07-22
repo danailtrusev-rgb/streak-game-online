@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import {
   Settings, Bell, TrendingUp, Puzzle, BookOpen, Globe, HelpCircle,
-  ChevronRight, ArrowLeft, Key, Trophy, Image, FileText, Clock,
+  ChevronRight, ArrowLeft, Key, Trophy, Image, FileText, Clock, CreditCard,
 } from 'lucide-react';
 import AdminSettings, { type SettingsSection } from './AdminSettings';
 import AdminGameTimeSection from './AdminGameTimeSection';
@@ -10,6 +10,7 @@ import AdminFAQ from './AdminFAQ';
 import AdminQualificationRules from './AdminQualificationRules';
 import AdminFlyers from './AdminFlyers';
 import AdminAuditLog from './AdminAuditLog';
+import AdminPayments from './AdminPayments';
 
 type SubPage =
   | null
@@ -25,7 +26,8 @@ type SubPage =
   | 'faq'
   | 'qualification'
   | 'flyers'
-  | 'audit';
+  | 'audit'
+  | 'payments';
 
 interface ConfigCard {
   key: SubPage;
@@ -113,6 +115,12 @@ const CARDS: ConfigCard[] = [
     title: 'Audit Log',
     description: 'Review admin actions and configuration change history.',
   },
+  {
+    key: 'payments',
+    icon: <CreditCard className="h-4 w-4 text-torch-ember" strokeWidth={1.5} />,
+    title: 'Payments',
+    description: 'Payment providers, credit packages, withdrawals, and webhook events.',
+  },
 ];
 
 const VALID_SUBSECTIONS = CARDS.map((c) => c.key).filter((k) => k !== null) as string[];
@@ -188,6 +196,14 @@ export default function AdminConfig({ subsection, onSubsectionChange }: AdminCon
     return (
       <SubPageWrapper title="Game Time System" onBack={back}>
         <AdminGameTimeSection />
+      </SubPageWrapper>
+    );
+  }
+
+  if (subPage === 'payments') {
+    return (
+      <SubPageWrapper title="Payments" onBack={back}>
+        <AdminPayments onBack={back} />
       </SubPageWrapper>
     );
   }
