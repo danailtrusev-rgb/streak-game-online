@@ -536,6 +536,82 @@ check(
   !walletPage.includes('usePayments'),
 );
 
+// ── 25. Server-side payment enablement checks ─────────────────────────────────
+
+check(
+  '25. create-credit-order checks payments_enabled',
+  edgeFn.includes('payments_enabled') && edgeFn.includes('handleCreateCreditOrder'),
+);
+
+check(
+  '25b. create-credit-order checks credit_purchases_enabled',
+  edgeFn.includes('credit_purchases_enabled') && edgeFn.includes('Credit purchases are not enabled'),
+);
+
+check(
+  '25c. create-credit-order returns 403 when disabled',
+  edgeFn.includes("'Credit purchases are not enabled', 403"),
+);
+
+check(
+  '25d. create-withdrawal-request checks payments_enabled',
+  edgeFn.includes('config?.payments_enabled') && edgeFn.includes('handleCreateWithdrawal'),
+);
+
+check(
+  '25e. create-withdrawal-request checks withdrawals_enabled',
+  edgeFn.includes("'Withdrawals are not enabled', 403"),
+);
+
+check(
+  '25f. create-withdrawal-request returns 403 when payments disabled',
+  edgeFn.includes("'Payments are not enabled', 403"),
+);
+
+check(
+  '25g. dummy provider order creation checks dummy_payments_enabled',
+  edgeFn.includes('dummy_payments_enabled') && edgeFn.includes('Dummy payments are not enabled'),
+);
+
+check(
+  '25h. dummy provider order creation returns 403 when disabled',
+  edgeFn.includes("'Dummy payments are not enabled', 403"),
+);
+
+// ── 26. Missing settings fail closed ────────────────────────────────────────────
+
+check(
+  '26. getPaymentConfig returns null on error (fails closed)',
+  edgeFn.includes('return null'),
+);
+
+check(
+  '26b. handleCreateCreditOrder uses optional chaining on config (fails closed on null)',
+  edgeFn.includes('config?.payments_enabled'),
+);
+
+check(
+  '26c. handleCreateWithdrawal uses optional chaining on config (fails closed on null)',
+  edgeFn.includes('config?.payments_enabled'),
+);
+
+check(
+  '26d. checkDummySimulationEnabled returns false on missing setting (fails closed)',
+  edgeFn.includes('checkDummySimulationEnabled') && edgeFn.includes('data?.value_json === true'),
+);
+
+// ── 27. Frontend flag is not the only protection ────────────────────────────────
+
+check(
+  '27. Edge function does not reference VITE_PAYMENTS_UI_ENABLED (server-side is independent)',
+  !edgeFn.includes('VITE_PAYMENTS_UI_ENABLED'),
+);
+
+check(
+  '27b. Server-side checks exist independently of frontend flag',
+  edgeFn.includes('payments_enabled') && !edgeFn.includes('VITE_PAYMENTS_UI_ENABLED'),
+);
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`);

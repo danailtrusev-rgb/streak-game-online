@@ -89,10 +89,6 @@ async function getPaymentConfig(): Promise<PaymentConfig | null> {
   return data as PaymentConfig;
 }
 
-async function checkWithdrawalsEnabled(): Promise<boolean> {
-  const config = await getPaymentConfig();
-  return config?.withdrawals_enabled === true;
-}
 
 async function checkDummySimulationEnabled(): Promise<boolean> {
   const supabase = getServiceClient();
@@ -121,11 +117,15 @@ async function handleCreateCreditOrder(req: Request, userId: string): Promise<Re
     return errorResponse('Credit purchases are not enabled', 403);
   }
 
-  const pkg = config.credit_packages.find((p) => p.package_key === body.package_key);
-  if (!pkg) return errorResponse('Invalid or unavailable package', 400);
-
   const providerKey = config.active_purchase_provider?.provider_key;
   if (!providerKey) return errorResponse('No active payment provider', 503);
+
+  if (providerKey === DUMMY_PROVIDER_KEY && !config.dummy_payments_enabled) {
+    return errorResponse('Dummy payments are not enabled', 403);
+  }
+
+  const pkg = config.credit_packages.find((p) => p.package_key === body.package_key);
+  if (!pkg) return errorResponse('Invalid or unavailable package', 400);
 
   const supabase = getServiceClient();
   const idempotencyKey = crypto.randomUUID();
@@ -194,13 +194,15 @@ async function handleCreateWithdrawal(req: Request, userId: string): Promise<Res
     return errorResponse('Invalid amount', 400);
   }
 
-  const withdrawalsEnabled = await checkWithdrawalsEnabled();
-  if (!withdrawalsEnabled) {
+  const config = await getPaymentConfig();
+  if (!config?.payments_enabled) {
+    return errorResponse('Payments are not enabled', 403);
+  }
+  if (!config.withdrawals_enabled) {
     return errorResponse('Withdrawals are not enabled', 403);
   }
 
-  const config = await getPaymentConfig();
-  const providerKey = config?.active_withdrawal_provider?.provider_key;
+  const providerKey = config.active_withdrawal_provider?.provider_key;
   if (!providerKey) return errorResponse('No active withdrawal provider', 503);
 
   const idempotencyKey = crypto.randomUUID();
