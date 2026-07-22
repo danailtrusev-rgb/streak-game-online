@@ -371,6 +371,10 @@ export default function AdminSkullGatePreview() {
     setImgStatus(initial);
   }, []);
 
+  // Derive current entry/scene before any useEffect that depends on scene
+  const entry: SceneEntry | undefined = entries[sceneIdx] ?? entries[0];
+  const scene: SkullGateSceneConfig | undefined = entry?.config;
+
   useEffect(() => {
     if (scene) probeImages(scene);
   }, [scene, probeImages]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -426,9 +430,6 @@ export default function AdminSkullGatePreview() {
     setOutcome(null);
     setSelectedChoice(null);
   }, []);
-
-  const entry: SceneEntry | undefined = entries[sceneIdx] ?? entries[0];
-  const scene: SkullGateSceneConfig | undefined = entry?.config;
 
   // Derive choice ids dynamically from choice_object layers
   const choiceIds: Array<{ id: string; name: string }> = scene
