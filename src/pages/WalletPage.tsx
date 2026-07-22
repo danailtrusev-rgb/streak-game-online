@@ -12,6 +12,9 @@ import { useI18n } from '../context/I18nContext';
 import BuyCreditsSection from '../components/payments/BuyCreditsSection';
 import WithdrawSection from '../components/payments/WithdrawSection';
 
+const paymentsUiEnabled =
+  import.meta.env.VITE_PAYMENTS_UI_ENABLED === 'true';
+
 function LedgerRow({ entry }: { entry: WalletEntry }) {
   const { t } = useI18n();
 
@@ -240,13 +243,26 @@ export default function WalletPage() {
         </div>
       )}
 
-      {/* Buy Credits (payment provider) */}
+      {/* Buy Credits / Withdraw (payment provider) — disabled by default */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
-      <BuyCreditsSection />
-
-      {/* Withdraw Balance (payment provider) */}
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
-      <WithdrawSection />
+      {paymentsUiEnabled ? (
+        <>
+          <BuyCreditsSection />
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />
+          <WithdrawSection />
+        </>
+      ) : (
+        <div style={{
+          padding: '24px 16px',
+          textAlign: 'center',
+          fontFamily: "'Inter', system-ui, sans-serif",
+          fontSize: 13,
+          color: 'rgba(255,255,255,0.3)',
+          lineHeight: 1.6,
+        }}>
+          Payments are not enabled in this environment yet.
+        </div>
+      )}
 
       {/* Divider */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.05)' }} />

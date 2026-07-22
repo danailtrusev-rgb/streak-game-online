@@ -21,6 +21,9 @@ function getAuthHeaders(): Record<string, string> {
   };
 }
 
+const paymentsUiEnabled =
+  import.meta.env.VITE_PAYMENTS_UI_ENABLED === 'true';
+
 export function usePayments() {
   const [config, setConfig] = useState<PaymentConfig | null>(null);
   const [orders, setOrders] = useState<PaymentOrder[]>([]);
@@ -48,6 +51,7 @@ export function usePayments() {
   }, []);
 
   useEffect(() => {
+    if (!paymentsUiEnabled) return;
     if (configFetched.current) return;
     configFetched.current = true;
     fetchConfig();
@@ -201,6 +205,7 @@ export function usePayments() {
     withdrawals,
     loading,
     error,
+    paymentsUiEnabled,
     fetchConfig,
     fetchOrders,
     fetchWithdrawals,

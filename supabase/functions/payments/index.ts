@@ -94,6 +94,16 @@ async function checkWithdrawalsEnabled(): Promise<boolean> {
   return config?.withdrawals_enabled === true;
 }
 
+async function checkDummySimulationEnabled(): Promise<boolean> {
+  const supabase = getServiceClient();
+  const { data } = await supabase
+    .from('settings')
+    .select('value_json')
+    .eq('key', 'dummy_simulation_enabled')
+    .maybeSingle();
+  return data?.value_json === true || data?.value_json === 'true';
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 
 async function handleGetConfig(): Promise<Response> {
@@ -554,15 +564,19 @@ Deno.serve(async (req: Request) => {
       return await handleDummyWebhookPayout(req);
     }
 
-    // Admin-only routes (require x-admin-session, NOT player JWT)
+    // Admin-only routes (require x-admin-session + dummy_simulation_enabled)
     if (path === '/dummy/simulate-payment' && req.method === 'POST') {
       const adminUser = await requireAdmin(req);
       if (!adminUser) return errorResponse('Admin authorization required', 403);
+      const simEnabled = await checkDummySimulationEnabled();
+      if (!simEnabled) return errorResponse('Dummy simulation is disabled', 403);
       return await handleSimulatePayment(req);
     }
     if (path === '/dummy/simulate-payout' && req.method === 'POST') {
       const adminUser = await requireAdmin(req);
       if (!adminUser) return errorResponse('Admin authorization required', 403);
+      const simEnabled = await checkDummySimulationEnabled();
+      if (!simEnabled) return errorResponse('Dummy simulation is disabled', 403);
       return await handleSimulatePayout(req);
     }
 

@@ -437,6 +437,105 @@ check(
   migrationSql.includes('REVOKE ALL ON FUNCTION public.create_withdrawal_request') && migrationSql.includes('authenticated'),
 );
 
+// ── 21. Frontend payments UI disabled by default ─────────────────────────────
+
+const envFile = readFile('.env');
+const envExample = readFile('.env.example');
+const walletPage = readFile('src/pages/WalletPage.tsx');
+
+check(
+  '21. VITE_PAYMENTS_UI_ENABLED exists in .env',
+  envFile.includes('VITE_PAYMENTS_UI_ENABLED'),
+);
+
+check(
+  '21b. VITE_PAYMENTS_UI_ENABLED defaults to false in .env',
+  envFile.includes('VITE_PAYMENTS_UI_ENABLED=false'),
+);
+
+check(
+  '21c. VITE_PAYMENTS_UI_ENABLED exists in .env.example',
+  envExample.includes('VITE_PAYMENTS_UI_ENABLED'),
+);
+
+check(
+  '21d. WalletPage reads VITE_PAYMENTS_UI_ENABLED flag',
+  walletPage.includes('VITE_PAYMENTS_UI_ENABLED'),
+);
+
+check(
+  '21e. WalletPage shows disabled placeholder when flag is false',
+  walletPage.includes('Payments are not enabled in this environment yet.'),
+);
+
+check(
+  '21f. WalletPage conditionally renders BuyCreditsSection only when enabled',
+  walletPage.includes('paymentsUiEnabled') && walletPage.includes('BuyCreditsSection'),
+);
+
+check(
+  '21g. WalletPage conditionally renders WithdrawSection only when enabled',
+  walletPage.includes('paymentsUiEnabled') && walletPage.includes('WithdrawSection'),
+);
+
+// ── 22. usePayments hook respects the flag ─────────────────────────────────────
+
+check(
+  '22. usePayments hook reads VITE_PAYMENTS_UI_ENABLED',
+  usePaymentsHook.includes('VITE_PAYMENTS_UI_ENABLED'),
+);
+
+check(
+  '22b. usePayments hook skips fetchConfig when flag is false',
+  usePaymentsHook.includes('!paymentsUiEnabled') || usePaymentsHook.includes('paymentsUiEnabled'),
+);
+
+check(
+  '22c. usePayments hook exposes paymentsUiEnabled in return value',
+  usePaymentsHook.includes('paymentsUiEnabled'),
+);
+
+// ── 23. Server-side dummy_simulation_enabled enforcement ───────────────────────
+
+check(
+  '23. Edge function has checkDummySimulationEnabled function',
+  edgeFn.includes('checkDummySimulationEnabled'),
+);
+
+check(
+  '23b. Simulate routes check dummy simulation enabled before processing',
+  edgeFn.includes('checkDummySimulationEnabled') && edgeFn.includes('Dummy simulation is disabled'),
+);
+
+check(
+  '23c. Simulate routes return 403 when dummy simulation is disabled',
+  edgeFn.includes("'Dummy simulation is disabled', 403"),
+);
+
+check(
+  '23d. checkDummySimulationEnabled queries settings table',
+  edgeFn.includes('dummy_simulation_enabled') && edgeFn.includes('settings'),
+);
+
+// ── 24. No automatic payment calls on app load ──────────────────────────────────
+
+const appFile = readFile('src/App.tsx');
+check(
+  '24. App.tsx does not call usePayments',
+  !appFile.includes('usePayments'),
+);
+
+const adminPage = readFile('src/pages/admin/AdminPage.tsx');
+check(
+  '24b. AdminPage does not call usePayments',
+  !adminPage.includes('usePayments'),
+);
+
+check(
+  '24c. WalletPage does not call usePayments directly (uses child components)',
+  !walletPage.includes('usePayments'),
+);
+
 // ── Summary ────────────────────────────────────────────────────────────────────
 
 console.log(`\n${passed} passed, ${failed} failed`);
