@@ -763,6 +763,72 @@ export const CROSS_THE_BRIDGE_SCENE_CONFIG: SkullGateSceneConfig = {
   updatedAt:       '2026-07-22T00:00:00.000Z',
 };
 
+// ── Relic Offering Scene Config ──────────────────────────────────────────────
+// Custom module scene — uses a dedicated component (RelicOfferingScene) rather than
+// the generic SkullGateSceneRenderer, because drag_to_target is more complex.
+// The config here provides metadata for the admin preview/library flow.
+
+const G_RO = '/assets/games/skull-gate/relic-offering';
+
+export const RELIC_OFFERING_SCENE_CONFIG: SkullGateSceneConfig = {
+  id:              'relic-offering',
+  slug:            'relic-offering',
+  title:           'Relic Offering',
+  description:     'Choose one of three relics and drag it to the altar.',
+  templateType:    'drag_to_target',
+  status:          'draft',
+  enabled:         false,
+  weight:          50,
+  cooldownDays:    1,
+  minStreak:       0,
+  maxStreak:       null,
+  introText:       'Three relics await the altar.',
+  instructionText: 'Drag one relic to the altar.',
+  ctaText:         'Offer the Relic',
+  surviveText:     'The altar accepts your offering. Your streak survives.',
+  failText:        'The altar rejects your offering. Your streak falls.',
+  cashoutText:     'Collect Your Winnings',
+  layers:          [], // custom module — layers managed by RelicOfferingScene component
+  createdAt:       '2026-07-22T00:00:00.000Z',
+  updatedAt:       '2026-07-22T00:00:00.000Z',
+};
+
+// ── Relic pool definition ─────────────────────────────────────────────────────
+
+export interface RelicDef {
+  id:        string;
+  name:      string;
+  assetPath: string;
+}
+
+export const RELIC_POOL: RelicDef[] = [
+  { id: 'golden-skull-mask', name: 'Golden Skull Mask', assetPath: `${G_RO}/relic-offering-layer-relic-1-golden-skull-mask.png` },
+  { id: 'golden-medal',      name: 'Golden Medal',      assetPath: `${G_RO}/relic-offering-layer-relic-2-golden-medal.png` },
+  { id: 'golden-face',       name: 'Golden Face',       assetPath: `${G_RO}/relic-offering-layer-relic-3-golden-face.png` },
+  { id: 'dragon-1',           name: 'Dragon',            assetPath: `${G_RO}/relic-offering-layer-relic-4-dragon.png` },
+  { id: 'snake',              name: 'Snake',             assetPath: `${G_RO}/relic-offering-layer-relic-5-snake-2.png` },
+  { id: 'emerald',            name: 'Emerald',           assetPath: `${G_RO}/relic-offering-layer-relic-6-emerald.png` },
+  { id: 'jaguar',             name: 'Jaguar',            assetPath: `${G_RO}/relic-offering-layer-relic-7-jaguar.png` },
+  { id: 'emerald-moon',       name: 'Emerald Moon',      assetPath: `${G_RO}/relic-offering-layer-relic-8-emerald-moon.png` },
+  { id: 'mask',               name: 'Mask',              assetPath: `${G_RO}/relic-offering-layer-relic-9-mask.png` },
+  { id: 'dragon-2',           name: 'Dragon',            assetPath: `${G_RO}/relic-offering-layer-relic-10-dragon.png` },
+];
+
+export const RELIC_OFFERING_BASE_ASSETS = {
+  sky:              `${G_RO}/relic-offering-layer-sky.jpg`,
+  mountains:        `${G_RO}/relic-offering-layer-background-mountains-without-sky.png`,
+  behindHolder:     `${G_RO}/relic-offering-layer-behind-relic-holder.png`,
+  foreground:       `${G_RO}/relic-offering-foreground.png`,
+};
+
+export const RELIC_OFFERING_SLOT_POSITIONS = [
+  { x: 12, y: 69, width: 22, height: 18 },
+  { x: 39, y: 69, width: 22, height: 18 },
+  { x: 66, y: 69, width: 22, height: 18 },
+];
+
+export const RELIC_OFFERING_ALTAR_POSITION = { x: 35, y: 42, width: 30, height: 18 };
+
 // ── Product mechanic → scene template type mapping ────────────────────────────
 // Reference for scene authors and the Scene Editor template selector.
 // Pick/SafeBox   → choice_2 (player picks one of two hidden options)
@@ -792,4 +858,5 @@ export const DEFAULT_SKULL_GATE_SCENES: SkullGateSceneConfig[] = [
   TORCH_TRIAL_SCENE_CONFIG,
   BLOOD_MOON_RELIC_SCENE_CONFIG,
   CROSS_THE_BRIDGE_SCENE_CONFIG,
+  RELIC_OFFERING_SCENE_CONFIG,
 ];

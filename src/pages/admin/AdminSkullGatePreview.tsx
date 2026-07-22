@@ -7,6 +7,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Layers, RotateCcw, Eye, EyeOff, FlaskConical, AlertCircle, CheckCircle, Loader, RefreshCw, Database, ImageOff, WifiOff } from 'lucide-react';
 import SkullGateSceneRenderer from '../../components/game/SkullGateSceneRenderer';
+import RelicOfferingScene, { clearRelicSelection } from '../../components/game/RelicOfferingScene';
+import type { RelicOfferingPhase } from '../../components/game/RelicOfferingScene';
 import { useSkullGateScenes } from '../../hooks/useSkullGateScenes';
 import { supabase } from '../../lib/supabase';
 import { USE_SCENE_BASED_SKULL_GATE } from '../../lib/constants';
@@ -14,7 +16,7 @@ import { DEFAULT_SKULL_GATE_SCENES } from '../../lib/skullGateScenes';
 import type { SkullGateSceneConfig } from '../../lib/types';
 import type { SkullGateAssignment } from '../../hooks/useSkullGateAssignment';
 
-type Phase   = 'idle' | 'selected' | 'revealing' | 'done';
+type Phase   = 'idle' | 'selected' | 'resolving' | 'revealing' | 'done';
 type Outcome = 'SURVIVE' | 'DIE' | null;
 
 const UF = "'Inter', system-ui, sans-serif";
@@ -456,6 +458,19 @@ export default function AdminSkullGatePreview() {
     setSelectedChoice(null);
   }, []);
 
+  // Relic Offering: when drag completes, start resolving phase (ritual pause)
+  const handleRelicDragComplete = useCallback(() => {
+    setPhase('resolving');
+  }, []);
+
+  // Relic Offering: regenerate relic selection and reset
+  const handleRelicReset = useCallback(() => {
+    clearRelicSelection();
+    setPhase('idle');
+    setOutcome(null);
+    setSelectedChoice(null);
+  }, []);
+
   const simulateSurvive = useCallback(() => {
     setOutcome('SURVIVE');
     setPhase('revealing');
@@ -713,16 +728,25 @@ export default function AdminSkullGatePreview() {
             boxShadow: '0 8px 32px rgba(0,0,0,0.75)',
             background: '#070A08',
           }}>
-            <SkullGateSceneRenderer
-              sceneConfig={scene}
-              mode="preview"
-              selectedChoiceId={selectedChoice}
-              resultOutcome={outcome}
-              revealPhase={phase}
-              onChoiceSelect={handleChoiceSelect}
-              onCta={handleCta}
-              showEditorOutlines={showOutlines}
-            />
+            {scene.slug === 'relic-offering' ? (
+              <RelicOfferingScene
+                outcome={outcome}
+                revealPhase={phase as RelicOfferingPhase}
+                onDragComplete={handleRelicDragComplete}
+                showOutlines={showOutlines}
+              />
+            ) : (
+              <SkullGateSceneRenderer
+                sceneConfig={scene}
+                mode="preview"
+                selectedChoiceId={selectedChoice}
+                resultOutcome={outcome}
+                revealPhase={phase === 'resolving' ? 'selected' : phase}
+                onChoiceSelect={handleChoiceSelect}
+                onCta={handleCta}
+                showEditorOutlines={showOutlines}
+              />
+            )}
           </div>
           {/* Frame caption */}
           <div style={{
@@ -768,6 +792,16 @@ export default function AdminSkullGatePreview() {
             <div style={{ fontSize: 10, fontFamily: UF, color: 'rgba(255,255,255,0.28)', letterSpacing: '0.1em' }}>
               {scene.templateType} · {scene.status} · weight {scene.weight}
             </div>
+            {scene.slug === 'relic-offering' && (
+              <div style={{
+                marginTop: 4, fontSize: 9, fontFamily: UF, letterSpacing: '0.1em',
+                color: 'rgba(200,175,80,0.7)', textTransform: 'uppercase',
+                padding: '2px 7px', border: '1px solid rgba(180,140,0,0.25)',
+                background: 'rgba(180,140,0,0.06)', display: 'inline-block',
+              }}>
+                Custom Module · Visual editing not available yet
+              </div>
+            )}
           </div>
 
           <div style={{ height: 1, background: 'rgba(40,55,42,0.4)' }} />
@@ -817,19 +851,29 @@ export default function AdminSkullGatePreview() {
           <div>
             <SectionLabel>Simulate Scenario</SectionLabel>
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              <ActionButton onClick={handleReset} label="↩ Reset to Idle" />
-              <ActionButton
-                onClick={() => {
-                  if (!selectedChoice) setSelectedChoice(firstChoiceId);
-                  setPhase('selected');
-                  setOutcome(null);
-                }}
-                label="Select Choice"
-              />
-              <ActionButton onClick={handleCta} label="Press CTA" />
-              <ActionButton onClick={simulateSurvive} label="→ Survive" accent />
-              <ActionButton onClick={simulateDie} label="→ Die" />
-              <ActionButton onClick={simulateDone} label="→ Done" />
+              <ActionButton onClick={scene.slug === 'relic-offering' ? handleRelicReset : handleReset} label="↩ Reset to Idle" />
+              {scene.slug === 'relic-offering' ? (
+                <>
+                  <ActionButton onClick={simulateSurvive} label="→ Survive" accent />
+                  <ActionButton onClick={simulateDie} label="→ Die" />
+                  <ActionButton onClick={simulateDone} label="→ Done" />
+                </>
+              ) : (
+                <>
+                  <ActionButton
+                    onClick={() => {
+                      if (!selectedChoice) setSelectedChoice(firstChoiceId);
+                      setPhase('selected');
+                      setOutcome(null);
+                    }}
+                    label="Select Choice"
+                  />
+                  <ActionButton onClick={handleCta} label="Press CTA" />
+                  <ActionButton onClick={simulateSurvive} label="→ Survive" accent />
+                  <ActionButton onClick={simulateDie} label="→ Die" />
+                  <ActionButton onClick={simulateDone} label="→ Done" />
+                </>
+              )}
             </div>
           </div>
 
@@ -874,6 +918,17 @@ export default function AdminSkullGatePreview() {
           {/* Layer list */}
           <div>
             <SectionLabel>Layer Stack (z-order)</SectionLabel>
+            {scene.slug === 'relic-offering' ? (
+              <div style={{
+                padding: '10px 12px',
+                background: 'rgba(180,140,0,0.06)',
+                border: '1px solid rgba(180,140,0,0.25)',
+                fontSize: 10, fontFamily: UF, color: 'rgba(200,175,80,0.75)',
+                lineHeight: 1.6,
+              }}>
+                This is a local/custom module scene. Visual editing is not available yet.
+              </div>
+            ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {[...scene.layers]
                 .sort((a, b) => a.zIndex - b.zIndex)
@@ -943,9 +998,10 @@ export default function AdminSkullGatePreview() {
                   );
                 })}
             </div>
+            )}
 
-            {/* Image load error detail */}
-            {Object.entries(imgStatus).some(([, st]) => st === 'error') && (
+          {/* Image load error detail */}
+          {scene.slug !== 'relic-offering' && Object.entries(imgStatus).some(([, st]) => st === 'error') && (
               <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {scene.layers
                   .filter((l) => imgStatus[l.id] === 'error')
