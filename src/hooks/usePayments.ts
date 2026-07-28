@@ -6,7 +6,6 @@ import type {
   WithdrawalRequest,
   CreateCreditOrderResponse,
   CreateWithdrawalResponse,
-  SimulateResponse,
 } from '../lib/payments/paymentTypes';
 
 function paymentsUrl(path: string): string {
@@ -145,60 +144,6 @@ export function usePayments() {
     }
   }, []);
 
-  const simulatePayment = useCallback(async (orderId: string, outcome: 'succeeded' | 'failed'): Promise<SimulateResponse | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const adminSession = localStorage.getItem('admin_session') || '';
-      const res = await fetch(paymentsUrl('/dummy/simulate-payment'), {
-        method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'x-admin-session': adminSession,
-        },
-        body: JSON.stringify({ order_id: orderId, outcome }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Simulation failed');
-        return null;
-      }
-      return data as SimulateResponse;
-    } catch {
-      setError('Simulation failed');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const simulatePayout = useCallback(async (withdrawalId: string, outcome: 'paid' | 'failed'): Promise<SimulateResponse | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const adminSession = localStorage.getItem('admin_session') || '';
-      const res = await fetch(paymentsUrl('/dummy/simulate-payout'), {
-        method: 'POST',
-        headers: {
-          ...getAuthHeaders(),
-          'x-admin-session': adminSession,
-        },
-        body: JSON.stringify({ withdrawal_id: withdrawalId, outcome }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Simulation failed');
-        return null;
-      }
-      return data as SimulateResponse;
-    } catch {
-      setError('Simulation failed');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   return {
     config,
     orders,
@@ -211,7 +156,5 @@ export function usePayments() {
     fetchWithdrawals,
     createCreditOrder,
     createWithdrawal,
-    simulatePayment,
-    simulatePayout,
   };
 }

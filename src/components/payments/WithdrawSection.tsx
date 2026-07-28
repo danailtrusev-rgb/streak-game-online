@@ -203,7 +203,7 @@ export default function WithdrawSection() {
                 }}>
                   <Info size={12} style={{ color: '#F5D060', flexShrink: 0, marginTop: 2 }} />
                   <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, color: 'rgba(245,208,96,0.6)' }}>
-                    Payout simulation is admin-only. Use Admin → Payments.
+                    Payout is pending. The provider will process it and notify us automatically.
                   </span>
                 </div>
               )}

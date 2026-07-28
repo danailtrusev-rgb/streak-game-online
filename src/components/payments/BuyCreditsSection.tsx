@@ -122,7 +122,7 @@ export default function BuyCreditsSection() {
                 color: 'rgba(255,255,255,0.7)',
                 marginBottom: 4,
               }}>
-                Dummy checkout created. An admin must simulate success or failure from Admin → Payments.
+                Payment is pending. The provider will process it and notify us automatically.
               </div>
               <div style={{
                 fontFamily: "'Inter', system-ui, sans-serif",

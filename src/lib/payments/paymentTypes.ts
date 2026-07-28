@@ -71,7 +71,6 @@ export interface WithdrawalRequest {
 
 export interface CreateCreditOrderResponse {
   order: PaymentOrder;
-  checkout_url: string;
   provider_payment_id: string;
   is_dummy: boolean;
 }
@@ -82,10 +81,4 @@ export interface CreateWithdrawalResponse {
   status: WithdrawalStatus;
   balance_cents: number;
   is_dummy: boolean;
-}
-
-export interface SimulateResponse {
-  simulated: boolean;
-  outcome: string;
-  webhook_result: Record<string, unknown>;
 }
